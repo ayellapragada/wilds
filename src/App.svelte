@@ -79,8 +79,8 @@
       <h2>Join a Room</h2>
       <input bind:value={roomInput} placeholder="Room code" />
       <div class="join-buttons">
-        <button onclick={goToGame} disabled={!roomInput}>TV Display</button>
-        <button onclick={goToPlayer} disabled={!roomInput}>Phone Controller</button>
+        <button onclick={goToGame} disabled={!roomInput}>TV Display (USE THIS ONE FOR NOW)</button>
+        <button onclick={goToPlayer} disabled={!roomInput}>Phone Controller (IGNORE, WIP)</button>
       </div>
     </section>
   </main>
