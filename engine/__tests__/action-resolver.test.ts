@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { resolveAction } from "../action-resolver";
 import { createInitialState } from "../index";
-import type { GameState, Trainer } from "../types";
+import type { GameState, Trainer, RouteNode } from "../types";
 
 // === Helpers ===
 
@@ -449,20 +449,20 @@ describe("action-resolver", () => {
       expect(state.phase).toBe("route"); // still in route, t1 exploring
 
       [state] = stop(state, "t1");
-      expect(state.phase).toBe("world"); // both stopped → world
+      expect(state.phase).toBe("hub"); // both stopped → hub
       expect(state.currentRoute!.status).toBe("complete");
     });
 
-    test("emits route_completed and world_entered events", () => {
+    test("emits route_completed and hub_entered events", () => {
       let state = setupRoute(2);
       [state] = stop(state, "t0");
       const [, events] = stop(state, "t1");
 
       const routeCompleted = events.find(e => e.type === "route_completed");
-      const worldEntered = events.find(e => e.type === "world_entered");
+      const hubEntered = events.find(e => e.type === "hub_entered");
 
       expect(routeCompleted).toBeDefined();
-      expect(worldEntered).toBeDefined();
+      expect(hubEntered).toBeDefined();
     });
 
     test("resets all trainers to waiting after route completion", () => {
@@ -490,22 +490,22 @@ describe("action-resolver", () => {
       expect(state.phase).toBe("route"); // t1 still exploring
 
       [state] = stop(state, "t1");
-      expect(state.phase).toBe("world");
+      expect(state.phase).toBe("hub");
     });
 
     test("single trainer stopping ends route immediately", () => {
       let state = setupRoute(1);
       [state] = stop(state, "t0");
 
-      expect(state.phase).toBe("world");
+      expect(state.phase).toBe("hub");
       expect(state.currentRoute!.status).toBe("complete");
     });
 
-    test("votes are reset on world phase entry", () => {
+    test("hub state is set on route completion", () => {
       let state = setupRoute(1);
       [state] = stop(state, "t0");
 
-      expect(state.votes).toEqual({});
+      expect(state.hub).not.toBeNull();
     });
 
     test("scores persist across route completion", () => {
@@ -515,6 +515,40 @@ describe("action-resolver", () => {
       [state] = stop(state, "t0");
 
       expect(state.trainers["t0"].score).toBe(distance);
+    });
+  });
+
+  // --- Route → Hub transition ---
+
+  describe("route → hub transition", () => {
+    test("route completion transitions to hub instead of world", () => {
+      let state = setupRoute(1);
+      [state] = stop(state, "t0");
+
+      expect(state.phase).toBe("hub");
+      expect(state.hub).not.toBeNull();
+    });
+
+    test("hub has free pick offers for non-busted trainer", () => {
+      let state = setupRoute(1);
+      [state] = stop(state, "t0");
+
+      expect(state.hub!.freePickOffers["t0"]).toBeDefined();
+    });
+
+    test("champion route still goes straight to game_over", () => {
+      let state = setupRoute(1);
+      const champNode: RouteNode = {
+        id: "champ", type: "champion", bonus: null, name: "Champion", tier: 7,
+        connections: [], modifiers: [], visited: true, creaturePool: [],
+      };
+      state = {
+        ...state,
+        map: { nodes: { champ: champNode }, currentNodeId: "champ", totalTiers: 8 },
+      };
+      [state] = stop(state, "t0");
+
+      expect(state.phase).toBe("game_over");
     });
   });
 

@@ -16,10 +16,10 @@ function worldPhaseState(trainerCount: number): GameState {
 
   // Build a tiny test map: start → [nodeA, nodeB] → champion
   const nodes: Record<string, RouteNode> = {
-    start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], modifiers: [], visited: true },
-    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], modifiers: [], visited: false },
-    nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], modifiers: [], visited: false },
-    champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], modifiers: [], visited: false },
+    start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], modifiers: [], visited: true, creaturePool: [] },
+    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], modifiers: [], visited: false, creaturePool: ["scout", "wanderer", "spark"] },
+    nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], modifiers: [], visited: false, creaturePool: [] },
+    champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], modifiers: [], visited: false, creaturePool: [] },
   };
 
   const map: WorldMap = { nodes, currentNodeId: "start", totalTiers: 3 };
@@ -181,6 +181,13 @@ describe("full vote cycle integration", () => {
     [state] = castVote(state, "t0", "nodeA");
     // Now in route phase at nodeA, stop to complete
     [state] = resolveAction(state, { type: "stop", trainerId: "t0" });
+    // Now in hub phase, skip free pick to advance to marketplace, then ready up
+    expect(state.phase).toBe("hub");
+    expect(state.hub!.phase).toBe("free_pick");
+    [state] = resolveAction(state, { type: "skip_free_pick", trainerId: "t0" });
+    expect(state.hub!.phase).toBe("marketplace");
+    [state] = resolveAction(state, { type: "ready_up", trainerId: "t0" });
+    expect(state.phase).toBe("world");
     // Now in world phase, vote to champ
     [state] = castVote(state, "t0", "champ");
     // Now in route phase at champion, stop to complete

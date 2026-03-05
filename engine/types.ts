@@ -89,6 +89,7 @@ export interface RouteNode {
   readonly connections: readonly string[];
   readonly modifiers: readonly RouteModifier[];
   readonly visited: boolean;
+  readonly creaturePool: readonly string[];
 }
 
 export interface WorldMap {
@@ -97,17 +98,20 @@ export interface WorldMap {
   readonly totalTiers: number;
 }
 
-// === Marketplace ===
+// === Hub ===
 
-export interface Marketplace {
-  readonly availableCreatures: readonly Creature[];
-  readonly prices: Record<string, number>;
-  readonly trainerPurchases: Record<string, readonly string[]>;
+export interface HubState {
+  readonly phase: "free_pick" | "marketplace";
+  readonly freePickOffers: Record<string, readonly Creature[]>;
+  readonly freePicksMade: Record<string, string | null>;
+  readonly shopCreatures: readonly Creature[];
+  readonly shopPrices: Record<string, number>;
+  readonly readyTrainers: readonly string[];
 }
 
 // === Game State ===
 
-export type GamePhase = "lobby" | "route" | "world" | "game_over";
+export type GamePhase = "lobby" | "route" | "hub" | "world" | "game_over";
 
 export interface GameState {
   readonly gameId: string;
@@ -116,7 +120,7 @@ export interface GameState {
   readonly trainers: Record<string, Trainer>;
   readonly map: WorldMap | null;
   readonly currentRoute: Route | null;
-  readonly marketplace: Marketplace | null;
+  readonly hub: HubState | null;
   readonly votes: Record<string, string> | null;
   readonly routeNumber: number;
   readonly settings: GameSettings;
@@ -140,7 +144,9 @@ export type Action =
   | { type: "buy_creature"; trainerId: string; creatureId: string }
   | { type: "sell_creature"; trainerId: string; creatureId: string }
   | { type: "choose_rest_benefit"; trainerId: string; benefit: "threshold" | "remove_creature" | "preview" }
-  | { type: "ready_up"; trainerId: string };
+  | { type: "ready_up"; trainerId: string }
+  | { type: "pick_free_creature"; trainerId: string; creatureId: string }
+  | { type: "skip_free_pick"; trainerId: string };
 
 // === Events ===
 
@@ -162,4 +168,8 @@ export type GameEvent =
   | { type: "creature_purchased"; trainerId: string; creature: Creature }
   | { type: "creature_sold"; trainerId: string; creatureId: string }
   | { type: "rest_benefit_chosen"; trainerId: string; benefit: string }
+  | { type: "hub_entered"; freePickOffers: Record<string, readonly Creature[]>; shopCreatures: Creature[]; shopPrices: Record<string, number> }
+  | { type: "free_creature_picked"; trainerId: string; creature: Creature }
+  | { type: "free_pick_skipped"; trainerId: string }
+  | { type: "all_ready" }
   | { type: "game_over"; finalScores: Record<string, number>; championId: string };

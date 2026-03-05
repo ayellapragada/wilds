@@ -1,4 +1,5 @@
 import type { WorldMap, RouteNode, RouteNodeType, BonusType } from "./types";
+import { getAllTemplateIds, getTemplate } from "./creatures/catalog";
 
 export type RngFn = () => number;
 
@@ -29,12 +30,12 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
     if (tier === 0) {
       // Tier 0: single start node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "route", tier, pickName(), null);
+      nodes[id] = makeNode(id, "route", tier, pickName(), null, generateCreaturePool(tier, totalTiers, rng));
       tierNodeIds.push(id);
     } else if (tier === totalTiers - 1) {
       // Last tier: single champion node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "champion", tier, "Champion Route", null);
+      nodes[id] = makeNode(id, "champion", tier, "Champion Route", null, []);
       tierNodeIds.push(id);
     } else {
       // Middle tiers: 2-3 nodes
@@ -44,7 +45,7 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
         const id = `t${tier}_${i}`;
         const nodeType: RouteNodeType = i === 0 ? type : "route";
         const bonus = rng() < 0.3 ? BONUS_TYPES[Math.floor(rng() * BONUS_TYPES.length)] : null;
-        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus);
+        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generateCreaturePool(tier, totalTiers, rng));
         tierNodeIds.push(id);
       }
     }
@@ -84,9 +85,53 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
   return { nodes, currentNodeId: tiers[0][0], totalTiers };
 }
 
+function buildRarityBuckets(allIds: string[]): Record<string, string[]> {
+  const buckets: Record<string, string[]> = {};
+  for (const id of allIds) {
+    const rarity = getTemplate(id).rarity;
+    (buckets[rarity] ??= []).push(id);
+  }
+  return buckets;
+}
+
+function pickByRarity(
+  weights: Record<string, number>,
+  buckets: Record<string, string[]>,
+  allIds: string[],
+  rng: RngFn,
+): string {
+  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
+  let roll = rng() * totalWeight;
+  let targetRarity = "common";
+  for (const [rarity, weight] of Object.entries(weights)) {
+    roll -= weight;
+    if (roll <= 0) { targetRarity = rarity; break; }
+  }
+  const candidates = buckets[targetRarity];
+  return candidates?.length
+    ? candidates[Math.floor(rng() * candidates.length)]
+    : allIds[Math.floor(rng() * allIds.length)];
+}
+
+function generateCreaturePool(tier: number, totalTiers: number, rng: RngFn): string[] {
+  const allIds = getAllTemplateIds();
+  const buckets = buildRarityBuckets(allIds);
+  const poolSize = 4 + Math.floor(rng() * 3); // 4-6 creatures
+
+  const progress = tier / (totalTiers - 1);
+  const weights: Record<string, number> = {
+    common: Math.max(0.1, 1 - progress),
+    uncommon: 0.3 + progress * 0.2,
+    rare: progress * 0.4,
+    legendary: progress > 0.7 ? (progress - 0.7) * 1.0 : 0,
+  };
+
+  return Array.from({ length: poolSize }, () => pickByRarity(weights, buckets, allIds, rng));
+}
+
 function makeNode(
   id: string, type: RouteNodeType, tier: number,
-  name: string, bonus: BonusType | null,
+  name: string, bonus: BonusType | null, creaturePool: string[],
 ): RouteNode {
-  return { id, type, bonus, name, tier, connections: [], modifiers: [], visited: false };
+  return { id, type, bonus, name, tier, connections: [], modifiers: [], visited: false, creaturePool };
 }

@@ -11,7 +11,7 @@ export function createInitialState(roomCode: string): GameState {
     trainers: {},
     map: null,
     currentRoute: null,
-    marketplace: null,
+    hub: null,
     votes: null,
     routeNumber: 0,
     settings: {

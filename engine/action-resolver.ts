@@ -4,6 +4,7 @@ import { createDeck, drawCreature, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
 import { resolveAbility } from "./abilities/resolver";
 import { handleVote } from "./phases/world";
+import { enterHub, handlePickFreeCreature, handleSkipFreePick, handleBuyCreature, handleReadyUp } from "./phases/hub";
 import { generateMap } from "./map-generator";
 
 export type ResolveResult = [GameState, GameEvent[]];
@@ -22,6 +23,14 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleBustPenalty(state, action);
     case "cast_vote":
       return handleVote(state, action, Math.random);
+    case "pick_free_creature":
+      return handlePickFreeCreature(state, action);
+    case "skip_free_pick":
+      return handleSkipFreePick(state, action);
+    case "buy_creature":
+      return handleBuyCreature(state, action);
+    case "ready_up":
+      return handleReadyUp(state, action);
     default:
       return [state, []];
   }
@@ -288,10 +297,18 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
 
   if (!allDone || !state.currentRoute) return state;
 
+  // Track busted trainers from events before resetting
+  const bustedTrainerIds: string[] = [];
+  for (const e of events) {
+    if (e.type === "bust_penalty_chosen") {
+      bustedTrainerIds.push(e.trainerId);
+    }
+  }
+
   // Build route results
   const results: Record<string, { distance: number; currencyEarned: number; busted: boolean }> = {};
   for (const t of Object.values(state.trainers)) {
-    results[t.id] = { distance: t.score, currencyEarned: t.currency, busted: false };
+    results[t.id] = { distance: t.score, currencyEarned: t.currency, busted: bustedTrainerIds.includes(t.id) };
   }
 
   // Reset trainers to waiting
@@ -329,13 +346,13 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
     }
   }
 
-  events.push({ type: "world_entered" });
-
-  return {
+  // Enter hub phase instead of world
+  const hubState: GameState = {
     ...state,
     trainers,
     currentRoute: { ...state.currentRoute, status: "complete" },
-    phase: "world",
-    votes: {},
   };
+  const [finalState, hubEvents] = enterHub(hubState, bustedTrainerIds, Math.random);
+  events.push(...hubEvents);
+  return finalState;
 }

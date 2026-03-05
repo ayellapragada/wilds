@@ -167,6 +167,78 @@
         {/each}
       </div>
     </section>
+  {:else if gameState?.phase === 'hub'}
+    <section>
+      <h2>Hub</h2>
+      <p>Score: {myTrainer?.score} | Currency: {myTrainer?.currency}</p>
+
+      {#if gameState.hub}
+        {@const canFreePick = (gameState.hub.freePickOffers[myId]?.length ?? 0) > 0 && !(myId in (gameState.hub.freePicksMade ?? {}))}
+        <div class="shop-items">
+          {#if canFreePick}
+            {#each gameState.hub.freePickOffers[myId] as creature}
+              <button
+                class="creature-card {creature.type}"
+                onclick={() => send({ type: 'pick_free_creature', trainerId: myId, creatureId: creature.id })}
+              >
+                <strong>{creature.name}</strong>
+                <span class="creature-stats">+{creature.distance}d / +{creature.cost}c</span>
+                <span class="creature-rarity">{creature.rarity}</span>
+                <span class="creature-price"><s class="old-price">${gameState.hub.shopPrices[creature.id] ?? '?'}</s> FREE</span>
+                {#if creature.description}
+                  <span class="creature-desc">{creature.description}</span>
+                {/if}
+              </button>
+            {/each}
+          {/if}
+          {#each gameState.hub.shopCreatures as creature}
+            {@const price = gameState.hub.shopPrices[creature.id] ?? 0}
+            <button
+              class="creature-card {creature.type}"
+              onclick={() => send({ type: 'buy_creature', trainerId: myId, creatureId: creature.id })}
+              disabled={gameState.hub.phase !== 'marketplace' || (myTrainer?.currency ?? 0) < price}
+            >
+              <strong>{creature.name}</strong>
+              <span class="creature-stats">+{creature.distance}d / +{creature.cost}c</span>
+              <span class="creature-rarity">{creature.rarity}</span>
+              <span class="creature-price">${price}</span>
+              {#if creature.description}
+                <span class="creature-desc">{creature.description}</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+
+        {#if gameState.hub.readyTrainers.includes(myId)}
+          <p>Waiting for others... ({gameState.hub.readyTrainers.length}/{trainerCount} ready)</p>
+        {:else}
+          <button class="ready-btn" onclick={() => {
+            if (canFreePick) {
+              if (!confirm('You aren\'t hiring a Pokemon. Are you sure?')) return;
+              send({ type: 'skip_free_pick', trainerId: myId });
+            } else {
+              send({ type: 'ready_up', trainerId: myId });
+            }
+          }}>
+            Ready ({gameState.hub.readyTrainers.length}/{trainerCount})
+          </button>
+        {/if}
+      {/if}
+
+      <div class="other-trainers">
+        <h3>Trainers</h3>
+        {#each trainerList as trainer}
+          <div class="trainer-row" class:me={trainer.id === myId}>
+            <strong>{trainer.name}</strong>
+            {#if trainer.id === myId}(you){/if}
+            — Score: {trainer.score} | Currency: {trainer.currency}
+            {#if gameState.hub?.readyTrainers.includes(trainer.id)}
+              <span class="voted-badge">ready</span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </section>
   {:else if gameState?.phase === 'world'}
     <section>
       <h2>Choose Next Route</h2>
@@ -324,4 +396,63 @@
     color: #2a7a2a;
     margin-left: 0.25rem;
   }
+  .pick-options, .shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  .creature-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+  .creature-card:hover { border-color: #888; background: #f8f8f8; }
+  .creature-card:disabled { opacity: 0.4; cursor: default; }
+  .creature-card.fire { border-color: #e8a0a0; }
+  .creature-card.water { border-color: #a0b8e8; }
+  .creature-card.earth { border-color: #a0e8a0; }
+  .creature-card.air { border-color: #c0c0c0; }
+  .creature-card.shadow { border-color: #b0a8d0; }
+  .creature-card.light { border-color: #d8d8a0; }
+  .creature-stats { font-size: 0.85rem; color: #444; }
+  .creature-rarity {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+  }
+  .creature-price {
+    font-weight: bold;
+    color: #c8a020;
+  }
+  .old-price {
+    color: #999;
+    font-weight: normal;
+    text-decoration: line-through;
+    margin-right: 0.25rem;
+  }
+  .creature-desc {
+    font-size: 0.8rem;
+    color: #666;
+    font-style: italic;
+  }
+  .ready-btn {
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+    background: #4a90d9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+  }
+  .ready-btn:hover { background: #3a7cc9; }
 </style>

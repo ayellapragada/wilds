@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { generateMap } from "../map-generator";
+import { getTemplate } from "../creatures/catalog";
 import type { WorldMap } from "../types";
 
 // Seeded RNG for deterministic tests
@@ -125,5 +126,27 @@ describe("map-generator", () => {
     const map1 = generate(1);
     const map2 = generate(2);
     expect(Object.keys(map1.nodes)).not.toEqual(Object.keys(map2.nodes));
+  });
+
+  describe("creature pools", () => {
+    test("each non-champion node has a creature pool", () => {
+      const map = generate();
+      for (const node of Object.values(map.nodes)) {
+        if (node.type !== "champion") {
+          expect(node.creaturePool.length).toBeGreaterThanOrEqual(4);
+          expect(node.creaturePool.length).toBeLessThanOrEqual(8);
+        }
+      }
+    });
+
+    test("higher tier nodes have higher rarity creatures", () => {
+      const map = generate();
+      const tier0 = Object.values(map.nodes).filter(n => n.tier === 0);
+      for (const node of tier0) {
+        for (const id of node.creaturePool) {
+          expect(() => getTemplate(id)).not.toThrow();
+        }
+      }
+    });
   });
 });
