@@ -1,6 +1,7 @@
 import type { GameState, Action, GameEvent, Trainer, RouteProgress, Route } from "./types";
 import { createStarterTeam } from "./creatures/catalog";
 import { createDeck, drawCreature, endTurn } from "./models/deck";
+import { resolveAbility } from "./abilities/resolver";
 
 export type ResolveResult = [GameState, GameEvent[]];
 
@@ -96,23 +97,90 @@ function handleHit(
   if (!result) return [state, []];
   const [newDeck, creature] = result;
 
+  // Resolve ability with pre-draw progress (so would_bust checks cost + creature.cost correctly)
+  const effect = resolveAbility(
+    creature, "on_draw", trainer.deck.drawn,
+    { ...trainer.routeProgress, creaturesDrawn: trainer.routeProgress.creaturesDrawn + 1 },
+    trainer.bustThreshold,
+  );
+
+  // Apply ability effects to modify cost/distance/threshold
+  let effectiveCost = creature.cost;
+  let bonusDistance = 0;
+  let thresholdMod = 0;
+
+  if (effect) {
+    switch (effect.type) {
+      case "bonus_distance":
+        bonusDistance = effect.amount;
+        break;
+      case "reduce_cost": {
+        if (effect.target === "self") {
+          const reduction = effect.amount === "all" ? creature.cost : effect.amount;
+          effectiveCost = Math.max(0, creature.cost - reduction);
+        }
+        // "all" target handled after cost is added
+        break;
+      }
+      case "modify_threshold":
+        thresholdMod = effect.amount;
+        break;
+    }
+  }
+
+  let newTotalCost = trainer.routeProgress.totalCost + effectiveCost;
+  if (effect && effect.type === "reduce_cost" && effect.target === "all") {
+    const reduction = effect.amount === "all" ? newTotalCost : effect.amount;
+    newTotalCost = Math.max(0, newTotalCost - reduction);
+  }
+
   const progress: RouteProgress = {
-    ...trainer.routeProgress,
-    totalDistance: trainer.routeProgress.totalDistance + creature.distance,
-    totalCost: trainer.routeProgress.totalCost + creature.cost,
+    totalDistance: trainer.routeProgress.totalDistance + creature.distance + bonusDistance,
+    totalCost: newTotalCost,
     creaturesDrawn: trainer.routeProgress.creaturesDrawn + 1,
-    activeEffects: [],
+    activeEffects: effect
+      ? [...trainer.routeProgress.activeEffects, effect]
+      : trainer.routeProgress.activeEffects,
   };
 
-  const busted = progress.totalCost > trainer.bustThreshold;
+  const newThreshold = trainer.bustThreshold + thresholdMod;
+  let busted = progress.totalCost > newThreshold;
+
   const events: GameEvent[] = [
     { type: "creature_drawn", trainerId: trainer.id, creature, progress },
   ];
+
+  if (effect) {
+    events.push({
+      type: "ability_triggered",
+      creatureId: creature.id,
+      effect,
+      description: creature.description,
+    });
+  }
+
+  // Check for on_bust abilities across all drawn creatures
+  if (busted) {
+    for (const drawn of newDeck.drawn) {
+      const bustEffect = resolveAbility(drawn, "on_bust", newDeck.drawn, progress, newThreshold);
+      if (bustEffect?.type === "negate_bust") {
+        busted = false;
+        events.push({
+          type: "ability_triggered",
+          creatureId: drawn.id,
+          effect: bustEffect,
+          description: drawn.description,
+        });
+        break;
+      }
+    }
+  }
 
   const updatedTrainer: Trainer = {
     ...trainer,
     deck: newDeck,
     routeProgress: progress,
+    bustThreshold: newThreshold,
     status: busted ? "busted" : "exploring",
   };
 

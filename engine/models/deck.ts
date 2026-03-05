@@ -57,7 +57,7 @@ export function deckSize(deck: Deck): number {
   return deck.drawPile.length + deck.drawn.length + deck.discard.length;
 }
 
-function shuffle<T>(array: T[]): T[] {
+export function shuffle<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

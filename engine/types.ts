@@ -1,3 +1,5 @@
+import type { AbilityData, AbilityEffect } from "./abilities/types";
+
 // === Creatures ===
 
 export type CreatureType = "fire" | "water" | "earth" | "air" | "shadow" | "light";
@@ -10,7 +12,7 @@ export interface Creature {
   readonly type: CreatureType;
   readonly distance: number;
   readonly cost: number;
-  readonly abilityId: string | null;
+  readonly ability: AbilityData | null;
   readonly rarity: Rarity;
   readonly description: string;
 }
@@ -122,16 +124,6 @@ export interface GameSettings {
   readonly maxTrainers: number;
   readonly mapTiers: number;
   readonly difficulty: "easy" | "normal" | "hard";
-}
-
-// === Ability Effects ===
-
-export interface AbilityEffect {
-  readonly sourceCreatureId: string;
-  readonly distanceBonus?: number;
-  readonly costReduction?: number;
-  readonly thresholdModifier?: number;
-  readonly distanceMultiplier?: { type: CreatureType; multiplier: number };
 }
 
 // === Actions ===

@@ -1,6 +1,11 @@
 <script lang="ts">
   import { createConnection, type ServerMessage } from './lib/connection';
   import type { GameState, Action, Trainer } from '../engine/types';
+  import Sandbox from './Sandbox.svelte';
+
+  let hash = $state(window.location.hash);
+  window.addEventListener('hashchange', () => { hash = window.location.hash; });
+  let isSandbox = $derived(hash === '#/sandbox');
 
   let gameState = $state<GameState | null>(null);
   let events: any[] = $state([]);
@@ -64,8 +69,12 @@
   let trainerList = $derived(gameState ? Object.values(gameState.trainers) as Trainer[] : [] as Trainer[]);
 </script>
 
+{#if isSandbox}
+  <Sandbox />
+{:else}
 <main>
   <h1>Wilds</h1>
+  <a href="#/sandbox" style="font-size: 0.85rem; color: #666;">Sandbox →</a>
 
   {#if !connected}
     <section>
@@ -175,6 +184,7 @@
     </section>
   {/if}
 </main>
+{/if}
 
 <style>
   main {

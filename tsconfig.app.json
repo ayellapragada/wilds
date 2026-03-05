@@ -9,6 +9,7 @@
     "noEmit": true,
     "allowJs": true,
     "checkJs": true,
+    "resolveJsonModule": true,
     "moduleDetection": "force"
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "engine/**/*.ts"],
