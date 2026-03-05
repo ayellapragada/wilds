@@ -62,7 +62,7 @@
   }
 
   // Game state
-  let gameState: GameState | null = $state(null);
+  let gameState = $state<GameState | null>(null);
   let events: GameEvent[] = $state([]);
   let running = $derived(gameState !== null && gameState.phase === 'route');
   const TRAINER_ID = 'sandbox';
