@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GameState, Action, Trainer } from '../../../engine/types';
+  import { spriteUrl } from '../../lib/assets';
 
   let { gameState, myId, send }: {
     gameState: GameState;
@@ -33,6 +34,7 @@
           onclick={() => send({ type: 'select_pokemon', trainerId: myId, pokemonId: pkmn.id })}
           disabled={isConfirmed || (!selected && mySelections.length >= 2)}
         >
+          <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           <strong>{pkmn.name}</strong>
           <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
           <span class="pokemon-rarity">{pkmn.rarity}</span>
@@ -51,6 +53,7 @@
           onclick={() => send({ type: 'select_pokemon', trainerId: myId, pokemonId: pkmn.id })}
           disabled={isConfirmed || (!selected && (mySelections.length >= 2 || (myTrainer?.currency ?? 0) < price))}
         >
+          <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           <strong>{pkmn.name}</strong>
           <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
           <span class="pokemon-rarity">{pkmn.rarity}</span>
@@ -99,6 +102,7 @@
     gap: 0.75rem;
     margin: 1rem 0;
   }
+  .sprite { width: 40px; height: 34px; image-rendering: pixelated; }
   .pokemon-card {
     display: flex;
     flex-direction: column;

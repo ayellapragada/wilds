@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GameState, Action, Trainer } from '../../../engine/types';
+  import { spriteUrl } from '../../lib/assets';
 
   let { gameState, myId, send }: {
     gameState: GameState;
@@ -57,6 +58,7 @@
           <h4>Drawn this route:</h4>
           {#each myTrainer.deck.drawn as pkmn}
             <span class="pokemon {pkmn.types[0]}" title={pkmn.description}>
+              <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
               {pkmn.name} (+{pkmn.distance}d / +{pkmn.cost}c)
             </span>
           {/each}
@@ -99,8 +101,10 @@
     flex-direction: column;
     gap: 0.5rem;
   }
+  .sprite { width: 34px; height: 28px; image-rendering: pixelated; vertical-align: middle; margin-right: 0.25rem; }
   .pokemon {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.85rem;

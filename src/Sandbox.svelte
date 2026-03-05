@@ -3,6 +3,7 @@
   import { resolveAction } from '../engine/action-resolver';
   import { createInitialState } from '../engine/index';
   import { getAllTemplateIds, getTemplate, createPokemon, resetPokemonIdCounter } from '../engine/pokemon/catalog';
+  import { spriteUrl } from './lib/assets';
   import { shuffle } from '../engine/models/deck';
   import type { GameState, GameEvent, Pokemon } from '../engine/types';
   import type { Move } from '../engine/abilities/types';
@@ -233,6 +234,7 @@
                 onclick={() => addToDeck(id)}
                 data-tooltip={cardTooltip(t)}
               >
+                <img class="sprite" src={spriteUrl(id)} alt={t.name} />
                 <span class="card-name">{t.name}</span>
                 <span class="card-stats">+{t.distance}d / +{t.cost}c</span>
                 {#if t.moves.length > 0}
@@ -261,6 +263,7 @@
                 <button class="tiny" onclick={() => moveDeckEntry(i, -1)} disabled={i === 0}>↑</button>
                 <button class="tiny" onclick={() => moveDeckEntry(i, 1)} disabled={i === deckEntries.length - 1}>↓</button>
               {/if}
+              <img class="sprite-sm" src={spriteUrl(entry.templateId)} alt={t.name} />
               <span class="deck-name">{t.name} ×{entry.count}</span>
               <span class="deck-stats">+{t.distance}d/+{t.cost}c</span>
               <button class="tiny remove" onclick={() => removeFromDeck(entry.templateId)}>−</button>
@@ -338,6 +341,7 @@
               <div class="drawn-card" style="background: {typeColor(pkmn.types)}; border-color: {rarityBorder(pkmn.rarity)}" data-tooltip={cardTooltip({ name: pkmn.name, types: pkmn.types, distance: pkmn.distance, cost: pkmn.cost, rarity: pkmn.rarity, description: pkmn.description, moves: pkmn.moves })}>
                 <div class="drawn-card-header">
                   <span class="drawn-num">#{i + 1}</span>
+                  <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
                   <strong>{pkmn.name}</strong>
                   <span class="drawn-card-types">{pkmn.types.join('/')}</span>
                 </div>
@@ -468,6 +472,8 @@
 
   .catalog-card:hover { filter: brightness(0.95); }
 
+  .sprite { width: 40px; height: 34px; image-rendering: pixelated; }
+  .sprite-sm { width: 28px; height: 24px; image-rendering: pixelated; }
   .card-name { font-weight: 600; font-size: 0.8rem; }
   .card-stats { font-size: 0.7rem; color: #555; }
   .card-ability {

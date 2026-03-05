@@ -10,3 +10,10 @@ export function preloadImages(paths: string[]): void {
     img.src = assetUrl(path);
   }
 }
+
+const POKESPRITE_BASE =
+  "https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular";
+
+export function spriteUrl(templateId: string): string {
+  return `${POKESPRITE_BASE}/${templateId}.png`;
+}
