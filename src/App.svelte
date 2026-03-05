@@ -1,12 +1,12 @@
 <script lang="ts">
   import { createConnection, type ServerMessage } from './lib/connection';
-  import type { GameState, Action, Player } from '../engine/types';
+  import type { GameState, Action, Trainer } from '../engine/types';
 
   let gameState = $state<GameState | null>(null);
   let events: any[] = $state([]);
   let connected = $state(false);
   let roomCode = $state('test');
-  let playerName = $state('');
+  let trainerName = $state('');
   let myId = $state('');
   let connection: ReturnType<typeof createConnection> | null = $state(null);
 
@@ -38,30 +38,30 @@
   }
 
   function join() {
-    if (!playerName) return;
+    if (!trainerName) return;
     const token = crypto.randomUUID().slice(0, 8);
     myId = token;
-    send({ type: 'join_game', playerName, sessionToken: token });
+    send({ type: 'join_game', trainerName, sessionToken: token });
   }
 
   function startGame() {
-    send({ type: 'start_game', playerId: myId });
+    send({ type: 'start_game', trainerId: myId });
   }
 
-  function drawCard() {
-    send({ type: 'draw_card', playerId: myId });
+  function hit() {
+    send({ type: 'hit', trainerId: myId });
   }
 
-  function stopTurn() {
-    send({ type: 'stop_turn', playerId: myId });
+  function stop() {
+    send({ type: 'stop', trainerId: myId });
   }
 
   function choosePenalty(choice: 'keep_score' | 'keep_currency') {
-    send({ type: 'choose_bust_penalty', playerId: myId, choice });
+    send({ type: 'choose_bust_penalty', trainerId: myId, choice });
   }
 
-  let myPlayer = $derived(gameState?.players[myId] ?? null);
-  let playerList = $derived(gameState ? Object.values(gameState.players) as Player[] : [] as Player[]);
+  let myTrainer = $derived(gameState?.trainers[myId] ?? null);
+  let trainerList = $derived(gameState ? Object.values(gameState.trainers) as Trainer[] : [] as Trainer[]);
 </script>
 
 <main>
@@ -77,57 +77,57 @@
     <section>
       <h2>Lobby — {roomCode}</h2>
       <p>Phase: {gameState?.phase}</p>
-      {#if playerList.length > 0}
-        <p>Players: {playerList.map(p => p.name).join(', ')}</p>
+      {#if trainerList.length > 0}
+        <p>Trainers: {trainerList.map(t => t.name).join(', ')}</p>
       {:else}
-        <p>No players yet.</p>
+        <p>No trainers yet.</p>
       {/if}
-      <input bind:value={playerName} placeholder="Your name" />
-      <button onclick={join} disabled={!playerName}>Join</button>
+      <input bind:value={trainerName} placeholder="Your name" />
+      <button onclick={join} disabled={!trainerName}>Join</button>
     </section>
   {:else if gameState?.phase === 'lobby'}
     <section>
       <h2>Lobby — {roomCode}</h2>
-      <p>Players: {playerList.map(p => p.name).join(', ')}</p>
-      <p>You are: <strong>{myPlayer?.name}</strong></p>
-      <button onclick={startGame} disabled={playerList.length < 1}>Start Game</button>
+      <p>Trainers: {trainerList.map(t => t.name).join(', ')}</p>
+      <p>You are: <strong>{myTrainer?.name}</strong></p>
+      <button onclick={startGame} disabled={trainerList.length < 1}>Start Game</button>
     </section>
-  {:else if gameState?.phase === 'encounter'}
+  {:else if gameState?.phase === 'route'}
     <section>
-      <h2>Encounter — Round {gameState.roundNumber}</h2>
+      <h2>Route {gameState.routeNumber} — {gameState.currentRoute?.name}</h2>
 
-      {#if myPlayer}
+      {#if myTrainer}
         <div class="my-turn">
           <h3>Your Turn</h3>
           <p>
-            Distance: <strong>{myPlayer.turnState.totalDistance}</strong> |
-            Cost: <strong>{myPlayer.turnState.totalCost}</strong> / {myPlayer.bustThreshold} |
-            Cards drawn: {myPlayer.turnState.cardsDrawn}
+            Distance: <strong>{myTrainer.routeProgress.totalDistance}</strong> |
+            Cost: <strong>{myTrainer.routeProgress.totalCost}</strong> / {myTrainer.bustThreshold} |
+            Creatures drawn: {myTrainer.routeProgress.creaturesDrawn}
           </p>
-          <p>Score: {myPlayer.score} | Currency: {myPlayer.currency}</p>
+          <p>Score: {myTrainer.score} | Currency: {myTrainer.currency}</p>
 
-          {#if myPlayer.status === 'active'}
-            <button onclick={drawCard}>Draw Card</button>
-            <button onclick={stopTurn} disabled={myPlayer.turnState.cardsDrawn === 0}>Stop</button>
-          {:else if myPlayer.status === 'busted'}
-            <p><strong>BUSTED!</strong> Cost {myPlayer.turnState.totalCost} exceeded threshold {myPlayer.bustThreshold}.</p>
+          {#if myTrainer.status === 'exploring'}
+            <button onclick={hit}>HIT</button>
+            <button onclick={stop} disabled={myTrainer.routeProgress.creaturesDrawn === 0}>STOP</button>
+          {:else if myTrainer.status === 'busted'}
+            <p><strong>WENT WILD!</strong> Cost {myTrainer.routeProgress.totalCost} exceeded threshold {myTrainer.bustThreshold}.</p>
             <p>Choose one to keep:</p>
             <button onclick={() => choosePenalty('keep_score')}>
-              Keep Score (+{myPlayer.turnState.totalDistance} distance)
+              Keep Score (+{myTrainer.routeProgress.totalDistance} distance)
             </button>
             <button onclick={() => choosePenalty('keep_currency')}>
-              Keep Currency (+{Math.floor(myPlayer.turnState.totalDistance / 3)} currency)
+              Keep Currency (+{Math.floor(myTrainer.routeProgress.totalDistance / 3)} currency)
             </button>
-          {:else if myPlayer.status === 'stopped'}
-            <p>Waiting for other players...</p>
+          {:else if myTrainer.status === 'stopped'}
+            <p>Waiting for other trainers...</p>
           {/if}
 
-          {#if myPlayer.deck.drawn.length > 0}
-            <div class="drawn-cards">
-              <h4>Drawn this turn:</h4>
-              {#each myPlayer.deck.drawn as card}
-                <span class="card {card.type}" title={card.description}>
-                  {card.name} (+{card.distance}d / +{card.cost}c)
+          {#if myTrainer.deck.drawn.length > 0}
+            <div class="drawn-creatures">
+              <h4>Drawn this route:</h4>
+              {#each myTrainer.deck.drawn as creature}
+                <span class="creature {creature.type}" title={creature.description}>
+                  {creature.name} (+{creature.distance}d / +{creature.cost}c)
                 </span>
               {/each}
             </div>
@@ -135,16 +135,31 @@
         </div>
       {/if}
 
-      <div class="other-players">
-        <h3>All Players</h3>
-        {#each playerList as player}
-          <div class="player-row" class:me={player.id === myId}>
-            <strong>{player.name}</strong>
-            {#if player.id === myId}(you){/if}
-            — {player.status}
-            | distance: {player.turnState.totalDistance}
-            | cost: {player.turnState.totalCost}/{player.bustThreshold}
-            | score: {player.score}
+      <div class="other-trainers">
+        <h3>All Trainers</h3>
+        {#each trainerList as trainer}
+          <div class="trainer-row" class:me={trainer.id === myId}>
+            <strong>{trainer.name}</strong>
+            {#if trainer.id === myId}(you){/if}
+            — {trainer.status}
+            | distance: {trainer.routeProgress.totalDistance}
+            | cost: {trainer.routeProgress.totalCost}/{trainer.bustThreshold}
+            | score: {trainer.score}
+          </div>
+        {/each}
+      </div>
+    </section>
+  {:else if gameState?.phase === 'world'}
+    <section>
+      <h2>World</h2>
+      <p>Route {gameState.routeNumber} complete! Voting and marketplace coming soon...</p>
+      <div class="other-trainers">
+        <h3>Standings</h3>
+        {#each trainerList as trainer}
+          <div class="trainer-row" class:me={trainer.id === myId}>
+            <strong>{trainer.name}</strong>
+            {#if trainer.id === myId}(you){/if}
+            — Score: {trainer.score} | Currency: {trainer.currency}
           </div>
         {/each}
       </div>
@@ -196,27 +211,27 @@
     border-radius: 8px;
     margin-bottom: 1rem;
   }
-  .drawn-cards {
+  .drawn-creatures {
     margin-top: 0.5rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  .card {
+  .creature {
     display: inline-block;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
     border: 1px solid #aaa;
   }
-  .card.fire { background: #ffe0e0; }
-  .card.water { background: #e0e8ff; }
-  .card.earth { background: #e0ffe0; }
-  .card.air { background: #f0f0f0; }
-  .card.shadow { background: #e0d8f0; }
-  .card.light { background: #fffde0; }
-  .player-row { padding: 0.25rem 0; font-size: 0.9rem; }
-  .player-row.me { font-weight: bold; }
+  .creature.fire { background: #ffe0e0; }
+  .creature.water { background: #e0e8ff; }
+  .creature.earth { background: #e0ffe0; }
+  .creature.air { background: #f0f0f0; }
+  .creature.shadow { background: #e0d8f0; }
+  .creature.light { background: #fffde0; }
+  .trainer-row { padding: 0.25rem 0; font-size: 0.9rem; }
+  .trainer-row.me { font-weight: bold; }
   .event-log { font-size: 0.8rem; }
   .event { padding: 0.15rem 0; color: #666; font-family: monospace; }
 </style>

@@ -8,17 +8,16 @@ export function createInitialState(roomCode: string): GameState {
     gameId: roomCode,
     roomCode,
     phase: "lobby",
-    players: {},
+    trainers: {},
     map: null,
-    currentRound: null,
-    shop: null,
+    currentRoute: null,
+    marketplace: null,
     votes: null,
-    roundNumber: 0,
+    routeNumber: 0,
     settings: {
-      maxPlayers: 8,
+      maxTrainers: 8,
       mapTiers: 10,
       difficulty: "normal",
-      turnMode: "simultaneous",
     },
   };
 }
