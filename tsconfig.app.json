@@ -13,5 +13,5 @@
     "moduleDetection": "force"
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "engine/**/*.ts"],
-  "exclude": ["engine/__tests__/**"]
+  "exclude": ["engine/__tests__/**", "engine/sim/run.ts"]
 }

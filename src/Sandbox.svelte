@@ -1,10 +1,13 @@
 <script lang="ts">
+  import PreviewShell from './sandbox/PreviewShell.svelte';
   import { resolveAction } from '../engine/action-resolver';
   import { createInitialState } from '../engine/index';
   import { getAllTemplateIds, getTemplate, createPokemon, resetPokemonIdCounter } from '../engine/pokemon/catalog';
   import { shuffle } from '../engine/models/deck';
   import type { GameState, GameEvent, Pokemon } from '../engine/types';
   import type { Move } from '../engine/abilities/types';
+
+  let activeTab = $state<'route' | 'preview'>('preview');
 
   // Catalog
   const templateIds = getAllTemplateIds();
@@ -190,6 +193,26 @@
   <h1>Sandbox</h1>
   <a href="#/" style="font-size: 0.85rem; color: #666;">← Back to game</a>
 
+  <nav class="sandbox-tabs">
+    <button
+      class="sandbox-tab"
+      class:active={activeTab === 'preview'}
+      onclick={() => activeTab = 'preview'}
+    >
+      Screen Preview
+    </button>
+    <button
+      class="sandbox-tab"
+      class:active={activeTab === 'route'}
+      onclick={() => activeTab = 'route'}
+    >
+      Route Sandbox
+    </button>
+  </nav>
+
+  {#if activeTab === 'preview'}
+    <PreviewShell />
+  {:else}
   <div class="layout">
     <!-- Left: Deck Builder -->
     <section class="panel">
@@ -352,6 +375,7 @@
       {/if}
     </section>
   </div>
+  {/if}
 </main>
 
 <style>
@@ -360,6 +384,36 @@
     max-width: 1100px;
     margin: 0 auto;
     padding: 1rem;
+  }
+
+  .sandbox-tabs {
+    display: flex;
+    gap: 0;
+    margin-top: 0.75rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .sandbox-tab {
+    padding: 0.5rem 1.2rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .sandbox-tab:hover {
+    color: #333;
+  }
+
+  .sandbox-tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
   }
 
   .layout {
