@@ -9,7 +9,6 @@
   let isSandbox = $derived(hash === '#/sandbox');
 
   let gameState = $state<GameState | null>(null);
-  let events: any[] = $state([]);
   let connected = $state(false);
   let roomCode = $state('test');
   let trainerName = $state('');
@@ -34,7 +33,7 @@
         gameState = msg.state;
       }
       if (msg.type === 'state_update' && msg.events) {
-        events = [...msg.events, ...events].slice(0, 20);
+        msg.events.forEach((e: any) => console.log(`[event] ${e.type}`, e));
       }
     });
   }
@@ -217,14 +216,6 @@
     </section>
   {/if}
 
-  {#if events.length > 0}
-    <section class="event-log">
-      <h3>Events</h3>
-      {#each events as event}
-        <div class="event">{event.type} {JSON.stringify(event).slice(0, 120)}</div>
-      {/each}
-    </section>
-  {/if}
 </main>
 {/if}
 
@@ -266,7 +257,7 @@
   .drawn-creatures {
     margin-top: 0.5rem;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 0.5rem;
   }
   .creature {
@@ -333,6 +324,4 @@
     color: #2a7a2a;
     margin-left: 0.25rem;
   }
-  .event-log { font-size: 0.8rem; }
-  .event { padding: 0.15rem 0; color: #666; font-family: monospace; }
 </style>
