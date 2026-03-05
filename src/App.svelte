@@ -1,22 +1,37 @@
 <script lang="ts">
   import { createConnection, type ServerMessage } from './lib/connection';
-  import type { GameState, Action, Trainer } from '../engine/types';
-  import { getAvailableNodes } from '../engine/models/world-map';
+  import type { GameState, Action } from '../engine/types';
   import Sandbox from './Sandbox.svelte';
+  import GameScreen from './screens/game/GameScreen.svelte';
+  import PlayerScreen from './screens/player/PlayerScreen.svelte';
 
   let hash = $state(window.location.hash);
   window.addEventListener('hashchange', () => { hash = window.location.hash; });
-  let isSandbox = $derived(hash === '#/sandbox');
+
+  // Parse hash: #/{roomCode}/game, #/{roomCode}/player, #/sandbox
+  let route = $derived.by(() => {
+    if (hash === '#/sandbox') return { screen: 'sandbox' as const };
+    const match = hash.match(/^#\/([^/]+)\/(game|player)$/);
+    if (match) return { screen: match[2] as 'game' | 'player', roomCode: match[1] };
+    return { screen: 'landing' as const };
+  });
 
   let gameState = $state<GameState | null>(null);
   let connected = $state(false);
-  let roomCode = $state('test');
-  let trainerName = $state('');
   let myId = $state('');
   let connection: ReturnType<typeof createConnection> | null = $state(null);
+  let roomInput = $state('');
 
-  function connect() {
-    if (!roomCode) return;
+  // Auto-connect when route has a room code
+  $effect(() => {
+    const r = route;
+    if ('roomCode' in r && r.roomCode && !connected) {
+      connectToRoom(r.roomCode);
+    }
+  });
+
+  function connectToRoom(roomCode: string) {
+    if (connection) return;
     const conn = createConnection(roomCode);
     connection = conn;
 
@@ -26,6 +41,7 @@
 
     conn.socket.addEventListener('close', () => {
       connected = false;
+      connection = null;
     });
 
     conn.onMessage((msg: ServerMessage) => {
@@ -42,256 +58,49 @@
     connection?.send(action);
   }
 
-  function join() {
-    if (!trainerName) return;
-    const token = crypto.randomUUID().slice(0, 8);
-    myId = token;
-    send({ type: 'join_game', trainerName, sessionToken: token });
+  function goToGame() {
+    if (!roomInput) return;
+    window.location.hash = `#/${roomInput}/game`;
   }
 
-  function startGame() {
-    send({ type: 'start_game', trainerId: myId });
+  function goToPlayer() {
+    if (!roomInput) return;
+    window.location.hash = `#/${roomInput}/player`;
   }
-
-  function hit() {
-    send({ type: 'hit', trainerId: myId });
-  }
-
-  function stop() {
-    send({ type: 'stop', trainerId: myId });
-  }
-
-  function choosePenalty(choice: 'keep_score' | 'keep_currency') {
-    send({ type: 'choose_bust_penalty', trainerId: myId, choice });
-  }
-
-  function castVote(nodeId: string) {
-    send({ type: 'cast_vote', trainerId: myId, nodeId });
-  }
-
-  let myTrainer = $derived(gameState?.trainers[myId] ?? null);
-  let trainerList = $derived(gameState ? Object.values(gameState.trainers) as Trainer[] : [] as Trainer[]);
-
-  let availableNodes = $derived(gameState?.map ? getAvailableNodes(gameState.map) : []);
-  let myVote = $derived(gameState?.votes?.[myId] ?? null);
-  let voteCount = $derived(Object.keys(gameState?.votes ?? {}).length);
-  let trainerCount = $derived(Object.keys(gameState?.trainers ?? {}).length);
 </script>
 
-{#if isSandbox}
+{#if route.screen === 'sandbox'}
   <Sandbox />
-{:else}
-<main>
-  <h1>Wilds</h1>
-  <a href="#/sandbox" style="font-size: 0.85rem; color: #666;">Sandbox →</a>
-
-  {#if !connected}
+{:else if route.screen === 'landing'}
+  <main>
+    <h1>Wilds</h1>
+    <a href="#/sandbox" style="font-size: 0.85rem; color: #666;">Sandbox →</a>
     <section>
-      <h2>Connect</h2>
-      <input bind:value={roomCode} placeholder="Room code" />
-      <button onclick={connect}>Connect</button>
-    </section>
-  {:else if !myId}
-    <section>
-      <h2>Lobby — {roomCode}</h2>
-      <p>Phase: {gameState?.phase}</p>
-      {#if trainerList.length > 0}
-        <p>Trainers: {trainerList.map(t => t.name).join(', ')}</p>
-      {:else}
-        <p>No trainers yet.</p>
-      {/if}
-      <input bind:value={trainerName} placeholder="Your name" />
-      <button onclick={join} disabled={!trainerName}>Join</button>
-    </section>
-  {:else if gameState?.phase === 'lobby'}
-    <section>
-      <h2>Lobby — {roomCode}</h2>
-      <p>Trainers: {trainerList.map(t => t.name).join(', ')}</p>
-      <p>You are: <strong>{myTrainer?.name}</strong></p>
-      <button onclick={startGame} disabled={trainerList.length < 1}>Start Game</button>
-    </section>
-  {:else if gameState?.phase === 'route'}
-    <section>
-      <h2>Route {gameState.routeNumber} — {gameState.currentRoute?.name}</h2>
-
-      {#if myTrainer}
-        <div class="my-turn">
-          <h3>Your Turn</h3>
-          <p>
-            Distance: <strong>{myTrainer.routeProgress.totalDistance}</strong> |
-            Cost: <strong>{myTrainer.routeProgress.totalCost}</strong> / {myTrainer.bustThreshold} |
-            Pokemon drawn: {myTrainer.routeProgress.pokemonDrawn}
-          </p>
-          <p>Score: {myTrainer.score} | Currency: {myTrainer.currency}</p>
-
-          {#if myTrainer.status === 'exploring'}
-            <button onclick={hit}>HIT</button>
-            <button onclick={stop} disabled={myTrainer.routeProgress.pokemonDrawn === 0}>STOP</button>
-          {:else if myTrainer.status === 'busted'}
-            <p><strong>Whited Out!</strong> Cost {myTrainer.routeProgress.totalCost} exceeded threshold {myTrainer.bustThreshold}.</p>
-            <p>Choose one to keep:</p>
-            <button onclick={() => choosePenalty('keep_score')}>
-              Keep Score (+{myTrainer.routeProgress.totalDistance} distance)
-            </button>
-            <button onclick={() => choosePenalty('keep_currency')}>
-              Keep Currency (+{Math.floor(myTrainer.routeProgress.totalDistance / 3)} currency)
-            </button>
-          {:else if myTrainer.status === 'stopped'}
-            <p>Waiting for other trainers...</p>
-          {/if}
-
-          {#if myTrainer.deck.drawn.length > 0}
-            <div class="drawn-pokemon">
-              <h4>Drawn this route:</h4>
-              {#each myTrainer.deck.drawn as pkmn}
-                <span class="pokemon {pkmn.types[0]}" title={pkmn.description}>
-                  {pkmn.name} (+{pkmn.distance}d / +{pkmn.cost}c)
-                </span>
-              {/each}
-            </div>
-          {/if}
-        </div>
-      {/if}
-
-      <div class="other-trainers">
-        <h3>All Trainers</h3>
-        {#each trainerList as trainer}
-          <div class="trainer-row" class:me={trainer.id === myId}>
-            <strong>{trainer.name}</strong>
-            {#if trainer.id === myId}(you){/if}
-            — {trainer.status}
-            | distance: {trainer.routeProgress.totalDistance}
-            | cost: {trainer.routeProgress.totalCost}/{trainer.bustThreshold}
-            | score: {trainer.score}
-          </div>
-        {/each}
+      <h2>Join a Room</h2>
+      <input bind:value={roomInput} placeholder="Room code" />
+      <div class="join-buttons">
+        <button onclick={goToGame} disabled={!roomInput}>TV Display</button>
+        <button onclick={goToPlayer} disabled={!roomInput}>Phone Controller</button>
       </div>
     </section>
-  {:else if gameState?.phase === 'hub'}
-    <section>
-      <h2>Hub</h2>
-      <p>Score: {myTrainer?.score} | Currency: {myTrainer?.currency}</p>
-
-      {#if gameState.hub}
-        {@const mySelections = gameState.hub.selections[myId] ?? []}
-        {@const isConfirmed = gameState.hub.confirmedTrainers.includes(myId)}
-        {@const myFreeOffers = gameState.hub.freePickOffers[myId] ?? []}
-        {@const hasFreeOffers = myFreeOffers.length > 0}
-
-        <h3>Shop</h3>
-        <p class="selection-status">{mySelections.length}/2 selected</p>
-
-        <div class="shop-items">
-          {#each myFreeOffers as pkmn}
-            {@const selected = mySelections.includes(pkmn.id)}
-            <button
-              class="pokemon-card {pkmn.types[0]}"
-              class:selected
-              onclick={() => send({ type: 'select_pokemon', trainerId: myId, pokemonId: pkmn.id })}
-              disabled={isConfirmed || (!selected && mySelections.length >= 2)}
-            >
-              <strong>{pkmn.name}</strong>
-              <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
-              <span class="pokemon-rarity">{pkmn.rarity}</span>
-              <span class="pokemon-price free">FREE</span>
-              {#if pkmn.description}
-                <span class="pokemon-desc">{pkmn.description}</span>
-              {/if}
-            </button>
-          {/each}
-          {#each gameState.hub.shopPokemon as pkmn}
-            {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
-            {@const selected = mySelections.includes(pkmn.id)}
-            <button
-              class="pokemon-card {pkmn.types[0]}"
-              class:selected
-              onclick={() => send({ type: 'select_pokemon', trainerId: myId, pokemonId: pkmn.id })}
-              disabled={isConfirmed || (!selected && (mySelections.length >= 2 || (myTrainer?.currency ?? 0) < price))}
-            >
-              <strong>{pkmn.name}</strong>
-              <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
-              <span class="pokemon-rarity">{pkmn.rarity}</span>
-              <span class="pokemon-price">${price}</span>
-              {#if pkmn.description}
-                <span class="pokemon-desc">{pkmn.description}</span>
-              {/if}
-            </button>
-          {/each}
-        </div>
-
-        {#if isConfirmed}
-          <p>Waiting for others... ({gameState.hub.confirmedTrainers.length}/{trainerCount} confirmed)</p>
-        {:else}
-          <button class="ready-btn" onclick={() => send({ type: 'confirm_selections', trainerId: myId })}>
-            Confirm ({mySelections.length}/2 selected)
-          </button>
-        {/if}
-      {/if}
-
-      <div class="other-trainers">
-        <h3>Trainers</h3>
-        {#each trainerList as trainer}
-          <div class="trainer-row" class:me={trainer.id === myId}>
-            <strong>{trainer.name}</strong>
-            {#if trainer.id === myId}(you){/if}
-            — Score: {trainer.score} | Currency: {trainer.currency}
-            {#if gameState.hub?.confirmedTrainers.includes(trainer.id)}
-              <span class="voted-badge">confirmed</span>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </section>
-  {:else if gameState?.phase === 'world'}
-    <section>
-      <h2>Choose Next Route</h2>
-      <p>Route {gameState.routeNumber} complete! Vote on where to go next.</p>
-
-      <div class="vote-options">
-        {#each availableNodes as node}
-          <button
-            class="vote-card"
-            class:selected={myVote === node.id}
-            onclick={() => castVote(node.id)}
-          >
-            <strong>{node.name}</strong>
-            <span class="node-type">{node.type === 'elite_route' ? 'Elite' : node.type === 'champion' ? 'Champion' : 'Route'}</span>
-            {#if node.bonus}
-              <span class="node-bonus">+ {node.bonus.replace('_', ' ')}</span>
-            {/if}
-            {#if node.modifiers.length > 0}
-              <span class="node-mods">{node.modifiers.map(m => m.description).join(', ')}</span>
-            {/if}
-          </button>
-        {/each}
-      </div>
-
-      <p class="vote-status">
-        {#if myVote}
-          You voted for <strong>{gameState.map?.nodes[myVote]?.name}</strong>.
-        {:else}
-          Tap a route to vote.
-        {/if}
-        — {voteCount}/{trainerCount} voted
-      </p>
-
-      <div class="other-trainers">
-        <h3>Standings</h3>
-        {#each trainerList as trainer}
-          <div class="trainer-row" class:me={trainer.id === myId}>
-            <strong>{trainer.name}</strong>
-            {#if trainer.id === myId}(you){/if}
-            — Score: {trainer.score} | Currency: {trainer.currency}
-            {#if gameState.votes?.[trainer.id]}
-              <span class="voted-badge">voted</span>
-            {/if}
-          </div>
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-</main>
+  </main>
+{:else if route.screen === 'game' && gameState}
+  <main>
+    <h1>Wilds</h1>
+    <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
+    <GameScreen {gameState} bind:myId {send} />
+  </main>
+{:else if route.screen === 'player' && gameState}
+  <main>
+    <h1>Wilds</h1>
+    <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
+    <PlayerScreen {gameState} {myId} {send} />
+  </main>
+{:else if connected && !gameState}
+  <main>
+    <h1>Wilds</h1>
+    <p>Connecting...</p>
+  </main>
 {/if}
 
 <style>
@@ -323,180 +132,9 @@
     border-radius: 4px;
     margin-right: 0.5rem;
   }
-  .my-turn {
-    background: #f8f8f8;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-  }
-  .drawn-pokemon {
-    margin-top: 0.5rem;
+  .join-buttons {
     display: flex;
-    flex-direction: column;
     gap: 0.5rem;
-  }
-  .pokemon {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    border: 1px solid #aaa;
-  }
-  .pokemon.normal { background: #f0f0e8; }
-  .pokemon.fire { background: #ffe0e0; }
-  .pokemon.water { background: #e0e8ff; }
-  .pokemon.grass { background: #e0ffe0; }
-  .pokemon.electric { background: #fff8d0; }
-  .pokemon.ice { background: #e0f8ff; }
-  .pokemon.fighting { background: #f0d8d0; }
-  .pokemon.poison { background: #e8d8f0; }
-  .pokemon.ground { background: #f0e8d0; }
-  .pokemon.flying { background: #e8e0f8; }
-  .pokemon.psychic { background: #ffe0f0; }
-  .pokemon.bug { background: #e8f0d0; }
-  .pokemon.rock { background: #e8e0d0; }
-  .pokemon.ghost { background: #d8d0e8; }
-  .pokemon.dragon { background: #d0d0f8; }
-  .pokemon.dark { background: #d8d0c8; }
-  .pokemon.steel { background: #e0e0e8; }
-  .pokemon.fairy { background: #ffe8f0; }
-  .trainer-row { padding: 0.25rem 0; font-size: 0.9rem; }
-  .trainer-row.me { font-weight: bold; }
-  .vote-options {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin: 1rem 0;
-  }
-  .vote-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-    padding: 0.75rem 1rem;
-    border: 2px solid #ccc;
-    border-radius: 8px;
-    background: #fff;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-  }
-  .vote-card:hover { border-color: #888; background: #f8f8f8; }
-  .vote-card.selected { border-color: #4a90d9; background: #eef4ff; }
-  .node-type {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: #888;
-    letter-spacing: 0.05em;
-  }
-  .node-bonus {
-    font-size: 0.8rem;
-    color: #2a7a2a;
-    font-weight: 500;
-  }
-  .node-mods {
-    font-size: 0.8rem;
-    color: #666;
-    font-style: italic;
-  }
-  .vote-status {
-    font-size: 0.9rem;
-    color: #555;
-  }
-  .voted-badge {
-    font-size: 0.75rem;
-    background: #e0ffe0;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-    color: #2a7a2a;
-    margin-left: 0.25rem;
-  }
-  .pick-options, .shop-items {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin: 1rem 0;
-  }
-  .pokemon-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-    padding: 0.75rem 1rem;
-    border: 2px solid #ccc;
-    border-radius: 8px;
-    background: #fff;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-  }
-  .pokemon-card:hover { border-color: #888; background: #f8f8f8; }
-  .pokemon-card:disabled { opacity: 0.4; cursor: default; }
-  .pokemon-card.normal { border-color: #c0c0b8; }
-  .pokemon-card.fire { border-color: #e8a0a0; }
-  .pokemon-card.water { border-color: #a0b8e8; }
-  .pokemon-card.grass { border-color: #a0e8a0; }
-  .pokemon-card.electric { border-color: #d8d0a0; }
-  .pokemon-card.ice { border-color: #a0d0e8; }
-  .pokemon-card.fighting { border-color: #d0a8a0; }
-  .pokemon-card.poison { border-color: #c0a8d0; }
-  .pokemon-card.ground { border-color: #d0c0a0; }
-  .pokemon-card.flying { border-color: #c0b8d0; }
-  .pokemon-card.psychic { border-color: #e0a8c0; }
-  .pokemon-card.bug { border-color: #c0d0a0; }
-  .pokemon-card.rock { border-color: #c0b8a0; }
-  .pokemon-card.ghost { border-color: #b0a8c0; }
-  .pokemon-card.dragon { border-color: #a0a0d0; }
-  .pokemon-card.dark { border-color: #b0a8a0; }
-  .pokemon-card.steel { border-color: #b8b8c0; }
-  .pokemon-card.fairy { border-color: #e0c0d0; }
-  .pokemon-stats { font-size: 0.85rem; color: #444; }
-  .pokemon-rarity {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #888;
-  }
-  .pokemon-price {
-    font-weight: bold;
-    color: #c8a020;
-  }
-  .old-price {
-    color: #999;
-    font-weight: normal;
-    text-decoration: line-through;
-    margin-right: 0.25rem;
-  }
-  .pokemon-desc {
-    font-size: 0.8rem;
-    color: #666;
-    font-style: italic;
-  }
-  .ready-btn {
-    margin-top: 1rem;
-    padding: 0.75rem 2rem;
-    font-size: 1.1rem;
-    background: #4a90d9;
-    color: white;
-    border: none;
-    border-radius: 8px;
-  }
-  .ready-btn:hover { background: #3a7cc9; }
-  .pokemon-card.selected {
-    border-color: gold;
-    background: rgba(255, 215, 0, 0.1);
-    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
-  }
-  .pokemon-price.free {
-    color: green;
-    font-weight: bold;
-  }
-  .selection-status {
-    font-size: 1.2em;
-    font-weight: bold;
-  }
-  .hub-hint {
-    color: #666;
-    font-style: italic;
+    margin-top: 0.5rem;
   }
 </style>
