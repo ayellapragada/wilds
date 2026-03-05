@@ -14,7 +14,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "sim": "tsx engine/sim/run.ts",
-    "sim:interactive": "tsx engine/sim/run.ts -i"
+    "sim:interactive": "tsx engine/sim/run.ts -i",
+    "sync-assets": "tsx scripts/sync-assets.ts"
   },
   "dependencies": {
     "partyserver": "^0.1.5"

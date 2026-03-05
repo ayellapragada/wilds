@@ -28,6 +28,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          VITE_ASSET_BASE_URL: https://pub-bacd2b6407be4bf78c6a4ea4d710d2a5.r2.dev
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

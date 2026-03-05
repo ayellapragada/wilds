@@ -2,3 +2,5 @@ node_modules
 dist
 .wrangler
 docs/plans
+assets/
+.env
