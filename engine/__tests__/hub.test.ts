@@ -18,7 +18,7 @@ function makeTestState(): GameState {
 
   const node: RouteNode = {
     id: "node1", type: "route", bonus: null, name: "Test Route", tier: 1,
-    connections: ["node2"], modifiers: [], visited: true,
+    connections: ["node2"], bustThreshold: 7, modifiers: [], visited: true,
     pokemonPool: ["charmeleon", "graveler", "wartortle", "haunter", "swellow", "snorlax"],
   };
 

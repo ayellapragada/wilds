@@ -28,27 +28,55 @@ Two alternating phases:
 Lobby → World (pick first route) → Route → World → Route → ... → Champion Route → Game Over
 ```
 
-# Next Up
+# Completed
 
-## Phase E: Marketplace & Rest Stops
+## Phase A–D: Core Engine ✅
 
-> Between-route phases for team building.
+All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting + map traversal), game_over. 139 tests passing.
 
-- [ ] `engine/models/marketplace.ts` — Marketplace state, creature generation, pricing
-- [ ] `engine/phases/world.ts` — handleBuyCreature, handleSellCreature, currency validation
-- [ ] Rest stop logic (threshold boost, creature removal, preview — details TBD)
-- [ ] `engine/phases/game-over.ts` — Final scoring, champion determination
-- [ ] `engine/__tests__/marketplace.test.ts` — Buy/sell, currency, stock depletion
+- Action resolver handles all 8 actions across 5 phases
+- Full phase transitions: lobby → route → hub → world → route → ... → champion → game_over
+- Ability system: on_draw, on_bust triggers with conditions and effects
+- Procedural map generator (tiered DAG with node types and Pokemon pools)
+- Hub: free picks for non-busted trainers, shop with rarity-weighted stock
+- World: weighted-random vote resolution, map advancement
+- TV screens for lobby/route/hub/world implemented
+- Sandbox dev tool for local testing without server
 
 ---
 
-## Phase F: Full Game State Machine
+# Next Up
 
-> Wire all phases into a complete game loop.
+## Phase E.1: Engine Gaps ✅
 
-- [ ] Phase transitions: lobby → world → route → world → ... → champion route → game_over
-- [ ] Wire all remaining actions into action-resolver (currently only handles lobby + route)
-- [ ] `engine/__tests__/full-game.test.ts` — Programmatic bot plays entire run end-to-end
+> Fix unresolved gaps in the existing engine before adding new features.
+
+- [x] Per-route bust threshold — RouteNode defines threshold (8/7/5-6/5 by type), trainers reset on route start
+- [x] `end_of_round` ability trigger — fires in handleStop and handleBustPenalty
+- [x] `bonus_currency` effect — applied to trainer currency on stop/bust
+- [x] New Pokemon: Meowth, Aipom, Persian (end_of_round + bonus_currency)
+- [x] Route modifiers — generated in map (elite/tier/type bonuses), applied in handleHit
+- [x] Removed `baseBustThreshold` from Trainer (route defines the base)
+- [ ] Node bonus types — `marketplace`, `rest_stop`, `event` (deferred to E.2)
+
+---
+
+## Phase E.2: Marketplace & Rest Stops (deferred)
+
+> Between-route phases for team building. Design questions still open.
+
+- [ ] Marketplace state, creature generation, pricing
+- [ ] Buy/sell creatures, currency validation
+- [ ] Rest stop logic (threshold boost, creature removal, preview — details TBD)
+- [ ] Final scoring refinements for game_over
+
+---
+
+## Phase F: Full Integration Test (deferred)
+
+> Programmatic bot plays entire run end-to-end.
+
+- [ ] `engine/__tests__/full-game.test.ts` — Bot plays complete game loop
 
 ---
 
@@ -56,7 +84,6 @@ Lobby → World (pick first route) → Route → World → Route → ... → Cha
 
 > Upgrade the thin wrapper to handle the full game.
 
-- [ ] `party/server.ts` — onStart, onConnect, onMessage, onClose (already partially done)
 - [ ] State persistence to Durable Object storage for crash recovery
 - [ ] Session token validation for reconnection
 - [ ] State sync sends appropriate view per connection (TV vs phone)
@@ -67,10 +94,8 @@ Lobby → World (pick first route) → Route → World → Route → ... → Cha
 
 > TV display and phone controller UIs.
 
-- [ ] `src/lib/stores.ts` — Svelte stores for game state
-- [ ] `src/lib/router.ts` — Hash-based routing (#/play/XXXX, #/table/XXXX)
 - [ ] **Phone screens:** JoinScreen, HitOrStop, BustChoice, WorldControls (vote + marketplace + team), DeckView
-- [ ] **TV screens:** Lobby, RouteView (side-scrolling progress), WorldView (overworld map), Scoreboard
+- [ ] **TV screens:** game_over screen (missing), polish existing screens
 - [ ] **Shared:** CreatureCard, TrainerIcon, QRCode
 
 ---
@@ -88,7 +113,7 @@ Lobby → World (pick first route) → Route → World → Route → ... → Cha
 
 ## Current Goal
 
-**Phase E** — Marketplace & Rest Stops. Core game loop (lobby → route → world → vote → route → champion → game over) is working end-to-end. 112 tests passing.
+**Phase E.2** — Marketplace & Rest Stops (next). Phase E.1 complete. 158 tests passing.
 
 ---
 

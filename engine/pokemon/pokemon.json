@@ -404,5 +404,35 @@
       {"name": "Drizzle", "reminderText": "+2 distance per Water drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "water"}},
       {"name": "Ice Beam", "reminderText": "+4 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 4, "duration": "route"}}
     ]
+  },
+  "meowth": {
+    "name": "Meowth",
+    "types": ["normal"],
+    "distance": 2,
+    "cost": 1,
+    "rarity": "common",
+    "description": "A coin-loving cat Pokemon.",
+    "moves": [{"name": "Pay Day", "reminderText": "+1 currency at end of round", "trigger": "end_of_round", "condition": null, "effect": {"type": "bonus_currency", "amount": 1}}]
+  },
+  "aipom": {
+    "name": "Aipom",
+    "types": ["normal"],
+    "distance": 3,
+    "cost": 2,
+    "rarity": "uncommon",
+    "description": "A mischievous monkey Pokemon.",
+    "moves": [{"name": "Pickup", "reminderText": "+3 currency if 4+ cards drawn", "trigger": "end_of_round", "condition": {"type": "min_cards_played", "min": 4}, "effect": {"type": "bonus_currency", "amount": 3}}]
+  },
+  "persian": {
+    "name": "Persian",
+    "types": ["normal"],
+    "distance": 4,
+    "cost": 3,
+    "rarity": "rare",
+    "description": "An elegant cat Pokemon with a gem on its forehead.",
+    "moves": [
+      {"name": "Payday Jackpot", "reminderText": "+5 currency if 5+ cards drawn", "trigger": "end_of_round", "condition": {"type": "min_cards_played", "min": 5}, "effect": {"type": "bonus_currency", "amount": 5}},
+      {"name": "Slash", "reminderText": "+1 distance", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance", "amount": 1}}
+    ]
   }
 }

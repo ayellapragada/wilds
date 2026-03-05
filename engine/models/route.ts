@@ -16,6 +16,7 @@ export function createRoute(
     currentTurnIndex: 0,
     trainerResults: {},
     status: "in_progress",
+    bustThreshold: node.bustThreshold,
     modifiers: [...node.modifiers],
   };
 }

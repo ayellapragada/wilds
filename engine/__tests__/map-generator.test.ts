@@ -128,6 +128,118 @@ describe("map-generator", () => {
     expect(Object.keys(map1.nodes)).not.toEqual(Object.keys(map2.nodes));
   });
 
+  describe("bustThreshold", () => {
+    test("start node has bustThreshold of 8", () => {
+      const map = generate();
+      const startNode = map.nodes[map.currentNodeId];
+      expect(startNode.bustThreshold).toBe(8);
+    });
+
+    test("regular route nodes have bustThreshold of 7", () => {
+      const map = generate();
+      const regularNodes = Object.values(map.nodes).filter(n => n.type === "route" && n.tier > 0);
+      for (const node of regularNodes) {
+        expect(node.bustThreshold).toBe(7);
+      }
+    });
+
+    test("champion node has bustThreshold of 5", () => {
+      const map = generate();
+      const champion = Object.values(map.nodes).find(n => n.type === "champion");
+      expect(champion!.bustThreshold).toBe(5);
+    });
+
+    test("elite route nodes have bustThreshold of 5 or 6", () => {
+      let eliteFound = false;
+      for (let seed = 1; seed <= 50; seed++) {
+        const map = generateMap(10, seededRng(seed));
+        const elites = Object.values(map.nodes).filter(n => n.type === "elite_route");
+        for (const node of elites) {
+          expect(node.bustThreshold).toBeGreaterThanOrEqual(5);
+          expect(node.bustThreshold).toBeLessThanOrEqual(6);
+          eliteFound = true;
+        }
+      }
+      expect(eliteFound).toBe(true);
+    });
+  });
+
+  describe("route modifiers", () => {
+    test("elite routes always have at least one modifier", () => {
+      let eliteFound = false;
+      for (let s = 0; s < 100; s++) {
+        let seed = s + 1;
+        const rng = () => {
+          seed = (seed * 16807) % 2147483647;
+          return (seed & 0x7fffffff) / 0x7fffffff;
+        };
+        const map = generateMap(10, rng);
+        const elites = Object.values(map.nodes).filter(n => n.type === "elite_route");
+        for (const node of elites) {
+          expect(node.modifiers.length).toBeGreaterThanOrEqual(1);
+          eliteFound = true;
+        }
+      }
+      expect(eliteFound).toBe(true);
+    });
+
+    test("elite route modifiers are cost_bonus or threshold_modifier", () => {
+      let eliteFound = false;
+      for (let s = 0; s < 100; s++) {
+        let seed = s + 1;
+        const rng = () => {
+          seed = (seed * 16807) % 2147483647;
+          return (seed & 0x7fffffff) / 0x7fffffff;
+        };
+        const map = generateMap(10, rng);
+        const elites = Object.values(map.nodes).filter(n => n.type === "elite_route");
+        for (const node of elites) {
+          for (const mod of node.modifiers) {
+            expect(["cost_bonus", "threshold_modifier", "distance_bonus", "type_bonus"]).toContain(mod.type);
+          }
+          eliteFound = true;
+        }
+      }
+      expect(eliteFound).toBe(true);
+    });
+
+    test("later tier nodes can have distance_bonus modifier", () => {
+      let distanceBonusFound = false;
+      for (let s = 0; s < 200; s++) {
+        let seed = s + 1;
+        const rng = () => {
+          seed = (seed * 16807) % 2147483647;
+          return (seed & 0x7fffffff) / 0x7fffffff;
+        };
+        const map = generateMap(10, rng);
+        for (const node of Object.values(map.nodes)) {
+          if (node.tier >= 5 && node.modifiers.some(m => m.type === "distance_bonus")) {
+            distanceBonusFound = true;
+          }
+        }
+      }
+      expect(distanceBonusFound).toBe(true);
+    });
+
+    test("some nodes have type_bonus modifier", () => {
+      let typeBonusFound = false;
+      for (let s = 0; s < 200; s++) {
+        let seed = s + 1;
+        const rng = () => {
+          seed = (seed * 16807) % 2147483647;
+          return (seed & 0x7fffffff) / 0x7fffffff;
+        };
+        const map = generateMap(10, rng);
+        for (const node of Object.values(map.nodes)) {
+          if (node.modifiers.some(m => m.type === "type_bonus")) {
+            typeBonusFound = true;
+          }
+        }
+      }
+      expect(typeBonusFound).toBe(true);
+    });
+  });
+
   describe("pokemon pools", () => {
     test("each non-champion node has a pokemon pool", () => {
       const map = generate();

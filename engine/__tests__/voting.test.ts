@@ -16,10 +16,10 @@ function worldPhaseState(trainerCount: number): GameState {
 
   // Build a tiny test map: start → [nodeA, nodeB] → champion
   const nodes: Record<string, RouteNode> = {
-    start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], modifiers: [], visited: true, pokemonPool: [] },
-    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], modifiers: [], visited: false, pokemonPool: ["rattata", "pidgey", "charmander"] },
-    nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], modifiers: [], visited: false, pokemonPool: [] },
-    champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], modifiers: [], visited: false, pokemonPool: [] },
+    start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], bustThreshold: 8, modifiers: [], visited: true, pokemonPool: [] },
+    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], bustThreshold: 7, modifiers: [], visited: false, pokemonPool: ["rattata", "pidgey", "charmander"] },
+    nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], bustThreshold: 7, modifiers: [], visited: false, pokemonPool: [] },
+    champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], bustThreshold: 5, modifiers: [], visited: false, pokemonPool: [] },
   };
 
   const map: WorldMap = { nodes, currentNodeId: "start", totalTiers: 3 };

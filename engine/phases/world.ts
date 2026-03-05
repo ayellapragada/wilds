@@ -53,7 +53,7 @@ export function handleVote(
 
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
-    trainers[id] = { ...t, status: "exploring", routeProgress: freshProgress() };
+    trainers[id] = { ...t, status: "exploring", bustThreshold: chosenNode.bustThreshold, routeProgress: freshProgress() };
   }
 
   events.push({

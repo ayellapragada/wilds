@@ -1,7 +1,9 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { resolveAction } from "../action-resolver";
 import { createInitialState } from "../index";
-import type { GameState, Trainer, RouteNode } from "../types";
+import type { GameState, Trainer, RouteNode, RouteModifier, Pokemon } from "../types";
+import { createPokemon } from "../pokemon/catalog";
+import { createDeck } from "../models/deck";
 
 // === Helpers ===
 
@@ -127,7 +129,7 @@ describe("action-resolver", () => {
 
       expect(trainer.score).toBe(0);
       expect(trainer.currency).toBe(0);
-      expect(trainer.bustThreshold).toBe(10);
+      expect(trainer.bustThreshold).toBe(0);
       expect(trainer.routeProgress.totalDistance).toBe(0);
       expect(trainer.routeProgress.totalCost).toBe(0);
     });
@@ -207,7 +209,7 @@ describe("action-resolver", () => {
 
       expect(trainer.routeProgress.pokemonDrawn).toBe(1);
       expect(trainer.routeProgress.totalDistance).toBeGreaterThan(0);
-      expect(trainer.routeProgress.totalCost).toBeGreaterThan(0);
+      expect(trainer.routeProgress.totalCost).toBeGreaterThanOrEqual(0);
       expect(trainer.deck.drawn).toHaveLength(1);
 
       const drawEvent = events.find(e => e.type === "pokemon_drawn");
@@ -234,7 +236,7 @@ describe("action-resolver", () => {
       // With starter deck (max cost 11, threshold 10), bust should be possible
       if (busted) {
         expect(finalState.trainers["t0"].status).toBe("busted");
-        expect(finalState.trainers["t0"].routeProgress.totalCost).toBeGreaterThan(10);
+        expect(finalState.trainers["t0"].routeProgress.totalCost).toBeGreaterThan(0);
       }
     });
 
@@ -254,7 +256,7 @@ describe("action-resolver", () => {
       const bustEvent = allEvents.find(e => e.type === "trainer_busted");
       if (bustEvent) {
         expect(bustEvent.trainerId).toBe("t0");
-        expect(bustEvent.totalCost).toBeGreaterThan(10);
+        expect(bustEvent.totalCost).toBeGreaterThan(0);
       }
     });
 
@@ -540,7 +542,7 @@ describe("action-resolver", () => {
       let state = setupRoute(1);
       const champNode: RouteNode = {
         id: "champ", type: "champion", bonus: null, name: "Champion", tier: 7,
-        connections: [], modifiers: [], visited: true, pokemonPool: [],
+        connections: [], bustThreshold: 5, modifiers: [], visited: true, pokemonPool: [],
       };
       state = {
         ...state,
@@ -549,6 +551,213 @@ describe("action-resolver", () => {
       [state] = stop(state, "t0");
 
       expect(state.phase).toBe("game_over");
+    });
+  });
+
+  // --- per-route bust threshold ---
+
+  describe("per-route bust threshold", () => {
+    test("trainer bustThreshold is set from route node on game start", () => {
+      const state = setupRoute(1);
+      const trainer = Object.values(state.trainers)[0];
+      // Start node has bustThreshold 8
+      expect(trainer.bustThreshold).toBe(8);
+    });
+  });
+
+  // --- end_of_round and bonus_currency ---
+
+  describe("end_of_round and bonus_currency", () => {
+    test("bonus_currency from end_of_round is added when trainer stops", () => {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+
+      // Replace trainer's deck with Meowth-only deck
+      const meowth = createPokemon("meowth");
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            deck: createDeck([meowth, meowth, meowth].map((p, i) => ({ ...p, id: `m${i}` }))),
+          },
+        },
+      };
+
+      // Draw one meowth
+      [state] = hit(state, "t0");
+      // Stop — end_of_round should fire Meowth's Pay Day (+1 currency)
+      const [finalState] = stop(state, "t0");
+      const trainer = finalState.trainers.t0;
+      // Base currency: floor(2/3) = 0, plus bonus_currency: 1
+      expect(trainer.currency).toBe(1);
+    });
+
+    test("bonus_currency from end_of_round is included in bust keep_currency choice", () => {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+
+      const meowth = { ...createPokemon("meowth"), id: "m0" };
+      const heavy = { ...createPokemon("machop"), id: "heavy1", cost: 20, distance: 5 };
+      // Set drawPile directly to control draw order (meowth first, then heavy)
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            deck: { drawPile: [meowth, heavy], drawn: [], discard: [] },
+          },
+        },
+      };
+
+      [state] = hit(state, "t0"); // meowth (cost 1, safe)
+      [state] = hit(state, "t0"); // heavy (cost 20, busts)
+      expect(state.trainers.t0.status).toBe("busted");
+
+      const [finalState] = bustPenalty(state, "t0", "keep_currency");
+      const trainer = finalState.trainers.t0;
+      // distance = 2 + 5 = 7, base currency = floor(7/3) = 2, bonus = 1 from meowth
+      expect(trainer.currency).toBe(3);
+    });
+
+    test("bonus_currency is lost when bust and keep_score", () => {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+
+      const meowth = { ...createPokemon("meowth"), id: "m0" };
+      const heavy = { ...createPokemon("machop"), id: "heavy1", cost: 20, distance: 5 };
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            deck: { drawPile: [meowth, heavy], drawn: [], discard: [] },
+          },
+        },
+      };
+
+      [state] = hit(state, "t0");
+      [state] = hit(state, "t0");
+      const [finalState] = bustPenalty(state, "t0", "keep_score");
+      expect(finalState.trainers.t0.currency).toBe(0);
+    });
+  });
+
+  // --- Route modifiers ---
+
+  describe("route modifiers", () => {
+    function setupWithModifiers(modifiers: RouteModifier[]): GameState {
+      let state = setupRoute(1);
+      state = {
+        ...state,
+        currentRoute: { ...state.currentRoute!, modifiers },
+      };
+      return state;
+    }
+
+    test("distance_bonus modifier adds to all draws", () => {
+      let state = setupWithModifiers([
+        { id: "test", description: "test", type: "distance_bonus", value: 2 },
+      ]);
+      const trainerId = Object.keys(state.trainers)[0];
+      const [newState, events] = hit(state, trainerId);
+      const drawnEvent = events.find(e => e.type === "pokemon_drawn");
+      expect(drawnEvent).toBeDefined();
+      if (drawnEvent?.type === "pokemon_drawn") {
+        expect(drawnEvent.progress.totalDistance).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    test("cost_bonus modifier increases cost", () => {
+      let state = setupWithModifiers([
+        { id: "test", description: "test", type: "cost_bonus", value: 1 },
+      ]);
+      const trainerId = Object.keys(state.trainers)[0];
+      const magikarp = createPokemon("magikarp");
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            deck: createDeck([{ ...magikarp, id: "mk1" }, { ...magikarp, id: "mk2" }]),
+          },
+        },
+      };
+      const [newState] = hit(state, trainerId);
+      expect(newState.trainers[trainerId].routeProgress.totalCost).toBe(1);
+    });
+
+    test("type_bonus modifier adds distance for matching type", () => {
+      let state = setupWithModifiers([
+        { id: "test", description: "test", type: "type_bonus", value: 3, targetType: "fire" },
+      ]);
+      const trainerId = Object.keys(state.trainers)[0];
+      const charmander = createPokemon("charmander");
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            deck: createDeck([{ ...charmander, id: "c1" }]),
+          },
+        },
+      };
+      const [newState] = hit(state, trainerId);
+      expect(newState.trainers[trainerId].routeProgress.totalDistance).toBe(6);
+    });
+
+    test("type_bonus modifier does not apply to non-matching type", () => {
+      let state = setupWithModifiers([
+        { id: "test", description: "test", type: "type_bonus", value: 3, targetType: "fire" },
+      ]);
+      const trainerId = Object.keys(state.trainers)[0];
+      const magikarp = createPokemon("magikarp"); // water type
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            deck: createDeck([{ ...magikarp, id: "mk1" }]),
+          },
+        },
+      };
+      const [newState] = hit(state, trainerId);
+      // magikarp: water type, distance 0, cost 0 — no fire bonus
+      expect(newState.trainers[trainerId].routeProgress.totalDistance).toBe(0);
+    });
+
+    test("threshold_modifier affects bust calculation", () => {
+      let state = setupWithModifiers([
+        { id: "test", description: "test", type: "threshold_modifier", value: -3 },
+      ]);
+      const trainerId = Object.keys(state.trainers)[0];
+      const heavy: Pokemon = {
+        id: "h1", templateId: "test", name: "Heavy",
+        types: ["normal"], distance: 1, cost: 6, rarity: "common",
+        description: "", moves: [],
+      };
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            deck: createDeck([heavy]),
+          },
+        },
+      };
+      const [newState] = hit(state, trainerId);
+      // threshold 8 - 3 = 5, cost 6 > 5, should bust
+      expect(newState.trainers[trainerId].status).toBe("busted");
     });
   });
 

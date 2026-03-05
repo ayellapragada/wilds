@@ -46,7 +46,6 @@ export interface Trainer {
   readonly deck: Deck;
   readonly score: number;
   readonly bustThreshold: number;
-  readonly baseBustThreshold: number;
   readonly currency: number;
   readonly status: TrainerStatus;
   readonly routeProgress: RouteProgress;
@@ -67,6 +66,7 @@ export interface Route {
   readonly currentTurnIndex: number;
   readonly trainerResults: Record<string, RouteResult>;
   readonly status: "in_progress" | "complete";
+  readonly bustThreshold: number;
   readonly modifiers: readonly RouteModifier[];
 }
 
@@ -90,6 +90,7 @@ export interface RouteNode {
   readonly name: string;
   readonly tier: number;
   readonly connections: readonly string[];
+  readonly bustThreshold: number;
   readonly modifiers: readonly RouteModifier[];
   readonly visited: boolean;
   readonly pokemonPool: readonly string[];

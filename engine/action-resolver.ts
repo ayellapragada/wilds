@@ -50,8 +50,7 @@ function handleJoin(
     name: action.trainerName,
     deck: createDeck(createStarterTeam()),
     score: 0,
-    bustThreshold: 10,
-    baseBustThreshold: 10,
+    bustThreshold: 0,
     currency: 0,
     status: "waiting",
     routeProgress: freshProgress(),
@@ -86,7 +85,7 @@ function handleStart(
   // Set all trainers to exploring
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
-    trainers[id] = { ...t, status: "exploring", routeProgress: freshProgress() };
+    trainers[id] = { ...t, status: "exploring", bustThreshold: startNode.bustThreshold, routeProgress: freshProgress() };
   }
 
   const route = createRoute(1, startNode, trainerIds);
@@ -149,6 +148,28 @@ function handleHit(
       case "modify_threshold":
         thresholdMod += effect.amount;
         break;
+    }
+  }
+
+  // Apply route modifiers
+  if (state.currentRoute) {
+    for (const modifier of state.currentRoute.modifiers) {
+      switch (modifier.type) {
+        case "distance_bonus":
+          bonusDistance += modifier.value;
+          break;
+        case "cost_bonus":
+          effectiveCost = Math.max(0, effectiveCost + modifier.value);
+          break;
+        case "threshold_modifier":
+          thresholdMod += modifier.value;
+          break;
+        case "type_bonus":
+          if (modifier.targetType && pokemon.types.includes(modifier.targetType)) {
+            bonusDistance += modifier.value;
+          }
+          break;
+      }
     }
   }
 
@@ -236,11 +257,30 @@ function handleStop(
   if (!trainer || trainer.status !== "exploring") return [state, []];
 
   const distanceEarned = trainer.routeProgress.totalDistance;
-  const currencyEarned = Math.floor(distanceEarned / 3);
 
-  const events: GameEvent[] = [
+  // Fire end_of_round abilities
+  let bonusCurrency = 0;
+  const events: GameEvent[] = [];
+  for (const drawn of trainer.deck.drawn) {
+    const effects = resolveMoves(drawn, "end_of_round", trainer.deck.drawn, trainer.routeProgress, trainer.bustThreshold);
+    for (const effect of effects) {
+      if (effect.type === "bonus_currency") {
+        bonusCurrency += effect.amount;
+      }
+      events.push({
+        type: "ability_triggered",
+        pokemonId: drawn.id,
+        effect,
+        description: drawn.description,
+      });
+    }
+  }
+
+  const currencyEarned = Math.floor(distanceEarned / 3) + bonusCurrency;
+
+  events.push(
     { type: "trainer_stopped", trainerId: trainer.id, totalDistance: distanceEarned },
-  ];
+  );
 
   const updatedTrainer: Trainer = {
     ...trainer,
@@ -269,7 +309,26 @@ function handleBustPenalty(
   if (!trainer || trainer.status !== "busted") return [state, []];
 
   const distance = trainer.routeProgress.totalDistance;
-  const currency = Math.floor(distance / 3);
+
+  // Fire end_of_round abilities
+  let bonusCurrency = 0;
+  const events: GameEvent[] = [];
+  for (const drawn of trainer.deck.drawn) {
+    const effects = resolveMoves(drawn, "end_of_round", trainer.deck.drawn, trainer.routeProgress, trainer.bustThreshold);
+    for (const effect of effects) {
+      if (effect.type === "bonus_currency") {
+        bonusCurrency += effect.amount;
+      }
+      events.push({
+        type: "ability_triggered",
+        pokemonId: drawn.id,
+        effect,
+        description: drawn.description,
+      });
+    }
+  }
+
+  const currency = Math.floor(distance / 3) + bonusCurrency;
 
   const updatedTrainer: Trainer = {
     ...trainer,
@@ -280,9 +339,9 @@ function handleBustPenalty(
     routeProgress: freshProgress(),
   };
 
-  const events: GameEvent[] = [
+  events.push(
     { type: "bust_penalty_chosen", trainerId: trainer.id, choice: action.choice },
-  ];
+  );
 
   let newState: GameState = {
     ...state,

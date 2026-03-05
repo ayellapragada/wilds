@@ -226,7 +226,7 @@ describe("abilities integration (through handleHit)", () => {
     });
     let state = stateWithDeck([c]);
     [state] = resolveAction(state, { type: "hit", trainerId: "t0" });
-    expect(state.trainers["t0"].bustThreshold).toBe(12); // 10 base + 2
+    expect(state.trainers["t0"].bustThreshold).toBe(10); // 8 base + 2
   });
 
   test("reduce_cost self reduces this pokemon's cost contribution", () => {
@@ -347,7 +347,7 @@ describe("abilities integration (through handleHit)", () => {
 
   test("negate_bust works with dragon_king + phoenix (exact sandbox scenario)", () => {
     const dragon_king = makePokemon("dk", {
-      types: ["fire"], distance: 12, cost: 10,
+      types: ["fire"], distance: 12, cost: 7,
       moves: [{
         name: "Test", reminderText: "test",
         trigger: "on_draw",
@@ -356,7 +356,7 @@ describe("abilities integration (through handleHit)", () => {
       }],
     });
     const phoenix = makePokemon("phoenix", {
-      types: ["fire"], distance: 8, cost: 7,
+      types: ["fire"], distance: 8, cost: 5,
       moves: [{
         name: "Test", reminderText: "test",
         trigger: "on_bust",
@@ -365,11 +365,11 @@ describe("abilities integration (through handleHit)", () => {
       }],
     });
     let state = stateWithDeck([dragon_king, phoenix]);
-    [state] = resolveAction(state, { type: "hit", trainerId: "t0" }); // DK: cost=10, threshold=10, not busted (10 <= 10)
+    [state] = resolveAction(state, { type: "hit", trainerId: "t0" }); // DK: cost=7, threshold=8, not busted (7 <= 8)
     expect(state.trainers["t0"].status).toBe("exploring");
-    expect(state.trainers["t0"].routeProgress.totalCost).toBe(10);
+    expect(state.trainers["t0"].routeProgress.totalCost).toBe(7);
 
-    [state] = resolveAction(state, { type: "hit", trainerId: "t0" }); // Phoenix: cost=17 > 10, busted → negate_bust
+    [state] = resolveAction(state, { type: "hit", trainerId: "t0" }); // Phoenix: cost=12 > 8, busted → negate_bust
     expect(state.trainers["t0"].status).toBe("exploring"); // phoenix should save
   });
 
@@ -381,5 +381,33 @@ describe("abilities integration (through handleHit)", () => {
     [state] = resolveAction(state, { type: "hit", trainerId: "t0" });
 
     expect(state.trainers["t0"].status).toBe("busted");
+  });
+});
+
+describe("end_of_round trigger", () => {
+  test("end_of_round moves resolve when trigger matches", () => {
+    const meowth = pokemon({
+      name: "Meowth", types: ["normal"],
+      moves: [{
+        name: "Pay Day", reminderText: "+1 currency at end of round",
+        trigger: "end_of_round", condition: null,
+        effect: { type: "bonus_currency", amount: 1 },
+      }],
+    });
+    const effects = resolveMoves(meowth, "end_of_round", [meowth], progress({ pokemonDrawn: 1 }), 7);
+    expect(effects).toEqual([{ type: "bonus_currency", amount: 1 }]);
+  });
+
+  test("end_of_round with min_cards_played condition", () => {
+    const aipom = pokemon({
+      name: "Aipom", types: ["normal"],
+      moves: [{
+        name: "Pickup", reminderText: "+3 currency if 4+ cards drawn",
+        trigger: "end_of_round", condition: { type: "min_cards_played", min: 4 },
+        effect: { type: "bonus_currency", amount: 3 },
+      }],
+    });
+    expect(resolveMoves(aipom, "end_of_round", [aipom], progress({ pokemonDrawn: 3 }), 7)).toEqual([]);
+    expect(resolveMoves(aipom, "end_of_round", [aipom], progress({ pokemonDrawn: 4 }), 7)).toEqual([{ type: "bonus_currency", amount: 3 }]);
   });
 });

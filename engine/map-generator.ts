@@ -1,4 +1,4 @@
-import type { WorldMap, RouteNode, RouteNodeType, BonusType } from "./types";
+import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier } from "./types";
 import { getAllTemplateIds, getTemplate } from "./pokemon/catalog";
 
 export type RngFn = () => number;
@@ -30,12 +30,12 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
     if (tier === 0) {
       // Tier 0: single start node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "route", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng));
+      nodes[id] = makeNode(id, "route", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng), 8, []);
       tierNodeIds.push(id);
     } else if (tier === totalTiers - 1) {
       // Last tier: single champion node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "champion", tier, "Champion Route", null, []);
+      nodes[id] = makeNode(id, "champion", tier, "Champion Route", null, [], 5, []);
       tierNodeIds.push(id);
     } else {
       // Middle tiers: 2-3 nodes
@@ -45,7 +45,9 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
         const id = `t${tier}_${i}`;
         const nodeType: RouteNodeType = i === 0 ? type : "route";
         const bonus = rng() < 0.3 ? BONUS_TYPES[Math.floor(rng() * BONUS_TYPES.length)] : null;
-        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generatePokemonPool(tier, totalTiers, rng));
+        const bustThreshold = nodeType === "elite_route" ? (5 + Math.floor(rng() * 2)) : 7;
+        const modifiers = generateModifiers(nodeType, tier, totalTiers, rng);
+        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generatePokemonPool(tier, totalTiers, rng), bustThreshold, modifiers);
         tierNodeIds.push(id);
       }
     }
@@ -129,9 +131,49 @@ function generatePokemonPool(tier: number, totalTiers: number, rng: RngFn): stri
   return Array.from({ length: poolSize }, () => pickByRarity(weights, buckets, allIds, rng));
 }
 
+const TYPE_BONUS_TYPES: PokemonType[] = [
+  "fire", "water", "grass", "electric", "rock", "ground", "flying",
+  "psychic", "dark", "steel", "ghost", "dragon", "fairy",
+];
+
+function generateModifiers(
+  type: RouteNodeType, tier: number, _totalTiers: number, rng: RngFn,
+): RouteModifier[] {
+  const modifiers: RouteModifier[] = [];
+
+  // Elite routes always get a harsh modifier
+  if (type === "elite_route") {
+    if (rng() < 0.5) {
+      modifiers.push({ id: "elite_cost", description: "Harsh terrain: +1 cost to all draws", type: "cost_bonus", value: 1 });
+    } else {
+      modifiers.push({ id: "elite_threshold", description: "Thin air: -1 bust threshold", type: "threshold_modifier", value: -1 });
+    }
+  }
+
+  // Later tiers: 30% chance of distance bonus
+  if (tier >= 5 && type !== "champion" && rng() < 0.3) {
+    modifiers.push({ id: "deep_bonus", description: "Tailwind: +1 distance to all draws", type: "distance_bonus", value: 1 });
+  }
+
+  // 20% chance of type bonus (not on champion/start)
+  if (tier > 0 && type !== "champion" && rng() < 0.2) {
+    const bonusType = TYPE_BONUS_TYPES[Math.floor(rng() * TYPE_BONUS_TYPES.length)];
+    modifiers.push({
+      id: `type_${bonusType}`,
+      description: `${bonusType} terrain: ${bonusType}-type Pokemon get +2 distance`,
+      type: "type_bonus",
+      value: 2,
+      targetType: bonusType,
+    });
+  }
+
+  return modifiers;
+}
+
 function makeNode(
   id: string, type: RouteNodeType, tier: number,
   name: string, bonus: BonusType | null, pokemonPool: string[],
+  bustThreshold: number, modifiers: RouteModifier[],
 ): RouteNode {
-  return { id, type, bonus, name, tier, connections: [], modifiers: [], visited: false, pokemonPool };
+  return { id, type, bonus, name, tier, connections: [], bustThreshold, modifiers, visited: false, pokemonPool };
 }
