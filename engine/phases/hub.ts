@@ -1,6 +1,6 @@
-import type { GameState, GameEvent, HubState, Creature } from "../types";
-import { createCreature, getAllTemplateIds, getTemplate } from "../creatures/catalog";
-import { addCreature } from "../models/deck";
+import type { GameState, GameEvent, HubState, Pokemon } from "../types";
+import { createPokemon, getAllTemplateIds, getTemplate } from "../pokemon/catalog";
+import { addPokemon } from "../models/deck";
 
 type ResolveResult = [GameState, GameEvent[]];
 type RngFn = () => number;
@@ -43,7 +43,7 @@ export function enterHub(
   const trainerIds = Object.keys(state.trainers);
   const bustedSet = new Set(bustedTrainerIds);
 
-  const freePickOffers: Record<string, readonly Creature[]> = {};
+  const freePickOffers: Record<string, readonly Pokemon[]> = {};
   const freePicksMade: Record<string, string | null> = {};
 
   for (const id of trainerIds) {
@@ -51,14 +51,14 @@ export function enterHub(
       freePickOffers[id] = [];
       freePicksMade[id] = null;
     } else {
-      const pool = currentNode.creaturePool;
+      const pool = currentNode.pokemonPool;
       if (pool.length >= 2) {
         const idx1 = Math.floor(rng() * pool.length);
         let idx2 = Math.floor(rng() * (pool.length - 1));
         if (idx2 >= idx1) idx2++;
-        freePickOffers[id] = [createCreature(pool[idx1]), createCreature(pool[idx2])];
+        freePickOffers[id] = [createPokemon(pool[idx1]), createPokemon(pool[idx2])];
       } else if (pool.length === 1) {
-        freePickOffers[id] = [createCreature(pool[0])];
+        freePickOffers[id] = [createPokemon(pool[0])];
       } else {
         freePickOffers[id] = [];
         freePicksMade[id] = null;
@@ -66,10 +66,10 @@ export function enterHub(
     }
   }
 
-  const shopCreatures = generateShopCreatures(currentNode.tier, map.totalTiers, rng);
+  const shopPokemon = generateShopPokemon(currentNode.tier, map.totalTiers, rng);
   const shopPrices: Record<string, number> = {};
-  for (const c of shopCreatures) {
-    shopPrices[c.id] = creaturePrice(c);
+  for (const p of shopPokemon) {
+    shopPrices[p.id] = pokemonPrice(p);
   }
 
   const allBusted = trainerIds.every(id => bustedSet.has(id));
@@ -78,7 +78,7 @@ export function enterHub(
     phase: allBusted ? "marketplace" : "free_pick",
     freePickOffers,
     freePicksMade,
-    shopCreatures,
+    shopPokemon,
     shopPrices,
     readyTrainers: [],
   };
@@ -87,7 +87,7 @@ export function enterHub(
     {
       type: "hub_entered",
       freePickOffers,
-      shopCreatures: [...shopCreatures],
+      shopPokemon: [...shopPokemon],
       shopPrices: { ...shopPrices },
     },
   ];
@@ -95,7 +95,7 @@ export function enterHub(
   if (allBusted) {
     events.push({
       type: "marketplace_opened",
-      availableCreatures: [...shopCreatures],
+      availablePokemon: [...shopPokemon],
       prices: { ...shopPrices },
     });
   }
@@ -103,9 +103,9 @@ export function enterHub(
   return [{ ...state, phase: "hub", hub }, events];
 }
 
-export function handlePickFreeCreature(
+export function handlePickFreePokemon(
   state: GameState,
-  action: { type: "pick_free_creature"; trainerId: string; creatureId: string },
+  action: { type: "pick_free_pokemon"; trainerId: string; pokemonId: string },
 ): ResolveResult {
   if (state.phase !== "hub" || !state.hub || state.hub.phase !== "free_pick") return [state, []];
   const trainer = state.trainers[action.trainerId];
@@ -113,16 +113,16 @@ export function handlePickFreeCreature(
   if (action.trainerId in state.hub.freePicksMade) return [state, []];
 
   const offers = state.hub.freePickOffers[action.trainerId] ?? [];
-  const creature = offers.find(c => c.id === action.creatureId);
-  if (!creature) return [state, []];
+  const pokemon = offers.find(p => p.id === action.pokemonId);
+  if (!pokemon) return [state, []];
 
-  const newDeck = addCreature(trainer.deck, creature);
+  const newDeck = addPokemon(trainer.deck, pokemon);
 
   const events: GameEvent[] = [
-    { type: "free_creature_picked", trainerId: action.trainerId, creature },
+    { type: "free_pokemon_picked", trainerId: action.trainerId, pokemon },
   ];
 
-  const freePicksMade = { ...state.hub.freePicksMade, [action.trainerId]: creature.id };
+  const freePicksMade = { ...state.hub.freePicksMade, [action.trainerId]: pokemon.id };
   const [hub, transitionEvents] = maybeTransitionToMarketplace(state, freePicksMade);
   events.push(...transitionEvents);
 
@@ -151,22 +151,22 @@ export function handleSkipFreePick(
   return [{ ...state, hub }, events];
 }
 
-export function handleBuyCreature(
+export function handleBuyPokemon(
   state: GameState,
-  action: { type: "buy_creature"; trainerId: string; creatureId: string },
+  action: { type: "buy_pokemon"; trainerId: string; pokemonId: string },
 ): ResolveResult {
   if (state.phase !== "hub" || !state.hub || state.hub.phase !== "marketplace") return [state, []];
   const trainer = state.trainers[action.trainerId];
   if (!trainer) return [state, []];
 
-  const creature = state.hub.shopCreatures.find(c => c.id === action.creatureId);
-  if (!creature) return [state, []];
+  const pokemon = state.hub.shopPokemon.find(p => p.id === action.pokemonId);
+  if (!pokemon) return [state, []];
 
-  const price = state.hub.shopPrices[creature.id];
+  const price = state.hub.shopPrices[pokemon.id];
   if (trainer.currency < price) return [state, []];
 
-  const boughtCreature: Creature = { ...creature, id: `bought_${creature.id}_${trainer.id}` };
-  const newDeck = addCreature(trainer.deck, boughtCreature);
+  const boughtPokemon: Pokemon = { ...pokemon, id: `bought_${pokemon.id}_${trainer.id}` };
+  const newDeck = addPokemon(trainer.deck, boughtPokemon);
 
   return [{
     ...state,
@@ -175,7 +175,7 @@ export function handleBuyCreature(
       [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - price },
     },
   }, [
-    { type: "creature_purchased", trainerId: action.trainerId, creature: boughtCreature },
+    { type: "pokemon_purchased", trainerId: action.trainerId, pokemon: boughtPokemon },
   ]];
 }
 
@@ -218,13 +218,13 @@ function maybeTransitionToMarketplace(
   if (allPicked) {
     return [
       { ...hub, freePicksMade, phase: "marketplace" },
-      [{ type: "marketplace_opened", availableCreatures: [...hub.shopCreatures], prices: { ...hub.shopPrices } }],
+      [{ type: "marketplace_opened", availablePokemon: [...hub.shopPokemon], prices: { ...hub.shopPrices } }],
     ];
   }
   return [{ ...hub, freePicksMade }, []];
 }
 
-function generateShopCreatures(tier: number, totalTiers: number, rng: RngFn): Creature[] {
+function generateShopPokemon(tier: number, totalTiers: number, rng: RngFn): Pokemon[] {
   const allIds = getAllTemplateIds();
   const buckets = buildRarityBuckets(allIds);
   const shopSize = 3 + (rng() < 0.5 ? 1 : 0);
@@ -238,16 +238,16 @@ function generateShopCreatures(tier: number, totalTiers: number, rng: RngFn): Cr
   };
 
   return Array.from({ length: shopSize }, () =>
-    createCreature(pickByRarity(weights, buckets, allIds, rng))
+    createPokemon(pickByRarity(weights, buckets, allIds, rng))
   );
 }
 
-function creaturePrice(creature: Creature): number {
+function pokemonPrice(pokemon: Pokemon): number {
   const basePrices: Record<string, number> = {
     common: 2,
     uncommon: 4,
     rare: 7,
     legendary: 12,
   };
-  return basePrices[creature.rarity] ?? 3;
+  return basePrices[pokemon.rarity] ?? 3;
 }

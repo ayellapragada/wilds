@@ -120,13 +120,13 @@
           <p>
             Distance: <strong>{myTrainer.routeProgress.totalDistance}</strong> |
             Cost: <strong>{myTrainer.routeProgress.totalCost}</strong> / {myTrainer.bustThreshold} |
-            Creatures drawn: {myTrainer.routeProgress.creaturesDrawn}
+            Pokemon drawn: {myTrainer.routeProgress.pokemonDrawn}
           </p>
           <p>Score: {myTrainer.score} | Currency: {myTrainer.currency}</p>
 
           {#if myTrainer.status === 'exploring'}
             <button onclick={hit}>HIT</button>
-            <button onclick={stop} disabled={myTrainer.routeProgress.creaturesDrawn === 0}>STOP</button>
+            <button onclick={stop} disabled={myTrainer.routeProgress.pokemonDrawn === 0}>STOP</button>
           {:else if myTrainer.status === 'busted'}
             <p><strong>Whited Out!</strong> Cost {myTrainer.routeProgress.totalCost} exceeded threshold {myTrainer.bustThreshold}.</p>
             <p>Choose one to keep:</p>
@@ -141,11 +141,11 @@
           {/if}
 
           {#if myTrainer.deck.drawn.length > 0}
-            <div class="drawn-creatures">
+            <div class="drawn-pokemon">
               <h4>Drawn this route:</h4>
-              {#each myTrainer.deck.drawn as creature}
-                <span class="creature {creature.type}" title={creature.description}>
-                  {creature.name} (+{creature.distance}d / +{creature.cost}c)
+              {#each myTrainer.deck.drawn as pkmn}
+                <span class="pokemon {pkmn.types[0]}" title={pkmn.description}>
+                  {pkmn.name} (+{pkmn.distance}d / +{pkmn.cost}c)
                 </span>
               {/each}
             </div>
@@ -176,34 +176,34 @@
         {@const canFreePick = (gameState.hub.freePickOffers[myId]?.length ?? 0) > 0 && !(myId in (gameState.hub.freePicksMade ?? {}))}
         <div class="shop-items">
           {#if canFreePick}
-            {#each gameState.hub.freePickOffers[myId] as creature}
+            {#each gameState.hub.freePickOffers[myId] as pkmn}
               <button
-                class="creature-card {creature.type}"
-                onclick={() => send({ type: 'pick_free_creature', trainerId: myId, creatureId: creature.id })}
+                class="pokemon-card {pkmn.types[0]}"
+                onclick={() => send({ type: 'pick_free_pokemon', trainerId: myId, pokemonId: pkmn.id })}
               >
-                <strong>{creature.name}</strong>
-                <span class="creature-stats">+{creature.distance}d / +{creature.cost}c</span>
-                <span class="creature-rarity">{creature.rarity}</span>
-                <span class="creature-price"><s class="old-price">${gameState.hub.shopPrices[creature.id] ?? '?'}</s> FREE</span>
-                {#if creature.description}
-                  <span class="creature-desc">{creature.description}</span>
+                <strong>{pkmn.name}</strong>
+                <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
+                <span class="pokemon-rarity">{pkmn.rarity}</span>
+                <span class="pokemon-price"><s class="old-price">${gameState.hub.shopPrices[pkmn.id] ?? '?'}</s> FREE</span>
+                {#if pkmn.description}
+                  <span class="pokemon-desc">{pkmn.description}</span>
                 {/if}
               </button>
             {/each}
           {/if}
-          {#each gameState.hub.shopCreatures as creature}
-            {@const price = gameState.hub.shopPrices[creature.id] ?? 0}
+          {#each gameState.hub.shopPokemon as pkmn}
+            {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
             <button
-              class="creature-card {creature.type}"
-              onclick={() => send({ type: 'buy_creature', trainerId: myId, creatureId: creature.id })}
+              class="pokemon-card {pkmn.types[0]}"
+              onclick={() => send({ type: 'buy_pokemon', trainerId: myId, pokemonId: pkmn.id })}
               disabled={gameState.hub.phase !== 'marketplace' || (myTrainer?.currency ?? 0) < price}
             >
-              <strong>{creature.name}</strong>
-              <span class="creature-stats">+{creature.distance}d / +{creature.cost}c</span>
-              <span class="creature-rarity">{creature.rarity}</span>
-              <span class="creature-price">${price}</span>
-              {#if creature.description}
-                <span class="creature-desc">{creature.description}</span>
+              <strong>{pkmn.name}</strong>
+              <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
+              <span class="pokemon-rarity">{pkmn.rarity}</span>
+              <span class="pokemon-price">${price}</span>
+              {#if pkmn.description}
+                <span class="pokemon-desc">{pkmn.description}</span>
               {/if}
             </button>
           {/each}
@@ -214,7 +214,7 @@
         {:else}
           <button class="ready-btn" onclick={() => {
             if (canFreePick) {
-              if (!confirm('You aren\'t hiring a Pokemon. Are you sure?')) return;
+              if (!confirm('You aren\'t picking a Pokemon. Are you sure?')) return;
               send({ type: 'skip_free_pick', trainerId: myId });
             } else {
               send({ type: 'ready_up', trainerId: myId });
@@ -326,25 +326,37 @@
     border-radius: 8px;
     margin-bottom: 1rem;
   }
-  .drawn-creatures {
+  .drawn-pokemon {
     margin-top: 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
-  .creature {
+  .pokemon {
     display: inline-block;
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
     border: 1px solid #aaa;
   }
-  .creature.fire { background: #ffe0e0; }
-  .creature.water { background: #e0e8ff; }
-  .creature.earth { background: #e0ffe0; }
-  .creature.air { background: #f0f0f0; }
-  .creature.shadow { background: #e0d8f0; }
-  .creature.light { background: #fffde0; }
+  .pokemon.normal { background: #f0f0e8; }
+  .pokemon.fire { background: #ffe0e0; }
+  .pokemon.water { background: #e0e8ff; }
+  .pokemon.grass { background: #e0ffe0; }
+  .pokemon.electric { background: #fff8d0; }
+  .pokemon.ice { background: #e0f8ff; }
+  .pokemon.fighting { background: #f0d8d0; }
+  .pokemon.poison { background: #e8d8f0; }
+  .pokemon.ground { background: #f0e8d0; }
+  .pokemon.flying { background: #e8e0f8; }
+  .pokemon.psychic { background: #ffe0f0; }
+  .pokemon.bug { background: #e8f0d0; }
+  .pokemon.rock { background: #e8e0d0; }
+  .pokemon.ghost { background: #d8d0e8; }
+  .pokemon.dragon { background: #d0d0f8; }
+  .pokemon.dark { background: #d8d0c8; }
+  .pokemon.steel { background: #e0e0e8; }
+  .pokemon.fairy { background: #ffe8f0; }
   .trainer-row { padding: 0.25rem 0; font-size: 0.9rem; }
   .trainer-row.me { font-weight: bold; }
   .vote-options {
@@ -402,7 +414,7 @@
     gap: 0.75rem;
     margin: 1rem 0;
   }
-  .creature-card {
+  .pokemon-card {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -415,22 +427,34 @@
     text-align: left;
     width: 100%;
   }
-  .creature-card:hover { border-color: #888; background: #f8f8f8; }
-  .creature-card:disabled { opacity: 0.4; cursor: default; }
-  .creature-card.fire { border-color: #e8a0a0; }
-  .creature-card.water { border-color: #a0b8e8; }
-  .creature-card.earth { border-color: #a0e8a0; }
-  .creature-card.air { border-color: #c0c0c0; }
-  .creature-card.shadow { border-color: #b0a8d0; }
-  .creature-card.light { border-color: #d8d8a0; }
-  .creature-stats { font-size: 0.85rem; color: #444; }
-  .creature-rarity {
+  .pokemon-card:hover { border-color: #888; background: #f8f8f8; }
+  .pokemon-card:disabled { opacity: 0.4; cursor: default; }
+  .pokemon-card.normal { border-color: #c0c0b8; }
+  .pokemon-card.fire { border-color: #e8a0a0; }
+  .pokemon-card.water { border-color: #a0b8e8; }
+  .pokemon-card.grass { border-color: #a0e8a0; }
+  .pokemon-card.electric { border-color: #d8d0a0; }
+  .pokemon-card.ice { border-color: #a0d0e8; }
+  .pokemon-card.fighting { border-color: #d0a8a0; }
+  .pokemon-card.poison { border-color: #c0a8d0; }
+  .pokemon-card.ground { border-color: #d0c0a0; }
+  .pokemon-card.flying { border-color: #c0b8d0; }
+  .pokemon-card.psychic { border-color: #e0a8c0; }
+  .pokemon-card.bug { border-color: #c0d0a0; }
+  .pokemon-card.rock { border-color: #c0b8a0; }
+  .pokemon-card.ghost { border-color: #b0a8c0; }
+  .pokemon-card.dragon { border-color: #a0a0d0; }
+  .pokemon-card.dark { border-color: #b0a8a0; }
+  .pokemon-card.steel { border-color: #b8b8c0; }
+  .pokemon-card.fairy { border-color: #e0c0d0; }
+  .pokemon-stats { font-size: 0.85rem; color: #444; }
+  .pokemon-rarity {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #888;
   }
-  .creature-price {
+  .pokemon-price {
     font-weight: bold;
     color: #c8a020;
   }
@@ -440,7 +464,7 @@
     text-decoration: line-through;
     margin-right: 0.25rem;
   }
-  .creature-desc {
+  .pokemon-desc {
     font-size: 0.8rem;
     color: #666;
     font-style: italic;

@@ -16,10 +16,10 @@ function worldPhaseState(trainerCount: number): GameState {
 
   // Build a tiny test map: start → [nodeA, nodeB] → champion
   const nodes: Record<string, RouteNode> = {
-    start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], modifiers: [], visited: true, creaturePool: [] },
-    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], modifiers: [], visited: false, creaturePool: ["scout", "wanderer", "spark"] },
-    nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], modifiers: [], visited: false, creaturePool: [] },
-    champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], modifiers: [], visited: false, creaturePool: [] },
+    start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], modifiers: [], visited: true, pokemonPool: [] },
+    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], modifiers: [], visited: false, pokemonPool: ["rattata", "pidgey", "charmander"] },
+    nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], modifiers: [], visited: false, pokemonPool: [] },
+    champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], modifiers: [], visited: false, pokemonPool: [] },
   };
 
   const map: WorldMap = { nodes, currentNodeId: "start", totalTiers: 3 };

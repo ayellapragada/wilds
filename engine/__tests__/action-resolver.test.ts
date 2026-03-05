@@ -193,24 +193,24 @@ describe("action-resolver", () => {
 
       expect(next.trainers["t1"].routeProgress.totalDistance).toBe(0);
       expect(next.trainers["t1"].routeProgress.totalCost).toBe(0);
-      expect(next.trainers["t1"].routeProgress.creaturesDrawn).toBe(0);
+      expect(next.trainers["t1"].routeProgress.pokemonDrawn).toBe(0);
     });
   });
 
   // --- hit ---
 
   describe("hit", () => {
-    test("draws a creature and updates progress", () => {
+    test("draws a pokemon and updates progress", () => {
       const state = setupRoute(1);
       const [next, events] = hit(state, "t0");
       const trainer = next.trainers["t0"];
 
-      expect(trainer.routeProgress.creaturesDrawn).toBe(1);
+      expect(trainer.routeProgress.pokemonDrawn).toBe(1);
       expect(trainer.routeProgress.totalDistance).toBeGreaterThan(0);
       expect(trainer.routeProgress.totalCost).toBeGreaterThan(0);
       expect(trainer.deck.drawn).toHaveLength(1);
 
-      const drawEvent = events.find(e => e.type === "creature_drawn");
+      const drawEvent = events.find(e => e.type === "pokemon_drawn");
       expect(drawEvent).toBeDefined();
     });
 
@@ -222,7 +222,7 @@ describe("action-resolver", () => {
       [state] = hit(state, "t0");
       const after2 = state.trainers["t0"].routeProgress;
 
-      expect(after2.creaturesDrawn).toBe(2);
+      expect(after2.pokemonDrawn).toBe(2);
       expect(after2.totalDistance).toBeGreaterThanOrEqual(after1.totalDistance);
       expect(after2.totalCost).toBeGreaterThanOrEqual(after1.totalCost);
     });
@@ -231,7 +231,7 @@ describe("action-resolver", () => {
       let state = setupRoute(1);
       const [finalState, busted] = hitUntilBust(state, "t0");
 
-      // With starter deck (max cost 17, threshold 10), bust should be possible
+      // With starter deck (max cost 11, threshold 10), bust should be possible
       if (busted) {
         expect(finalState.trainers["t0"].status).toBe("busted");
         expect(finalState.trainers["t0"].routeProgress.totalCost).toBeGreaterThan(10);
@@ -319,10 +319,10 @@ describe("action-resolver", () => {
 
       expect(trainer.routeProgress.totalDistance).toBe(0);
       expect(trainer.routeProgress.totalCost).toBe(0);
-      expect(trainer.routeProgress.creaturesDrawn).toBe(0);
+      expect(trainer.routeProgress.pokemonDrawn).toBe(0);
     });
 
-    test("moves drawn creatures to discard", () => {
+    test("moves drawn pokemon to discard", () => {
       let state = setupRoute(2);
       [state] = hit(state, "t0");
       const drawnCount = state.trainers["t0"].deck.drawn.length;
@@ -373,7 +373,7 @@ describe("action-resolver", () => {
               ...trainer.routeProgress,
               totalDistance: 7,
               totalCost: 12,
-              creaturesDrawn: 3,
+              pokemonDrawn: 3,
             },
           },
         },
@@ -540,7 +540,7 @@ describe("action-resolver", () => {
       let state = setupRoute(1);
       const champNode: RouteNode = {
         id: "champ", type: "champion", bonus: null, name: "Champion", tier: 7,
-        connections: [], modifiers: [], visited: true, creaturePool: [],
+        connections: [], modifiers: [], visited: true, pokemonPool: [],
       };
       state = {
         ...state,

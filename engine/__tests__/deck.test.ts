@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { createDeck, drawCreature, endTurn, addCreature, removeCreature, deckSize } from "../models/deck";
-import { createStarterTeam, resetCreatureIdCounter } from "../creatures/catalog";
+import { createDeck, drawPokemon, endTurn, addPokemon, removePokemon, deckSize } from "../models/deck";
+import { createStarterTeam, resetPokemonIdCounter } from "../pokemon/catalog";
 
 beforeEach(() => {
-  resetCreatureIdCounter();
+  resetPokemonIdCounter();
 });
 
 describe("Deck", () => {
-  it("creates a deck with all creatures in draw pile", () => {
-    const creatures = createStarterTeam();
-    const deck = createDeck(creatures);
+  it("creates a deck with all pokemon in draw pile", () => {
+    const pokemon = createStarterTeam();
+    const deck = createDeck(pokemon);
 
     expect(deck.drawPile.length).toBe(9);
     expect(deck.drawn.length).toBe(0);
@@ -17,26 +17,26 @@ describe("Deck", () => {
     expect(deckSize(deck)).toBe(9);
   });
 
-  it("draws a creature from the draw pile", () => {
-    const creatures = createStarterTeam();
-    const deck = createDeck(creatures);
+  it("draws a pokemon from the draw pile", () => {
+    const pokemon = createStarterTeam();
+    const deck = createDeck(pokemon);
 
-    const result = drawCreature(deck);
+    const result = drawPokemon(deck);
     expect(result).not.toBeNull();
 
-    const [newDeck, creature] = result!;
+    const [newDeck, drawnPokemon] = result!;
     expect(newDeck.drawPile.length).toBe(8);
     expect(newDeck.drawn.length).toBe(1);
-    expect(newDeck.drawn[0]).toBe(creature);
+    expect(newDeck.drawn[0]).toBe(drawnPokemon);
     expect(deckSize(newDeck)).toBe(9);
   });
 
-  it("draws all creatures from the deck", () => {
-    const creatures = createStarterTeam();
-    let deck = createDeck(creatures);
+  it("draws all pokemon from the deck", () => {
+    const pokemon = createStarterTeam();
+    let deck = createDeck(pokemon);
 
     for (let i = 0; i < 9; i++) {
-      const result = drawCreature(deck);
+      const result = drawPokemon(deck);
       expect(result).not.toBeNull();
       deck = result![0];
     }
@@ -47,12 +47,12 @@ describe("Deck", () => {
   });
 
   it("reshuffles discard when draw pile is empty", () => {
-    const creatures = createStarterTeam();
-    let deck = createDeck(creatures);
+    const pokemon = createStarterTeam();
+    let deck = createDeck(pokemon);
 
-    // Draw all 9 creatures
+    // Draw all 9 pokemon
     for (let i = 0; i < 9; i++) {
-      deck = drawCreature(deck)![0];
+      deck = drawPokemon(deck)![0];
     }
 
     // End turn moves drawn to discard
@@ -62,23 +62,23 @@ describe("Deck", () => {
     expect(deck.drawPile.length).toBe(0);
 
     // Draw again — should reshuffle from discard
-    const result = drawCreature(deck);
+    const result = drawPokemon(deck);
     expect(result).not.toBeNull();
     expect(result![0].drawPile.length).toBe(8);
     expect(result![0].discard.length).toBe(0);
   });
 
-  it("returns null when no creatures remain anywhere", () => {
+  it("returns null when no pokemon remain anywhere", () => {
     const deck = createDeck([]);
-    expect(drawCreature(deck)).toBeNull();
+    expect(drawPokemon(deck)).toBeNull();
   });
 
   it("endTurn moves drawn to discard", () => {
-    const creatures = createStarterTeam();
-    let deck = createDeck(creatures);
+    const pokemon = createStarterTeam();
+    let deck = createDeck(pokemon);
 
-    deck = drawCreature(deck)![0];
-    deck = drawCreature(deck)![0];
+    deck = drawPokemon(deck)![0];
+    deck = drawPokemon(deck)![0];
     expect(deck.drawn.length).toBe(2);
 
     deck = endTurn(deck);
@@ -87,26 +87,26 @@ describe("Deck", () => {
     expect(deck.drawPile.length).toBe(7);
   });
 
-  it("adds a creature to the discard pile", () => {
-    const creatures = createStarterTeam();
-    const deck = createDeck(creatures);
-    const newCreature = creatures[0]; // reuse for simplicity
+  it("adds a pokemon to the discard pile", () => {
+    const pokemon = createStarterTeam();
+    const deck = createDeck(pokemon);
+    const newPokemon = pokemon[0]; // reuse for simplicity
 
-    const updated = addCreature(deck, newCreature);
+    const updated = addPokemon(deck, newPokemon);
     expect(updated.discard.length).toBe(1);
     expect(deckSize(updated)).toBe(10);
   });
 
-  it("removes a creature from any pile", () => {
-    const creatures = createStarterTeam();
-    let deck = createDeck(creatures);
+  it("removes a pokemon from any pile", () => {
+    const pokemon = createStarterTeam();
+    let deck = createDeck(pokemon);
 
-    // Draw a creature so we have creatures in drawn pile
-    const [newDeck, drawnCreature] = drawCreature(deck)!;
+    // Draw a pokemon so we have pokemon in drawn pile
+    const [newDeck, drawnPokemon] = drawPokemon(deck)!;
     deck = newDeck;
 
-    // Remove the drawn creature
-    deck = removeCreature(deck, drawnCreature.id);
+    // Remove the drawn pokemon
+    deck = removePokemon(deck, drawnPokemon.id);
     expect(deck.drawn.length).toBe(0);
     expect(deckSize(deck)).toBe(8);
   });
@@ -114,66 +114,66 @@ describe("Deck", () => {
 
 describe("Bust detection", () => {
   it("accumulates cost across draws", () => {
-    const creatures = createStarterTeam();
-    let deck = createDeck(creatures);
+    const pokemon = createStarterTeam();
+    let deck = createDeck(pokemon);
     let totalCost = 0;
 
     for (let i = 0; i < 9; i++) {
-      const result = drawCreature(deck);
+      const result = drawPokemon(deck);
       if (!result) break;
-      const [newDeck, creature] = result;
+      const [newDeck, drawnPokemon] = result;
       deck = newDeck;
-      totalCost += creature.cost;
+      totalCost += drawnPokemon.cost;
     }
 
-    // All 9 creatures: 3×1 + 3×2 + 3 + 1 + 4 = 17
-    expect(totalCost).toBe(17);
+    // All 9 pokemon: 3×1 + 2×1 + 0 + 3 + 2 + 1 = 11
+    expect(totalCost).toBe(11);
   });
 
   it("can bust when total cost exceeds threshold", () => {
-    const creatures = createStarterTeam();
-    let deck = createDeck(creatures);
+    const pokemon = createStarterTeam();
+    let deck = createDeck(pokemon);
     const bustThreshold = 10;
     let totalCost = 0;
     let busted = false;
 
     while (true) {
-      const result = drawCreature(deck);
+      const result = drawPokemon(deck);
       if (!result) break;
-      const [newDeck, creature] = result;
+      const [newDeck, drawnPokemon] = result;
       deck = newDeck;
-      totalCost += creature.cost;
+      totalCost += drawnPokemon.cost;
       if (totalCost > bustThreshold) {
         busted = true;
         break;
       }
     }
 
-    // With threshold 10 and total possible cost 17, bust is inevitable if you draw all
+    // With threshold 10 and total possible cost 11, bust is possible
     expect(busted).toBe(true);
     expect(totalCost).toBeGreaterThan(bustThreshold);
   });
 });
 
 describe("Starter team composition", () => {
-  it("has 9 creatures total", () => {
-    const creatures = createStarterTeam();
-    expect(creatures.length).toBe(9);
+  it("has 9 pokemon total", () => {
+    const pokemon = createStarterTeam();
+    expect(pokemon.length).toBe(9);
   });
 
-  it("has unique IDs for each creature", () => {
-    const creatures = createStarterTeam();
-    const ids = creatures.map(c => c.id);
+  it("has unique IDs for each pokemon", () => {
+    const pokemon = createStarterTeam();
+    const ids = pokemon.map(c => c.id);
     expect(new Set(ids).size).toBe(9);
   });
 
   it("has correct total distance and cost", () => {
-    const creatures = createStarterTeam();
-    const totalDistance = creatures.reduce((sum, c) => sum + c.distance, 0);
-    const totalCost = creatures.reduce((sum, c) => sum + c.cost, 0);
-    // 3×1 + 3×2 + 3 + 2 + 3 = 17 distance
-    expect(totalDistance).toBe(17);
-    // 3×1 + 3×2 + 3 + 1 + 4 = 17 cost
-    expect(totalCost).toBe(17);
+    const pokemon = createStarterTeam();
+    const totalDistance = pokemon.reduce((sum, c) => sum + c.distance, 0);
+    const totalCost = pokemon.reduce((sum, c) => sum + c.cost, 0);
+    // 3×1 + 2×2 + 1 + 3 + 2 + 2 = 15 distance
+    expect(totalDistance).toBe(15);
+    // 3×1 + 2×1 + 0 + 3 + 2 + 1 = 11 cost
+    expect(totalCost).toBe(11);
   });
 });

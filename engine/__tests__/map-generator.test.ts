@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { generateMap } from "../map-generator";
-import { getTemplate } from "../creatures/catalog";
+import { getTemplate } from "../pokemon/catalog";
 import type { WorldMap } from "../types";
 
 // Seeded RNG for deterministic tests
@@ -128,22 +128,22 @@ describe("map-generator", () => {
     expect(Object.keys(map1.nodes)).not.toEqual(Object.keys(map2.nodes));
   });
 
-  describe("creature pools", () => {
-    test("each non-champion node has a creature pool", () => {
+  describe("pokemon pools", () => {
+    test("each non-champion node has a pokemon pool", () => {
       const map = generate();
       for (const node of Object.values(map.nodes)) {
         if (node.type !== "champion") {
-          expect(node.creaturePool.length).toBeGreaterThanOrEqual(4);
-          expect(node.creaturePool.length).toBeLessThanOrEqual(8);
+          expect(node.pokemonPool.length).toBeGreaterThanOrEqual(4);
+          expect(node.pokemonPool.length).toBeLessThanOrEqual(8);
         }
       }
     });
 
-    test("higher tier nodes have higher rarity creatures", () => {
+    test("higher tier nodes have higher rarity pokemon", () => {
       const map = generate();
       const tier0 = Object.values(map.nodes).filter(n => n.tier === 0);
       for (const node of tier0) {
-        for (const id of node.creaturePool) {
+        for (const id of node.pokemonPool) {
           expect(() => getTemplate(id)).not.toThrow();
         }
       }

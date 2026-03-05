@@ -1,18 +1,21 @@
-import type { AbilityData, AbilityEffect } from "./abilities/types";
+import type { Move, AbilityEffect } from "./abilities/types";
 
-// === Creatures ===
+// === Pokemon ===
 
-export type CreatureType = "fire" | "water" | "earth" | "air" | "shadow" | "light";
+export type PokemonType =
+  | "normal" | "fire" | "water" | "grass" | "electric" | "ice"
+  | "fighting" | "poison" | "ground" | "flying" | "psychic" | "bug"
+  | "rock" | "ghost" | "dragon" | "dark" | "steel" | "fairy";
 export type Rarity = "common" | "uncommon" | "rare" | "legendary";
 
-export interface Creature {
+export interface Pokemon {
   readonly id: string;
   readonly templateId: string;
   readonly name: string;
-  readonly type: CreatureType;
+  readonly types: readonly PokemonType[];
   readonly distance: number;
   readonly cost: number;
-  readonly ability: AbilityData | null;
+  readonly moves: readonly Move[];
   readonly rarity: Rarity;
   readonly description: string;
 }
@@ -20,9 +23,9 @@ export interface Creature {
 // === Deck (your team) ===
 
 export interface Deck {
-  readonly drawPile: readonly Creature[];
-  readonly drawn: readonly Creature[];
-  readonly discard: readonly Creature[];
+  readonly drawPile: readonly Pokemon[];
+  readonly drawn: readonly Pokemon[];
+  readonly discard: readonly Pokemon[];
 }
 
 // === Trainer ===
@@ -32,7 +35,7 @@ export type TrainerStatus = "waiting" | "exploring" | "busted" | "stopped";
 export interface RouteProgress {
   readonly totalDistance: number;
   readonly totalCost: number;
-  readonly creaturesDrawn: number;
+  readonly pokemonDrawn: number;
   readonly activeEffects: readonly AbilityEffect[];
 }
 
@@ -72,7 +75,7 @@ export interface RouteModifier {
   readonly description: string;
   readonly type: "distance_bonus" | "cost_bonus" | "threshold_modifier" | "type_bonus";
   readonly value: number;
-  readonly targetType?: CreatureType;
+  readonly targetType?: PokemonType;
 }
 
 // === World Map ===
@@ -89,7 +92,7 @@ export interface RouteNode {
   readonly connections: readonly string[];
   readonly modifiers: readonly RouteModifier[];
   readonly visited: boolean;
-  readonly creaturePool: readonly string[];
+  readonly pokemonPool: readonly string[];
 }
 
 export interface WorldMap {
@@ -102,9 +105,9 @@ export interface WorldMap {
 
 export interface HubState {
   readonly phase: "free_pick" | "marketplace";
-  readonly freePickOffers: Record<string, readonly Creature[]>;
+  readonly freePickOffers: Record<string, readonly Pokemon[]>;
   readonly freePicksMade: Record<string, string | null>;
-  readonly shopCreatures: readonly Creature[];
+  readonly shopPokemon: readonly Pokemon[];
   readonly shopPrices: Record<string, number>;
   readonly readyTrainers: readonly string[];
 }
@@ -141,11 +144,11 @@ export type Action =
   | { type: "stop"; trainerId: string }
   | { type: "choose_bust_penalty"; trainerId: string; choice: "keep_score" | "keep_currency" }
   | { type: "cast_vote"; trainerId: string; nodeId: string }
-  | { type: "buy_creature"; trainerId: string; creatureId: string }
-  | { type: "sell_creature"; trainerId: string; creatureId: string }
-  | { type: "choose_rest_benefit"; trainerId: string; benefit: "threshold" | "remove_creature" | "preview" }
+  | { type: "buy_pokemon"; trainerId: string; pokemonId: string }
+  | { type: "sell_pokemon"; trainerId: string; pokemonId: string }
+  | { type: "choose_rest_benefit"; trainerId: string; benefit: "threshold" | "remove_pokemon" | "preview" }
   | { type: "ready_up"; trainerId: string }
-  | { type: "pick_free_creature"; trainerId: string; creatureId: string }
+  | { type: "pick_free_pokemon"; trainerId: string; pokemonId: string }
   | { type: "skip_free_pick"; trainerId: string };
 
 // === Events ===
@@ -155,8 +158,8 @@ export type GameEvent =
   | { type: "game_started"; map: WorldMap }
   | { type: "route_started"; routeNumber: number; routeName: string; turnOrder: string[]; modifiers: RouteModifier[] }
   | { type: "turn_started"; trainerId: string }
-  | { type: "creature_drawn"; trainerId: string; creature: Creature; progress: RouteProgress }
-  | { type: "ability_triggered"; creatureId: string; effect: AbilityEffect; description: string }
+  | { type: "pokemon_drawn"; trainerId: string; pokemon: Pokemon; progress: RouteProgress }
+  | { type: "ability_triggered"; pokemonId: string; effect: AbilityEffect; description: string }
   | { type: "trainer_busted"; trainerId: string; totalDistance: number; totalCost: number }
   | { type: "trainer_stopped"; trainerId: string; totalDistance: number }
   | { type: "bust_penalty_chosen"; trainerId: string; choice: "keep_score" | "keep_currency" }
@@ -164,12 +167,12 @@ export type GameEvent =
   | { type: "world_entered" }
   | { type: "vote_cast"; trainerId: string; nodeId: string }
   | { type: "route_chosen"; nodeId: string; votes: Record<string, number> }
-  | { type: "marketplace_opened"; availableCreatures: Creature[]; prices: Record<string, number> }
-  | { type: "creature_purchased"; trainerId: string; creature: Creature }
-  | { type: "creature_sold"; trainerId: string; creatureId: string }
+  | { type: "marketplace_opened"; availablePokemon: Pokemon[]; prices: Record<string, number> }
+  | { type: "pokemon_purchased"; trainerId: string; pokemon: Pokemon }
+  | { type: "pokemon_sold"; trainerId: string; pokemonId: string }
   | { type: "rest_benefit_chosen"; trainerId: string; benefit: string }
-  | { type: "hub_entered"; freePickOffers: Record<string, readonly Creature[]>; shopCreatures: Creature[]; shopPrices: Record<string, number> }
-  | { type: "free_creature_picked"; trainerId: string; creature: Creature }
+  | { type: "hub_entered"; freePickOffers: Record<string, readonly Pokemon[]>; shopPokemon: Pokemon[]; shopPrices: Record<string, number> }
+  | { type: "free_pokemon_picked"; trainerId: string; pokemon: Pokemon }
   | { type: "free_pick_skipped"; trainerId: string }
   | { type: "all_ready" }
   | { type: "game_over"; finalScores: Record<string, number>; championId: string };

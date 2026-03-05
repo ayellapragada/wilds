@@ -1,32 +1,31 @@
-import type { Creature, Deck } from "../types";
+import type { Pokemon, Deck } from "../types";
 
-export function createDeck(creatures: Creature[]): Deck {
+export function createDeck(pokemon: Pokemon[]): Deck {
   return {
-    drawPile: shuffle([...creatures]),
+    drawPile: shuffle([...pokemon]),
     drawn: [],
     discard: [],
   };
 }
 
-export function drawCreature(deck: Deck): [Deck, Creature] | null {
+export function drawPokemon(deck: Deck): [Deck, Pokemon] | null {
   let drawPile = [...deck.drawPile];
   let discard = [...deck.discard];
 
-  // Reshuffle if empty
   if (drawPile.length === 0) {
     if (discard.length === 0) return null;
     drawPile = shuffle([...discard]);
     discard = [];
   }
 
-  const creature = drawPile[0];
+  const pokemon = drawPile[0];
   return [
     {
       drawPile: drawPile.slice(1),
-      drawn: [...deck.drawn, creature],
+      drawn: [...deck.drawn, pokemon],
       discard,
     },
-    creature,
+    pokemon,
   ];
 }
 
@@ -38,18 +37,18 @@ export function endTurn(deck: Deck): Deck {
   };
 }
 
-export function addCreature(deck: Deck, creature: Creature): Deck {
+export function addPokemon(deck: Deck, pokemon: Pokemon): Deck {
   return {
     ...deck,
-    discard: [...deck.discard, creature],
+    discard: [...deck.discard, pokemon],
   };
 }
 
-export function removeCreature(deck: Deck, creatureId: string): Deck {
+export function removePokemon(deck: Deck, pokemonId: string): Deck {
   return {
-    drawPile: deck.drawPile.filter(c => c.id !== creatureId),
-    drawn: deck.drawn.filter(c => c.id !== creatureId),
-    discard: deck.discard.filter(c => c.id !== creatureId),
+    drawPile: deck.drawPile.filter(p => p.id !== pokemonId),
+    drawn: deck.drawn.filter(p => p.id !== pokemonId),
+    discard: deck.discard.filter(p => p.id !== pokemonId),
   };
 }
 

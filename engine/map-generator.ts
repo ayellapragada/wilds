@@ -1,5 +1,5 @@
 import type { WorldMap, RouteNode, RouteNodeType, BonusType } from "./types";
-import { getAllTemplateIds, getTemplate } from "./creatures/catalog";
+import { getAllTemplateIds, getTemplate } from "./pokemon/catalog";
 
 export type RngFn = () => number;
 
@@ -30,7 +30,7 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
     if (tier === 0) {
       // Tier 0: single start node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "route", tier, pickName(), null, generateCreaturePool(tier, totalTiers, rng));
+      nodes[id] = makeNode(id, "route", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng));
       tierNodeIds.push(id);
     } else if (tier === totalTiers - 1) {
       // Last tier: single champion node
@@ -45,7 +45,7 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
         const id = `t${tier}_${i}`;
         const nodeType: RouteNodeType = i === 0 ? type : "route";
         const bonus = rng() < 0.3 ? BONUS_TYPES[Math.floor(rng() * BONUS_TYPES.length)] : null;
-        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generateCreaturePool(tier, totalTiers, rng));
+        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generatePokemonPool(tier, totalTiers, rng));
         tierNodeIds.push(id);
       }
     }
@@ -113,10 +113,10 @@ function pickByRarity(
     : allIds[Math.floor(rng() * allIds.length)];
 }
 
-function generateCreaturePool(tier: number, totalTiers: number, rng: RngFn): string[] {
+function generatePokemonPool(tier: number, totalTiers: number, rng: RngFn): string[] {
   const allIds = getAllTemplateIds();
   const buckets = buildRarityBuckets(allIds);
-  const poolSize = 4 + Math.floor(rng() * 3); // 4-6 creatures
+  const poolSize = 4 + Math.floor(rng() * 3); // 4-6 pokemon
 
   const progress = tier / (totalTiers - 1);
   const weights: Record<string, number> = {
@@ -131,7 +131,7 @@ function generateCreaturePool(tier: number, totalTiers: number, rng: RngFn): str
 
 function makeNode(
   id: string, type: RouteNodeType, tier: number,
-  name: string, bonus: BonusType | null, creaturePool: string[],
+  name: string, bonus: BonusType | null, pokemonPool: string[],
 ): RouteNode {
-  return { id, type, bonus, name, tier, connections: [], modifiers: [], visited: false, creaturePool };
+  return { id, type, bonus, name, tier, connections: [], modifiers: [], visited: false, pokemonPool };
 }

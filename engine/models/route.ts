@@ -1,7 +1,7 @@
 import type { Route, RouteNode, RouteProgress } from "../types";
 
 export function freshProgress(): RouteProgress {
-  return { totalDistance: 0, totalCost: 0, creaturesDrawn: 0, activeEffects: [] };
+  return { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] };
 }
 
 export function createRoute(

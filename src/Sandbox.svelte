@@ -1,9 +1,10 @@
 <script lang="ts">
   import { resolveAction } from '../engine/action-resolver';
   import { createInitialState } from '../engine/index';
-  import { getAllTemplateIds, getTemplate, createCreature, resetCreatureIdCounter } from '../engine/creatures/catalog';
+  import { getAllTemplateIds, getTemplate, createPokemon, resetPokemonIdCounter } from '../engine/pokemon/catalog';
   import { shuffle } from '../engine/models/deck';
-  import type { GameState, GameEvent, Creature } from '../engine/types';
+  import type { GameState, GameEvent, Pokemon } from '../engine/types';
+  import type { Move } from '../engine/abilities/types';
 
   // Catalog
   const templateIds = getAllTemplateIds();
@@ -53,11 +54,12 @@
 
   function loadStarterDeck() {
     deckEntries = [
-      { templateId: 'scout', count: 3 },
-      { templateId: 'wanderer', count: 3 },
-      { templateId: 'spark', count: 1 },
-      { templateId: 'ripple', count: 1 },
-      { templateId: 'gust', count: 1 },
+      { templateId: 'rattata', count: 3 },
+      { templateId: 'pidgey', count: 2 },
+      { templateId: 'caterpie', count: 1 },
+      { templateId: 'charmander', count: 1 },
+      { templateId: 'squirtle', count: 1 },
+      { templateId: 'bulbasaur', count: 1 },
     ];
   }
 
@@ -71,18 +73,18 @@
 
   function startRoute() {
     if (deckEntries.length === 0) return;
-    resetCreatureIdCounter();
+    resetPokemonIdCounter();
 
-    // Build creatures from entries
-    let creatures: Creature[] = [];
+    // Build pokemon from entries
+    let pokemon: Pokemon[] = [];
     for (const entry of deckEntries) {
       for (let i = 0; i < entry.count; i++) {
-        creatures.push(createCreature(entry.templateId));
+        pokemon.push(createPokemon(entry.templateId));
       }
     }
 
     if (!manualOrder) {
-      creatures = shuffle(creatures);
+      pokemon = shuffle(pokemon);
     }
 
     // Create a game state, join, start, then swap in our custom deck
@@ -97,7 +99,7 @@
         ...state.trainers,
         [TRAINER_ID]: {
           ...state.trainers[TRAINER_ID],
-          deck: { drawPile: creatures, drawn: [], discard: [] },
+          deck: { drawPile: pokemon, drawn: [], discard: [] },
         },
       },
     };
@@ -132,45 +134,28 @@
     events = [];
   }
 
-  function formatAbility(ability: import('../engine/abilities/types').AbilityData | null): string {
-    if (!ability) return '';
-    let s = `Trigger: ${ability.trigger}`;
-    if (ability.condition) {
-      const c = ability.condition;
-      switch (c.type) {
-        case 'element_count': s += `\nIf: ${c.min}+ ${c.element} creatures`; break;
-        case 'min_cards_played': s += `\nIf: ${c.min}+ creatures drawn`; break;
-        case 'position': s += `\nIf: drawn ${c.position}`; break;
-        case 'would_bust': s += `\nIf: would bust`; break;
-        case 'neighbor_element': s += `\nIf: neighbor is ${c.element}`; break;
-      }
-    }
-    const e = ability.effect;
-    switch (e.type) {
-      case 'bonus_distance': s += `\nEffect: +${e.amount} distance`; break;
-      case 'bonus_distance_per': s += `\nEffect: +${e.amount} distance per ${e.element}`; break;
-      case 'reduce_cost': s += `\nEffect: ${e.amount === 'all' ? 'remove all' : '-' + e.amount} cost (${e.target})`; break;
-      case 'modify_threshold': s += `\nEffect: +${e.amount} bust threshold`; break;
-      case 'bonus_currency': s += `\nEffect: +${e.amount} currency`; break;
-      case 'peek_deck': s += `\nEffect: peek ${e.count} cards`; break;
-      case 'negate_bust': s += `\nEffect: negate bust`; break;
-    }
+  function formatMove(move: Move): string {
+    let s = `${move.name}: ${move.reminderText}`;
     return s;
   }
 
-  function cardTooltip(t: { name: string; element: string; distance: number; cost: number; rarity: string; description: string; ability: import('../engine/abilities/types').AbilityData | null }): string {
-    let tip = `${t.name} [${t.element}] — ${t.rarity}\n+${t.distance} distance / +${t.cost} cost\n${t.description}`;
-    const abilityText = formatAbility(t.ability);
-    if (abilityText) tip += `\n\n${abilityText}`;
+  function cardTooltip(t: { name: string; types: readonly string[]; distance: number; cost: number; rarity: string; description: string; moves: readonly Move[] }): string {
+    let tip = `${t.name} [${t.types.join('/')}] — ${t.rarity}\n+${t.distance} distance / +${t.cost} cost\n${t.description}`;
+    if (t.moves.length > 0) {
+      tip += '\n\n' + t.moves.map(m => formatMove(m)).join('\n');
+    }
     return tip;
   }
 
-  function elementColor(element: string): string {
+  function typeColor(types: readonly string[]): string {
     const colors: Record<string, string> = {
-      fire: '#ffe0e0', water: '#e0e8ff', earth: '#e0ffe0',
-      air: '#f0f0f0', shadow: '#e0d8f0', light: '#fffde0',
+      normal: '#f0f0e8', fire: '#ffe0e0', water: '#e0e8ff', grass: '#e0ffe0',
+      electric: '#fff8d0', ice: '#e0f8ff', fighting: '#f0d8d0', poison: '#e8d8f0',
+      ground: '#f0e8d0', flying: '#e8e0f8', psychic: '#ffe0f0', bug: '#e8f0d0',
+      rock: '#e8e0d0', ghost: '#d8d0e8', dragon: '#d0d0f8', dark: '#d8d0c8',
+      steel: '#e0e0e8', fairy: '#ffe8f0',
     };
-    return colors[element] ?? '#fff';
+    return colors[types[0]] ?? '#fff';
   }
 
   function rarityBorder(rarity: string): string {
@@ -193,7 +178,7 @@
         default: return JSON.stringify(e);
       }
     }
-    if (event.type === 'creature_drawn') return `Drew ${event.creature.name}`;
+    if (event.type === 'pokemon_drawn') return `Drew ${event.pokemon.name}`;
     if (event.type === 'trainer_busted') return `BUSTED! Cost ${event.totalCost}`;
     if (event.type === 'trainer_stopped') return `Stopped at distance ${event.totalDistance}`;
     if (event.type === 'bust_penalty_chosen') return `Chose: ${event.choice}`;
@@ -221,13 +206,13 @@
               {@const t = getTemplate(id)}
               <button
                 class="catalog-card"
-                style="background: {elementColor(t.element)}; border-color: {rarityBorder(t.rarity)}"
+                style="background: {typeColor(t.types)}; border-color: {rarityBorder(t.rarity)}"
                 onclick={() => addToDeck(id)}
                 data-tooltip={cardTooltip(t)}
               >
                 <span class="card-name">{t.name}</span>
                 <span class="card-stats">+{t.distance}d / +{t.cost}c</span>
-                {#if t.ability}
+                {#if t.moves.length > 0}
                   <span class="card-ability">★</span>
                 {/if}
               </button>
@@ -243,12 +228,12 @@
         {/if}
       </div>
       {#if deckEntries.length === 0}
-        <p class="hint">Click creatures above to add them.</p>
+        <p class="hint">Click Pokemon above to add them.</p>
       {:else}
         <div class="deck-list">
           {#each deckEntries as entry, i}
             {@const t = getTemplate(entry.templateId)}
-            <div class="deck-row" style="background: {elementColor(t.element)}" data-tooltip={cardTooltip(t)}>
+            <div class="deck-row" style="background: {typeColor(t.types)}" data-tooltip={cardTooltip(t)}>
               {#if manualOrder}
                 <button class="tiny" onclick={() => moveDeckEntry(i, -1)} disabled={i === 0}>↑</button>
                 <button class="tiny" onclick={() => moveDeckEntry(i, 1)} disabled={i === deckEntries.length - 1}>↓</button>
@@ -291,7 +276,7 @@
           </div>
           <div class="stat">
             <span class="stat-label">Drawn</span>
-            <span class="stat-value">{myTrainer.routeProgress.creaturesDrawn}</span>
+            <span class="stat-value">{myTrainer.routeProgress.pokemonDrawn}</span>
           </div>
           <div class="stat">
             <span class="stat-label">Deck left</span>
@@ -304,7 +289,7 @@
             <button class="action-btn hit" onclick={hit} disabled={myTrainer.deck.drawPile.length === 0}>
               HIT
             </button>
-            <button class="action-btn stop" onclick={stop} disabled={myTrainer.routeProgress.creaturesDrawn === 0}>
+            <button class="action-btn stop" onclick={stop} disabled={myTrainer.routeProgress.pokemonDrawn === 0}>
               STOP
             </button>
           {:else if myTrainer.status === 'busted'}
@@ -324,17 +309,18 @@
         </div>
 
         {#if myTrainer.deck.drawn.length > 0}
-          <h3>Drawn Creatures</h3>
+          <h3>Drawn Pokemon</h3>
           <div class="drawn-list">
-            {#each myTrainer.deck.drawn as creature, i}
-              <div class="drawn-card" style="background: {elementColor(creature.type)}; border-color: {rarityBorder(creature.rarity)}" data-tooltip={cardTooltip({ name: creature.name, element: creature.type, distance: creature.distance, cost: creature.cost, rarity: creature.rarity, description: creature.description, ability: creature.ability })}>
+            {#each myTrainer.deck.drawn as pkmn, i}
+              <div class="drawn-card" style="background: {typeColor(pkmn.types)}; border-color: {rarityBorder(pkmn.rarity)}" data-tooltip={cardTooltip({ name: pkmn.name, types: pkmn.types, distance: pkmn.distance, cost: pkmn.cost, rarity: pkmn.rarity, description: pkmn.description, moves: pkmn.moves })}>
                 <div class="drawn-card-header">
                   <span class="drawn-num">#{i + 1}</span>
-                  <strong>{creature.name}</strong>
+                  <strong>{pkmn.name}</strong>
+                  <span class="drawn-card-types">{pkmn.types.join('/')}</span>
                 </div>
-                <span class="drawn-card-stats">+{creature.distance}d / +{creature.cost}c</span>
-                {#if creature.ability}
-                  <span class="drawn-card-desc">{creature.description}</span>
+                <span class="drawn-card-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
+                {#if pkmn.moves.length > 0}
+                  <span class="drawn-card-desc">{pkmn.moves.map(m => m.name).join(', ')}</span>
                 {/if}
               </div>
             {/each}
@@ -344,9 +330,9 @@
         {#if manualOrder && myTrainer.deck.drawPile.length > 0}
           <h3>Draw Pile (next up)</h3>
           <div class="draw-pile">
-            {#each myTrainer.deck.drawPile as creature, i}
-              <span class="pile-card" style="background: {elementColor(creature.type)}" data-tooltip={cardTooltip({ name: creature.name, element: creature.type, distance: creature.distance, cost: creature.cost, rarity: creature.rarity, description: creature.description, ability: creature.ability })}>
-                {i + 1}. {creature.name}
+            {#each myTrainer.deck.drawPile as pkmn, i}
+              <span class="pile-card" style="background: {typeColor(pkmn.types)}" data-tooltip={cardTooltip({ name: pkmn.name, types: pkmn.types, distance: pkmn.distance, cost: pkmn.cost, rarity: pkmn.rarity, description: pkmn.description, moves: pkmn.moves })}>
+                {i + 1}. {pkmn.name}
               </span>
             {/each}
           </div>
@@ -552,6 +538,7 @@
 
   .drawn-num { color: #999; font-size: 0.75rem; }
   .drawn-card-stats { font-size: 0.75rem; color: #555; }
+  .drawn-card-types { font-size: 0.7rem; color: #888; }
   .drawn-card-desc { font-size: 0.7rem; color: #888; font-style: italic; display: block; }
 
   .draw-pile {

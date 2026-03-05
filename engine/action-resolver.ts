@@ -1,10 +1,10 @@
 import type { GameState, Action, GameEvent, Trainer, RouteProgress } from "./types";
-import { createStarterTeam } from "./creatures/catalog";
-import { createDeck, drawCreature, endTurn } from "./models/deck";
+import { createStarterTeam } from "./pokemon/catalog";
+import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
-import { resolveAbility } from "./abilities/resolver";
+import { resolveMoves } from "./abilities/resolver";
 import { handleVote } from "./phases/world";
-import { enterHub, handlePickFreeCreature, handleSkipFreePick, handleBuyCreature, handleReadyUp } from "./phases/hub";
+import { enterHub, handlePickFreePokemon, handleSkipFreePick, handleBuyPokemon, handleReadyUp } from "./phases/hub";
 import { generateMap } from "./map-generator";
 
 export type ResolveResult = [GameState, GameEvent[]];
@@ -23,12 +23,12 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleBustPenalty(state, action);
     case "cast_vote":
       return handleVote(state, action, Math.random);
-    case "pick_free_creature":
-      return handlePickFreeCreature(state, action);
+    case "pick_free_pokemon":
+      return handlePickFreePokemon(state, action);
     case "skip_free_pick":
       return handleSkipFreePick(state, action);
-    case "buy_creature":
-      return handleBuyCreature(state, action);
+    case "buy_pokemon":
+      return handleBuyPokemon(state, action);
     case "ready_up":
       return handleReadyUp(state, action);
     default:
@@ -114,53 +114,61 @@ function handleHit(
   const trainer = state.trainers[action.trainerId];
   if (!trainer || trainer.status !== "exploring") return [state, []];
 
-  const result = drawCreature(trainer.deck);
+  const result = drawPokemon(trainer.deck);
   if (!result) return [state, []];
-  const [newDeck, creature] = result;
+  const [newDeck, pokemon] = result;
 
-  // Resolve ability with pre-draw progress (so would_bust checks cost + creature.cost correctly)
-  const effect = resolveAbility(
-    creature, "on_draw", trainer.deck.drawn,
-    { ...trainer.routeProgress, creaturesDrawn: trainer.routeProgress.creaturesDrawn + 1 },
+  // Resolve moves with pre-draw progress
+  const effects = resolveMoves(
+    pokemon, "on_draw", trainer.deck.drawn,
+    { ...trainer.routeProgress, pokemonDrawn: trainer.routeProgress.pokemonDrawn + 1 },
     trainer.bustThreshold,
   );
 
-  // Apply ability effects to modify cost/distance/threshold
-  let effectiveCost = creature.cost;
+  // Apply move effects to modify cost/distance/threshold
+  let effectiveCost = pokemon.cost;
   let bonusDistance = 0;
   let thresholdMod = 0;
+  let reduceCostAllAmount = 0;
+  let reduceCostAllWashAll = false;
 
-  if (effect) {
+  for (const effect of effects) {
     switch (effect.type) {
       case "bonus_distance":
-        bonusDistance = effect.amount;
+        bonusDistance += effect.amount;
         break;
       case "reduce_cost": {
         if (effect.target === "self") {
-          const reduction = effect.amount === "all" ? creature.cost : effect.amount;
-          effectiveCost = Math.max(0, creature.cost - reduction);
+          const reduction = effect.amount === "all" ? pokemon.cost : effect.amount;
+          effectiveCost = Math.max(0, effectiveCost - reduction);
+        } else {
+          if (effect.amount === "all") {
+            reduceCostAllWashAll = true;
+          } else {
+            reduceCostAllAmount += effect.amount;
+          }
         }
-        // "all" target handled after cost is added
         break;
       }
       case "modify_threshold":
-        thresholdMod = effect.amount;
+        thresholdMod += effect.amount;
         break;
     }
   }
 
   let newTotalCost = trainer.routeProgress.totalCost + effectiveCost;
-  if (effect && effect.type === "reduce_cost" && effect.target === "all") {
-    const reduction = effect.amount === "all" ? newTotalCost : effect.amount;
-    newTotalCost = Math.max(0, newTotalCost - reduction);
+  if (reduceCostAllWashAll) {
+    newTotalCost = 0;
+  } else if (reduceCostAllAmount > 0) {
+    newTotalCost = Math.max(0, newTotalCost - reduceCostAllAmount);
   }
 
   const progress: RouteProgress = {
-    totalDistance: trainer.routeProgress.totalDistance + creature.distance + bonusDistance,
+    totalDistance: trainer.routeProgress.totalDistance + pokemon.distance + bonusDistance,
     totalCost: newTotalCost,
-    creaturesDrawn: trainer.routeProgress.creaturesDrawn + 1,
-    activeEffects: effect
-      ? [...trainer.routeProgress.activeEffects, effect]
+    pokemonDrawn: trainer.routeProgress.pokemonDrawn + 1,
+    activeEffects: effects.length > 0
+      ? [...trainer.routeProgress.activeEffects, ...effects]
       : trainer.routeProgress.activeEffects,
   };
 
@@ -168,28 +176,29 @@ function handleHit(
   let busted = progress.totalCost > newThreshold;
 
   const events: GameEvent[] = [
-    { type: "creature_drawn", trainerId: trainer.id, creature, progress },
+    { type: "pokemon_drawn", trainerId: trainer.id, pokemon, progress },
   ];
 
-  if (effect) {
+  for (const effect of effects) {
     events.push({
       type: "ability_triggered",
-      creatureId: creature.id,
+      pokemonId: pokemon.id,
       effect,
-      description: creature.description,
+      description: pokemon.description,
     });
   }
 
-  // Check for on_bust abilities across all drawn creatures
+  // Check for on_bust moves across all drawn pokemon
   if (busted) {
     for (const drawn of newDeck.drawn) {
-      const bustEffect = resolveAbility(drawn, "on_bust", newDeck.drawn, progress, newThreshold);
-      if (bustEffect?.type === "negate_bust") {
+      const bustEffects = resolveMoves(drawn, "on_bust", newDeck.drawn, progress, newThreshold);
+      const negation = bustEffects.find(e => e.type === "negate_bust");
+      if (negation) {
         busted = false;
         events.push({
           type: "ability_triggered",
-          creatureId: drawn.id,
-          effect: bustEffect,
+          pokemonId: drawn.id,
+          effect: negation,
           description: drawn.description,
         });
         break;
