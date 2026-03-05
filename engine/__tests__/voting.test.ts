@@ -181,12 +181,9 @@ describe("full vote cycle integration", () => {
     [state] = castVote(state, "t0", "nodeA");
     // Now in route phase at nodeA, stop to complete
     [state] = resolveAction(state, { type: "stop", trainerId: "t0" });
-    // Now in hub phase, skip free pick to advance to marketplace, then ready up
+    // Now in hub phase, confirm selections to advance
     expect(state.phase).toBe("hub");
-    expect(state.hub!.phase).toBe("free_pick");
-    [state] = resolveAction(state, { type: "skip_free_pick", trainerId: "t0" });
-    expect(state.hub!.phase).toBe("marketplace");
-    [state] = resolveAction(state, { type: "ready_up", trainerId: "t0" });
+    [state] = resolveAction(state, { type: "confirm_selections", trainerId: "t0" });
     expect(state.phase).toBe("world");
     // Now in world phase, vote to champ
     [state] = castVote(state, "t0", "champ");

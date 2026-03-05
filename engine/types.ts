@@ -104,12 +104,11 @@ export interface WorldMap {
 // === Hub ===
 
 export interface HubState {
-  readonly phase: "free_pick" | "marketplace";
   readonly freePickOffers: Record<string, readonly Pokemon[]>;
-  readonly freePicksMade: Record<string, string | null>;
   readonly shopPokemon: readonly Pokemon[];
   readonly shopPrices: Record<string, number>;
-  readonly readyTrainers: readonly string[];
+  readonly selections: Record<string, readonly string[]>;
+  readonly confirmedTrainers: readonly string[];
 }
 
 // === Game State ===
@@ -144,12 +143,8 @@ export type Action =
   | { type: "stop"; trainerId: string }
   | { type: "choose_bust_penalty"; trainerId: string; choice: "keep_score" | "keep_currency" }
   | { type: "cast_vote"; trainerId: string; nodeId: string }
-  | { type: "buy_pokemon"; trainerId: string; pokemonId: string }
-  | { type: "sell_pokemon"; trainerId: string; pokemonId: string }
-  | { type: "choose_rest_benefit"; trainerId: string; benefit: "threshold" | "remove_pokemon" | "preview" }
-  | { type: "ready_up"; trainerId: string }
-  | { type: "pick_free_pokemon"; trainerId: string; pokemonId: string }
-  | { type: "skip_free_pick"; trainerId: string };
+  | { type: "select_pokemon"; trainerId: string; pokemonId: string }
+  | { type: "confirm_selections"; trainerId: string };
 
 // === Events ===
 
@@ -167,12 +162,9 @@ export type GameEvent =
   | { type: "world_entered" }
   | { type: "vote_cast"; trainerId: string; nodeId: string }
   | { type: "route_chosen"; nodeId: string; votes: Record<string, number> }
-  | { type: "marketplace_opened"; availablePokemon: Pokemon[]; prices: Record<string, number> }
-  | { type: "pokemon_purchased"; trainerId: string; pokemon: Pokemon }
-  | { type: "pokemon_sold"; trainerId: string; pokemonId: string }
-  | { type: "rest_benefit_chosen"; trainerId: string; benefit: string }
   | { type: "hub_entered"; freePickOffers: Record<string, readonly Pokemon[]>; shopPokemon: Pokemon[]; shopPrices: Record<string, number> }
-  | { type: "free_pokemon_picked"; trainerId: string; pokemon: Pokemon }
-  | { type: "free_pick_skipped"; trainerId: string }
+  | { type: "pokemon_selected"; trainerId: string; pokemonId: string }
+  | { type: "pokemon_deselected"; trainerId: string; pokemonId: string }
+  | { type: "selections_confirmed"; trainerId: string; pokemon: Pokemon[] }
   | { type: "all_ready" }
   | { type: "game_over"; finalScores: Record<string, number>; championId: string };

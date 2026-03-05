@@ -4,7 +4,7 @@ import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
 import { resolveMoves } from "./abilities/resolver";
 import { handleVote } from "./phases/world";
-import { enterHub, handlePickFreePokemon, handleSkipFreePick, handleBuyPokemon, handleReadyUp } from "./phases/hub";
+import { enterHub, handleSelectPokemon, handleConfirmSelections } from "./phases/hub";
 import { generateMap } from "./map-generator";
 
 export type ResolveResult = [GameState, GameEvent[]];
@@ -23,14 +23,10 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleBustPenalty(state, action);
     case "cast_vote":
       return handleVote(state, action, Math.random);
-    case "pick_free_pokemon":
-      return handlePickFreePokemon(state, action);
-    case "skip_free_pick":
-      return handleSkipFreePick(state, action);
-    case "buy_pokemon":
-      return handleBuyPokemon(state, action);
-    case "ready_up":
-      return handleReadyUp(state, action);
+    case "select_pokemon":
+      return handleSelectPokemon(state, action);
+    case "confirm_selections":
+      return handleConfirmSelections(state, action);
     default:
       return [state, []];
   }

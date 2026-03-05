@@ -173,30 +173,40 @@
       <p>Score: {myTrainer?.score} | Currency: {myTrainer?.currency}</p>
 
       {#if gameState.hub}
-        {@const canFreePick = (gameState.hub.freePickOffers[myId]?.length ?? 0) > 0 && !(myId in (gameState.hub.freePicksMade ?? {}))}
+        {@const mySelections = gameState.hub.selections[myId] ?? []}
+        {@const isConfirmed = gameState.hub.confirmedTrainers.includes(myId)}
+        {@const myFreeOffers = gameState.hub.freePickOffers[myId] ?? []}
+        {@const hasFreeOffers = myFreeOffers.length > 0}
+
+        <h3>Shop</h3>
+        <p class="selection-status">{mySelections.length}/2 selected</p>
+
         <div class="shop-items">
-          {#if canFreePick}
-            {#each gameState.hub.freePickOffers[myId] as pkmn}
-              <button
-                class="pokemon-card {pkmn.types[0]}"
-                onclick={() => send({ type: 'pick_free_pokemon', trainerId: myId, pokemonId: pkmn.id })}
-              >
-                <strong>{pkmn.name}</strong>
-                <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
-                <span class="pokemon-rarity">{pkmn.rarity}</span>
-                <span class="pokemon-price"><s class="old-price">${gameState.hub.shopPrices[pkmn.id] ?? '?'}</s> FREE</span>
-                {#if pkmn.description}
-                  <span class="pokemon-desc">{pkmn.description}</span>
-                {/if}
-              </button>
-            {/each}
-          {/if}
-          {#each gameState.hub.shopPokemon as pkmn}
-            {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
+          {#each myFreeOffers as pkmn}
+            {@const selected = mySelections.includes(pkmn.id)}
             <button
               class="pokemon-card {pkmn.types[0]}"
-              onclick={() => send({ type: 'buy_pokemon', trainerId: myId, pokemonId: pkmn.id })}
-              disabled={gameState.hub.phase !== 'marketplace' || (myTrainer?.currency ?? 0) < price}
+              class:selected
+              onclick={() => send({ type: 'select_pokemon', trainerId: myId, pokemonId: pkmn.id })}
+              disabled={isConfirmed || (!selected && mySelections.length >= 2)}
+            >
+              <strong>{pkmn.name}</strong>
+              <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
+              <span class="pokemon-rarity">{pkmn.rarity}</span>
+              <span class="pokemon-price free">FREE</span>
+              {#if pkmn.description}
+                <span class="pokemon-desc">{pkmn.description}</span>
+              {/if}
+            </button>
+          {/each}
+          {#each gameState.hub.shopPokemon as pkmn}
+            {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
+            {@const selected = mySelections.includes(pkmn.id)}
+            <button
+              class="pokemon-card {pkmn.types[0]}"
+              class:selected
+              onclick={() => send({ type: 'select_pokemon', trainerId: myId, pokemonId: pkmn.id })}
+              disabled={isConfirmed || (!selected && (mySelections.length >= 2 || (myTrainer?.currency ?? 0) < price))}
             >
               <strong>{pkmn.name}</strong>
               <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
@@ -209,18 +219,11 @@
           {/each}
         </div>
 
-        {#if gameState.hub.readyTrainers.includes(myId)}
-          <p>Waiting for others... ({gameState.hub.readyTrainers.length}/{trainerCount} ready)</p>
+        {#if isConfirmed}
+          <p>Waiting for others... ({gameState.hub.confirmedTrainers.length}/{trainerCount} confirmed)</p>
         {:else}
-          <button class="ready-btn" onclick={() => {
-            if (canFreePick) {
-              if (!confirm('You aren\'t picking a Pokemon. Are you sure?')) return;
-              send({ type: 'skip_free_pick', trainerId: myId });
-            } else {
-              send({ type: 'ready_up', trainerId: myId });
-            }
-          }}>
-            Ready ({gameState.hub.readyTrainers.length}/{trainerCount})
+          <button class="ready-btn" onclick={() => send({ type: 'confirm_selections', trainerId: myId })}>
+            Confirm ({mySelections.length}/2 selected)
           </button>
         {/if}
       {/if}
@@ -232,8 +235,8 @@
             <strong>{trainer.name}</strong>
             {#if trainer.id === myId}(you){/if}
             — Score: {trainer.score} | Currency: {trainer.currency}
-            {#if gameState.hub?.readyTrainers.includes(trainer.id)}
-              <span class="voted-badge">ready</span>
+            {#if gameState.hub?.confirmedTrainers.includes(trainer.id)}
+              <span class="voted-badge">confirmed</span>
             {/if}
           </div>
         {/each}
@@ -479,4 +482,21 @@
     border-radius: 8px;
   }
   .ready-btn:hover { background: #3a7cc9; }
+  .pokemon-card.selected {
+    border-color: gold;
+    background: rgba(255, 215, 0, 0.1);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+  }
+  .pokemon-price.free {
+    color: green;
+    font-weight: bold;
+  }
+  .selection-status {
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+  .hub-hint {
+    color: #666;
+    font-style: italic;
+  }
 </style>

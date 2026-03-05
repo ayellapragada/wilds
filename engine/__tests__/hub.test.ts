@@ -1,12 +1,12 @@
 import { describe, test, expect } from "vitest";
-import type { GameState, HubState, Trainer, RouteNode, WorldMap, Pokemon } from "../types";
+import type { GameState, Trainer, RouteNode, WorldMap } from "../types";
 import { createInitialState } from "../index";
 import { resolveAction } from "../action-resolver";
-import { enterHub, handlePickFreePokemon, handleSkipFreePick, handleBuyPokemon, handleReadyUp } from "../phases/hub";
+import { enterHub, handleSelectPokemon, handleConfirmSelections } from "../phases/hub";
 
 // === Helpers ===
 
-function makeTestState(opts: { bustedTrainers?: string[] } = {}): GameState {
+function makeTestState(): GameState {
   let state = createInitialState("TEST");
   [state] = resolveAction(state, { type: "join_game", trainerName: "T0", sessionToken: "t0" });
   [state] = resolveAction(state, { type: "join_game", trainerName: "T1", sessionToken: "t1" });
@@ -31,16 +31,21 @@ function makeTestState(opts: { bustedTrainers?: string[] } = {}): GameState {
   return { ...state, phase: "route" as const, trainers, map };
 }
 
+function hubState(): GameState {
+  const state = makeTestState();
+  const [entered] = enterHub(state, [], () => 0.5);
+  return entered;
+}
+
 // === enterHub tests ===
 
 describe("enterHub", () => {
   test("creates hub state with free pick offers for non-busted trainers", () => {
     const state = makeTestState();
-    const [newState, events] = enterHub(state, [], () => 0.5);
+    const [newState] = enterHub(state, [], () => 0.5);
 
     expect(newState.phase).toBe("hub");
     expect(newState.hub).not.toBeNull();
-    expect(newState.hub!.phase).toBe("free_pick");
     expect(newState.hub!.freePickOffers["t0"]).toHaveLength(2);
     expect(newState.hub!.freePickOffers["t1"]).toHaveLength(2);
   });
@@ -51,7 +56,6 @@ describe("enterHub", () => {
 
     expect(newState.hub!.freePickOffers["t0"]).toHaveLength(0);
     expect(newState.hub!.freePickOffers["t1"]).toHaveLength(2);
-    expect(newState.hub!.freePicksMade["t0"]).toBeNull();
   });
 
   test("generates shared shop with tier-scaled pokemon", () => {
@@ -59,11 +63,30 @@ describe("enterHub", () => {
     const [newState] = enterHub(state, [], () => 0.5);
 
     expect(newState.hub!.shopPokemon.length).toBeGreaterThanOrEqual(3);
-    expect(newState.hub!.shopPokemon.length).toBeLessThanOrEqual(5);
-    for (const c of newState.hub!.shopPokemon) {
-      expect(newState.hub!.shopPrices[c.id]).toBeDefined();
-      expect(newState.hub!.shopPrices[c.id]).toBeGreaterThan(0);
+    expect(newState.hub!.shopPokemon.length).toBeLessThanOrEqual(4);
+    for (const p of newState.hub!.shopPokemon) {
+      expect(newState.hub!.shopPrices[p.id]).toBeDefined();
+      expect(newState.hub!.shopPrices[p.id]).toBeGreaterThan(0);
     }
+  });
+
+  test("free picks have $0 price in shopPrices", () => {
+    const state = makeTestState();
+    const [newState] = enterHub(state, [], () => 0.5);
+
+    for (const offers of Object.values(newState.hub!.freePickOffers)) {
+      for (const p of offers) {
+        expect(newState.hub!.shopPrices[p.id]).toBe(0);
+      }
+    }
+  });
+
+  test("initializes empty selections for all trainers", () => {
+    const state = makeTestState();
+    const [newState] = enterHub(state, [], () => 0.5);
+
+    expect(newState.hub!.selections["t0"]).toEqual([]);
+    expect(newState.hub!.selections["t1"]).toEqual([]);
   });
 
   test("emits hub_entered event", () => {
@@ -71,187 +94,152 @@ describe("enterHub", () => {
     const [, events] = enterHub(state, [], () => 0.5);
     expect(events.some(e => e.type === "hub_entered")).toBe(true);
   });
-
-  test("if all trainers busted, skips free_pick and goes straight to marketplace", () => {
-    const state = makeTestState();
-    const [newState] = enterHub(state, ["t0", "t1"], () => 0.5);
-    expect(newState.hub!.phase).toBe("marketplace");
-  });
 });
 
-// === handlePickFreePokemon tests ===
+// === handleSelectPokemon tests ===
 
-describe("handlePickFreePokemon", () => {
-  function hubState(): GameState {
-    const state = makeTestState();
-    const [entered] = enterHub(state, [], () => 0.5);
-    return entered;
-  }
-
-  test("trainer picks one of their offered pokemon", () => {
+describe("handleSelectPokemon", () => {
+  test("trainer can select a free pick pokemon (emits pokemon_selected)", () => {
     const state = hubState();
-    const offeredId = state.hub!.freePickOffers["t0"][0].id;
-    const [next, events] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: offeredId });
+    const freePick = state.hub!.freePickOffers["t0"][0];
+    const [next, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: freePick.id });
 
-    expect(next.hub!.freePicksMade["t0"]).toBe(offeredId);
-    expect(events.some(e => e.type === "free_pokemon_picked")).toBe(true);
+    expect(next.hub!.selections["t0"]).toContain(freePick.id);
+    expect(events).toEqual([{ type: "pokemon_selected", trainerId: "t0", pokemonId: freePick.id }]);
   });
 
-  test("pokemon is added to trainer deck", () => {
+  test("trainer can select a shop pokemon (emits pokemon_selected)", () => {
     const state = hubState();
-    const offeredId = state.hub!.freePickOffers["t0"][0].id;
-    const deckSizeBefore = state.trainers["t0"].deck.drawPile.length + state.trainers["t0"].deck.discard.length;
-    const [next] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: offeredId });
+    const shopPokemon = state.hub!.shopPokemon[0];
+    const [next, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
 
-    const deckSizeAfter = next.trainers["t0"].deck.drawPile.length + next.trainers["t0"].deck.discard.length;
-    expect(deckSizeAfter).toBe(deckSizeBefore + 1);
+    expect(next.hub!.selections["t0"]).toContain(shopPokemon.id);
+    expect(events).toEqual([{ type: "pokemon_selected", trainerId: "t0", pokemonId: shopPokemon.id }]);
   });
 
-  test("rejected if pokemon not in offers", () => {
-    const state = hubState();
-    const [, events] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: "bogus" });
+  test("selecting again toggles off (emits pokemon_deselected)", () => {
+    let state = hubState();
+    const freePick = state.hub!.freePickOffers["t0"][0];
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: freePick.id });
+    expect(state.hub!.selections["t0"]).toContain(freePick.id);
+
+    const [next, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: freePick.id });
+    expect(next.hub!.selections["t0"]).not.toContain(freePick.id);
+    expect(events).toEqual([{ type: "pokemon_deselected", trainerId: "t0", pokemonId: freePick.id }]);
+  });
+
+  test("max 2 selections — third selection rejected", () => {
+    let state = hubState();
+    const free0 = state.hub!.freePickOffers["t0"][0];
+    const free1 = state.hub!.freePickOffers["t0"][1];
+    const shop0 = state.hub!.shopPokemon[0];
+
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: free0.id });
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: free1.id });
+    expect(state.hub!.selections["t0"]).toHaveLength(2);
+
+    const [next, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shop0.id });
+    expect(next.hub!.selections["t0"]).toHaveLength(2);
     expect(events).toEqual([]);
   });
 
-  test("rejected if trainer already picked", () => {
+  test("rejected if trainer already confirmed", () => {
     let state = hubState();
-    const offeredId = state.hub!.freePickOffers["t0"][0].id;
-    [state] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: offeredId });
-    const [, events] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: offeredId });
+    [state] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+
+    const freePick = state.hub!.freePickOffers["t0"][0];
+    const [, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: freePick.id });
     expect(events).toEqual([]);
   });
 
-  test("when all trainers have picked, transitions to marketplace phase", () => {
+  test("rejected if not enough currency for shop pick", () => {
     let state = hubState();
-    const offer0 = state.hub!.freePickOffers["t0"][0].id;
-    const offer1 = state.hub!.freePickOffers["t1"][0].id;
-    [state] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: offer0 });
-    const [next, events] = handlePickFreePokemon(state, { type: "pick_free_pokemon", trainerId: "t1", pokemonId: offer1 });
-
-    expect(next.hub!.phase).toBe("marketplace");
-    expect(events.some(e => e.type === "marketplace_opened")).toBe(true);
-  });
-});
-
-// === handleSkipFreePick tests ===
-
-describe("handleSkipFreePick", () => {
-  function hubState(): GameState {
-    const state = makeTestState();
-    const [entered] = enterHub(state, [], () => 0.5);
-    return entered;
-  }
-
-  test("trainer can skip their free pick", () => {
-    const state = hubState();
-    const [next, events] = handleSkipFreePick(state, { type: "skip_free_pick", trainerId: "t0" });
-
-    expect(next.hub!.freePicksMade["t0"]).toBeNull();
-    expect(events.some(e => e.type === "free_pick_skipped")).toBe(true);
-  });
-
-  test("deck unchanged after skip", () => {
-    const state = hubState();
-    const deckBefore = state.trainers["t0"].deck;
-    const [next] = handleSkipFreePick(state, { type: "skip_free_pick", trainerId: "t0" });
-    expect(next.trainers["t0"].deck).toEqual(deckBefore);
-  });
-});
-
-// === handleBuyPokemon tests ===
-
-describe("handleBuyPokemon", () => {
-  function marketplaceState(): GameState {
-    const state = makeTestState();
-    const [entered] = enterHub(state, ["t0", "t1"], () => 0.5);
-    return entered;
-  }
-
-  test("trainer buys a pokemon from the shop", () => {
-    const state = marketplaceState();
-    const shopPokemon = state.hub!.shopPokemon[0];
-    const price = state.hub!.shopPrices[shopPokemon.id];
-    const currencyBefore = state.trainers["t0"].currency;
-
-    const [next, events] = handleBuyPokemon(state, { type: "buy_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
-
-    expect(next.trainers["t0"].currency).toBe(currencyBefore - price);
-    expect(events.some(e => e.type === "pokemon_purchased")).toBe(true);
-  });
-
-  test("pokemon added to trainer deck", () => {
-    const state = marketplaceState();
-    const shopPokemon = state.hub!.shopPokemon[0];
-    const deckSizeBefore = state.trainers["t0"].deck.drawPile.length + state.trainers["t0"].deck.discard.length;
-
-    const [next] = handleBuyPokemon(state, { type: "buy_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
-    const deckSizeAfter = next.trainers["t0"].deck.drawPile.length + next.trainers["t0"].deck.discard.length;
-    expect(deckSizeAfter).toBe(deckSizeBefore + 1);
-  });
-
-  test("rejected if not enough currency", () => {
-    let state = marketplaceState();
+    // Set currency to 0
     state = {
       ...state,
       trainers: { ...state.trainers, t0: { ...state.trainers["t0"], currency: 0 } },
     };
     const shopPokemon = state.hub!.shopPokemon[0];
-    const [, events] = handleBuyPokemon(state, { type: "buy_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
+    const [, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
     expect(events).toEqual([]);
   });
 
-  test("rejected if pokemon not in shop", () => {
-    const state = marketplaceState();
-    const [, events] = handleBuyPokemon(state, { type: "buy_pokemon", trainerId: "t0", pokemonId: "bogus" });
+  test("rejected if pokemon not in free picks or shop (bogus id)", () => {
+    const state = hubState();
+    const [, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: "bogus_id_xyz" });
     expect(events).toEqual([]);
   });
 
-  test("rejected if not in marketplace sub-phase", () => {
-    const state = makeTestState();
-    const [entered] = enterHub(state, [], () => 0.5);
-    expect(entered.hub!.phase).toBe("free_pick");
+  test("currency check accounts for already-selected shop picks", () => {
+    let state = hubState();
+    const shop0 = state.hub!.shopPokemon[0];
+    const shop1 = state.hub!.shopPokemon[1];
+    const price0 = state.hub!.shopPrices[shop0.id];
+    const price1 = state.hub!.shopPrices[shop1.id];
 
-    const shopPokemon = entered.hub!.shopPokemon[0];
-    const [, events] = handleBuyPokemon(entered, { type: "buy_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
+    // Set currency to exactly afford shop0 but not shop0 + shop1
+    state = {
+      ...state,
+      trainers: { ...state.trainers, t0: { ...state.trainers["t0"], currency: price0 + price1 - 1 } },
+    };
+
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shop0.id });
+    expect(state.hub!.selections["t0"]).toContain(shop0.id);
+
+    const [next, events] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shop1.id });
+    expect(next.hub!.selections["t0"]).not.toContain(shop1.id);
     expect(events).toEqual([]);
-  });
-
-  test("unlimited stock — same pokemon can be bought by multiple trainers", () => {
-    const state = marketplaceState();
-    const shopPokemon = state.hub!.shopPokemon[0];
-    let next = state;
-    [next] = handleBuyPokemon(next, { type: "buy_pokemon", trainerId: "t0", pokemonId: shopPokemon.id });
-    const [, events] = handleBuyPokemon(next, { type: "buy_pokemon", trainerId: "t1", pokemonId: shopPokemon.id });
-    expect(events.some(e => e.type === "pokemon_purchased")).toBe(true);
   });
 });
 
-// === handleReadyUp tests ===
+// === handleConfirmSelections tests ===
 
-describe("handleReadyUp", () => {
-  function marketplaceState(): GameState {
-    const state = makeTestState();
-    const [entered] = enterHub(state, ["t0", "t1"], () => 0.5);
-    return entered;
-  }
+describe("handleConfirmSelections", () => {
+  test("confirming adds selected pokemon to deck", () => {
+    let state = hubState();
+    const freePick = state.hub!.freePickOffers["t0"][0];
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: freePick.id });
 
-  test("trainer readies up", () => {
-    const state = marketplaceState();
-    const [next] = handleReadyUp(state, { type: "ready_up", trainerId: "t0" });
-    expect(next.hub!.readyTrainers).toContain("t0");
+    const deckBefore = state.trainers["t0"].deck.drawPile.length + state.trainers["t0"].deck.discard.length;
+    const [next] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+    const deckAfter = next.trainers["t0"].deck.drawPile.length + next.trainers["t0"].deck.discard.length;
+
+    expect(deckAfter).toBe(deckBefore + 1);
   });
 
-  test("rejected if not in marketplace sub-phase", () => {
-    const state = makeTestState();
-    const [entered] = enterHub(state, [], () => 0.5);
-    const [, events] = handleReadyUp(entered, { type: "ready_up", trainerId: "t0" });
-    expect(events).toEqual([]);
+  test("deducts currency for shop picks only (free picks cost nothing)", () => {
+    let state = hubState();
+    const freePick = state.hub!.freePickOffers["t0"][0];
+    const shopPick = state.hub!.shopPokemon[0];
+    const shopPrice = state.hub!.shopPrices[shopPick.id];
+
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: freePick.id });
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shopPick.id });
+
+    const currencyBefore = state.trainers["t0"].currency;
+    const [next] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+
+    expect(next.trainers["t0"].currency).toBe(currencyBefore - shopPrice);
   });
 
-  test("all trainers ready transitions to world phase", () => {
-    let state = marketplaceState();
-    [state] = handleReadyUp(state, { type: "ready_up", trainerId: "t0" });
-    const [next, events] = handleReadyUp(state, { type: "ready_up", trainerId: "t1" });
+  test("confirming with 0 selections is valid (skip)", () => {
+    const state = hubState();
+    const currencyBefore = state.trainers["t0"].currency;
+    const deckBefore = state.trainers["t0"].deck.drawPile.length + state.trainers["t0"].deck.discard.length;
+
+    const [next, events] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+
+    expect(next.trainers["t0"].currency).toBe(currencyBefore);
+    const deckAfter = next.trainers["t0"].deck.drawPile.length + next.trainers["t0"].deck.discard.length;
+    expect(deckAfter).toBe(deckBefore);
+    expect(next.hub!.confirmedTrainers).toContain("t0");
+    expect(events.some(e => e.type === "selections_confirmed")).toBe(true);
+  });
+
+  test("all trainers confirming transitions to world phase", () => {
+    let state = hubState();
+    [state] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+    const [next, events] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t1" });
 
     expect(next.phase).toBe("world");
     expect(next.hub).toBeNull();
@@ -259,12 +247,36 @@ describe("handleReadyUp", () => {
     expect(events.some(e => e.type === "all_ready")).toBe(true);
     expect(events.some(e => e.type === "world_entered")).toBe(true);
   });
+
+  test("rejected if already confirmed", () => {
+    let state = hubState();
+    [state] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+    const [, events] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+    expect(events).toEqual([]);
+  });
+
+  test("shop pokemon get unique ID (bought_${id}_${trainerId})", () => {
+    let state = hubState();
+    const shopPick = state.hub!.shopPokemon[0];
+    [state] = handleSelectPokemon(state, { type: "select_pokemon", trainerId: "t0", pokemonId: shopPick.id });
+    const [next] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+
+    const allCards = [...next.trainers["t0"].deck.drawPile, ...next.trainers["t0"].deck.discard];
+    const boughtCard = allCards.find(p => p.id === `bought_${shopPick.id}_t0`);
+    expect(boughtCard).toBeDefined();
+  });
+
+  test("emits selections_confirmed event", () => {
+    const state = hubState();
+    const [, events] = handleConfirmSelections(state, { type: "confirm_selections", trainerId: "t0" });
+    expect(events.some(e => e.type === "selections_confirmed")).toBe(true);
+  });
 });
 
 // === Integration: full flow ===
 
-describe("full flow: route → hub → world", () => {
-  test("complete cycle: stop → hub free pick → marketplace ready → world vote", () => {
+describe("full flow: stop → hub → select → confirm → world", () => {
+  test("complete cycle: stop → hub → select pokemon → confirm → world", () => {
     let state = createInitialState("TEST");
     [state] = resolveAction(state, { type: "join_game", trainerName: "T0", sessionToken: "t0" });
     [state] = resolveAction(state, { type: "join_game", trainerName: "T1", sessionToken: "t1" });
@@ -276,21 +288,17 @@ describe("full flow: route → hub → world", () => {
     [state] = resolveAction(state, { type: "stop", trainerId: "t1" });
     expect(state.phase).toBe("hub");
     expect(state.hub).not.toBeNull();
-    expect(state.hub!.phase).toBe("free_pick");
 
-    // Both trainers pick free pokemon (or skip if none available)
+    // Trainer 0 selects a free pick
     const offer0 = state.hub!.freePickOffers["t0"][0]?.id;
-    const offer1 = state.hub!.freePickOffers["t1"][0]?.id;
-    if (offer0) [state] = resolveAction(state, { type: "pick_free_pokemon", trainerId: "t0", pokemonId: offer0 });
-    else [state] = resolveAction(state, { type: "skip_free_pick", trainerId: "t0" });
-    if (offer1) [state] = resolveAction(state, { type: "pick_free_pokemon", trainerId: "t1", pokemonId: offer1 });
-    else [state] = resolveAction(state, { type: "skip_free_pick", trainerId: "t1" });
+    if (offer0) {
+      [state] = resolveAction(state, { type: "select_pokemon", trainerId: "t0", pokemonId: offer0 });
+      expect(state.hub!.selections["t0"]).toContain(offer0);
+    }
 
-    expect(state.hub!.phase).toBe("marketplace");
-
-    // Both trainers ready up
-    [state] = resolveAction(state, { type: "ready_up", trainerId: "t0" });
-    [state] = resolveAction(state, { type: "ready_up", trainerId: "t1" });
+    // Both trainers confirm
+    [state] = resolveAction(state, { type: "confirm_selections", trainerId: "t0" });
+    [state] = resolveAction(state, { type: "confirm_selections", trainerId: "t1" });
 
     expect(state.phase).toBe("world");
     expect(state.hub).toBeNull();
