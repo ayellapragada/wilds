@@ -2,6 +2,26 @@ import { routePartykitRequest, Server } from "partyserver";
 import type { Connection, ConnectionContext } from "partyserver";
 import type { GameState, Action } from "../engine/types";
 import { createInitialState, resolveAction } from "../engine/index";
+import { ADMIN_HTML } from "./admin-page";
+
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "password";
+
+function checkAuth(request: Request): Response | null {
+  const auth = request.headers.get("Authorization");
+  if (!auth || !auth.startsWith("Basic ")) {
+    return new Response("Unauthorized", {
+      status: 401,
+      headers: { "WWW-Authenticate": 'Basic realm="Admin"' },
+    });
+  }
+  const decoded = atob(auth.slice(6));
+  const [user, pass] = decoded.split(":");
+  if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  return null;
+}
 
 export class Wilds extends Server {
   state: GameState | null = null;
@@ -36,6 +56,36 @@ export class Wilds extends Server {
     }));
   }
 
+  async onRequest(request: Request): Promise<Response> {
+    const authFail = checkAuth(request);
+    if (authFail) return authFail;
+
+    if (request.method === "GET") {
+      let connectionCount = 0;
+      for (const _ of this.getConnections()) connectionCount++;
+      return Response.json({
+        roomCode: this.name,
+        connections: connectionCount,
+        state: this.state,
+      });
+    }
+
+    if (request.method === "POST") {
+      const body = await request.json<{ action: string }>();
+      if (body.action === "reset") {
+        this.state = createInitialState(this.name);
+        this.broadcast(JSON.stringify({
+          type: "state_sync",
+          state: this.state,
+        }));
+        return Response.json({ ok: true, message: "Room reset" });
+      }
+      return Response.json({ error: "Unknown action" }, { status: 400 });
+    }
+
+    return new Response("Method not allowed", { status: 405 });
+  }
+
   private sendTo(conn: Connection, data: unknown) {
     conn.send(JSON.stringify(data));
   }
@@ -47,6 +97,14 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/admin" || url.pathname === "/admin/") {
+      return new Response(ADMIN_HTML, {
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+
     return (
       (await routePartykitRequest(request, env)) ||
       new Response("Not Found", { status: 404 })

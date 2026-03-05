@@ -145,7 +145,8 @@ describe("action-resolver", () => {
       expect(next.currentRoute).not.toBeNull();
       expect(next.currentRoute!.routeNumber).toBe(1);
       expect(next.currentRoute!.status).toBe("in_progress");
-      expect(events[0].type).toBe("route_started");
+      expect(events[0].type).toBe("game_started");
+      expect(events[1].type).toBe("route_started");
     });
 
     test("sets all trainers to exploring", () => {

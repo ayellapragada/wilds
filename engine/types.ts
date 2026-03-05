@@ -77,11 +77,13 @@ export interface RouteModifier {
 
 // === World Map ===
 
-export type RouteNodeType = "route" | "elite_route" | "marketplace" | "rest_stop" | "event" | "champion";
+export type RouteNodeType = "route" | "elite_route" | "champion";
+export type BonusType = "marketplace" | "rest_stop" | "event";
 
 export interface RouteNode {
   readonly id: string;
   readonly type: RouteNodeType;
+  readonly bonus: BonusType | null;
   readonly name: string;
   readonly tier: number;
   readonly connections: readonly string[];

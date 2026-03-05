@@ -30,31 +30,6 @@ Lobby → World (pick first route) → Route → World → Route → ... → Cha
 
 # Next Up
 
-## Phase C: Ability System
-
-> Creatures with special effects that cascade like Balatro.
-
-- [ ] `engine/abilities/ability.ts` — Ability interface
-- [ ] `engine/abilities/implementations.ts` — Core abilities: stonewall, fire_amplifier, tidal_shield, earthquake, dodge, cleanse
-- [ ] `engine/abilities/registry.ts` — resolveAbilities pipeline (own ability → reactions from drawn creatures → route modifiers)
-- [ ] `engine/__tests__/abilities.test.ts` — Each ability in isolation, cascading resolution, route modifier interaction
-- [ ] Wire ability resolution into `handleHit` in action-resolver
-
----
-
-## Phase D: World Map & Voting
-
-> Roguelike map generation and group voting on path.
-
-- [ ] `engine/models/world-map.ts` — RouteNode helpers
-- [ ] `engine/map-generator.ts` — generateMap (DAG with tiers, node types, connectivity)
-- [ ] `engine/phases/world.ts` — handleVote, tally, tiebreak (random among tied), transition to next node's phase
-- [ ] `engine/__tests__/map-generator.test.ts` — Valid DAG, all nodes reachable, type distribution
-- [ ] `engine/__tests__/voting.test.ts` — Majority wins, tiebreak, all-voted detection
-- [ ] Wire vote/world actions into action-resolver
-
----
-
 ## Phase E: Marketplace & Rest Stops
 
 > Between-route phases for team building.
@@ -113,7 +88,7 @@ Lobby → World (pick first route) → Route → World → Route → ... → Cha
 
 ## Current Goal
 
-**Phase A** — Rename everything to match the game domain, then **Phase B** — write action-resolver tests. After that, the codebase is clean and tested, ready for abilities and world phase.
+**Phase E** — Marketplace & Rest Stops. Core game loop (lobby → route → world → vote → route → champion → game over) is working end-to-end. 112 tests passing.
 
 ---
 

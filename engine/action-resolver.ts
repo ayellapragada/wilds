@@ -1,7 +1,10 @@
-import type { GameState, Action, GameEvent, Trainer, RouteProgress, Route } from "./types";
+import type { GameState, Action, GameEvent, Trainer, RouteProgress } from "./types";
 import { createStarterTeam } from "./creatures/catalog";
 import { createDeck, drawCreature, endTurn } from "./models/deck";
+import { freshProgress, createRoute } from "./models/route";
 import { resolveAbility } from "./abilities/resolver";
+import { handleVote } from "./phases/world";
+import { generateMap } from "./map-generator";
 
 export type ResolveResult = [GameState, GameEvent[]];
 
@@ -17,6 +20,8 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleStop(state, action);
     case "choose_bust_penalty":
       return handleBustPenalty(state, action);
+    case "cast_vote":
+      return handleVote(state, action, Math.random);
     default:
       return [state, []];
   }
@@ -61,25 +66,32 @@ function handleStart(
   const trainerIds = Object.keys(state.trainers);
   if (trainerIds.length === 0) return [state, []];
 
+  // Generate the world map
+  const map = generateMap(state.settings.mapTiers, Math.random);
+  const startNodeId = map.currentNodeId;
+  const startNode = map.nodes[startNodeId];
+  const updatedMap = {
+    ...map,
+    nodes: {
+      ...map.nodes,
+      [startNodeId]: { ...startNode, visited: true },
+    },
+  };
+
   // Set all trainers to exploring
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
     trainers[id] = { ...t, status: "exploring", routeProgress: freshProgress() };
   }
 
-  const route: Route = {
-    routeNumber: 1,
-    name: "Route 1",
-    turnOrder: trainerIds,
-    currentTurnIndex: 0,
-    trainerResults: {},
-    status: "in_progress",
-    modifiers: [],
-  };
+  const route = createRoute(1, startNode, trainerIds);
 
   return [
-    { ...state, phase: "route", trainers, currentRoute: route, routeNumber: 1 },
-    [{ type: "route_started", routeNumber: 1, routeName: "Route 1", turnOrder: [...trainerIds], modifiers: [] }],
+    { ...state, phase: "route", trainers, currentRoute: route, routeNumber: 1, map: updatedMap },
+    [
+      { type: "game_started", map: updatedMap },
+      { type: "route_started", routeNumber: 1, routeName: startNode.name, turnOrder: [...trainerIds], modifiers: [...startNode.modifiers] },
+    ],
   ];
 }
 
@@ -269,15 +281,6 @@ function handleBustPenalty(
 
 // === Helpers ===
 
-function freshProgress(): RouteProgress {
-  return {
-    totalDistance: 0,
-    totalCost: 0,
-    creaturesDrawn: 0,
-    activeEffects: [],
-  };
-}
-
 function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
   const allDone = Object.values(state.trainers).every(
     t => t.status === "stopped" || t.status === "waiting"
@@ -291,14 +294,42 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
     results[t.id] = { distance: t.score, currencyEarned: t.currency, busted: false };
   }
 
-  events.push({ type: "route_completed", results });
-  events.push({ type: "world_entered" });
-
-  // Transition to world phase — reset trainers to waiting
+  // Reset trainers to waiting
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
     trainers[id] = { ...t, status: "waiting", routeProgress: freshProgress() };
   }
+
+  events.push({ type: "route_completed", results });
+
+  // Check if this was the champion route → game over
+  if (state.map) {
+    const currentNode = state.map.nodes[state.map.currentNodeId];
+    if (currentNode?.type === "champion") {
+      const finalScores: Record<string, number> = {};
+      let championId = "";
+      let highScore = -1;
+      for (const t of Object.values(trainers)) {
+        finalScores[t.id] = t.score;
+        if (t.score > highScore) {
+          highScore = t.score;
+          championId = t.id;
+        }
+      }
+
+      events.push({ type: "game_over", finalScores, championId });
+
+      return {
+        ...state,
+        trainers,
+        currentRoute: { ...state.currentRoute, status: "complete" },
+        phase: "game_over",
+        votes: null,
+      };
+    }
+  }
+
+  events.push({ type: "world_entered" });
 
   return {
     ...state,
