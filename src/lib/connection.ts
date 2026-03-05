@@ -5,10 +5,12 @@ export type ServerMessage =
   | { type: "state_update"; state: GameState; events: GameEvent[] }
   | { type: "error"; message: string };
 
-const WS_HOST = "localhost:8787";
+const BASE_URL = import.meta.env.DEV
+  ? "ws://localhost:8787"
+  : "wss://wilds.ayellapragada.workers.dev";
 
 export function createConnection(roomCode: string) {
-  const url = `ws://${WS_HOST}/parties/wilds/${roomCode}`;
+  const url = `${BASE_URL}/parties/wilds/${roomCode}`;
   const socket = new WebSocket(url);
 
   return {
