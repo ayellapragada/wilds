@@ -32,7 +32,7 @@ Lobby → World (pick first route) → Route → World → Route → ... → Cha
 
 ## Phase A–D: Core Engine ✅
 
-All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting + map traversal), game_over. 139 tests passing.
+All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting + map traversal), game_over.
 
 - Action resolver handles all 8 actions across 5 phases
 - Full phase transitions: lobby → route → hub → world → route → ... → champion → game_over
@@ -45,26 +45,28 @@ All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting 
 
 ---
 
-# Next Up
-
 ## Phase E.1: Engine Gaps ✅
 
-> Fix unresolved gaps in the existing engine before adding new features.
+> Wire up unused engine mechanics with real content. 158 tests passing.
 
-- [x] Per-route bust threshold — RouteNode defines threshold (8/7/5-6/5 by type), trainers reset on route start
-- [x] `end_of_round` ability trigger — fires in handleStop and handleBustPenalty
-- [x] `bonus_currency` effect — applied to trainer currency on stop/bust
-- [x] New Pokemon: Meowth, Aipom, Persian (end_of_round + bonus_currency)
-- [x] Route modifiers — generated in map (elite/tier/type bonuses), applied in handleHit
-- [x] Removed `baseBustThreshold` from Trainer (route defines the base)
-- [ ] Node bonus types — `marketplace`, `rest_stop`, `event` (deferred to E.2)
+- Per-route bust threshold — RouteNode defines threshold (start=8, regular=7, elite=5-6, champion=5), trainers reset on route start
+- `end_of_round` ability trigger — fires in handleStop and handleBustPenalty on all drawn Pokemon
+- `bonus_currency` effect — applied to trainer currency on stop; on bust, only with keep_currency choice
+- New Pokemon: Meowth (common, +1 currency/round), Aipom (uncommon, +3 if 4+ draws), Persian (rare, +5 if 5+ draws + on_draw distance)
+- Route modifiers — generated per node (elite: cost/threshold penalty; tier 5+: distance bonus; random: type bonus), applied in handleHit
+- Removed `baseBustThreshold` from Trainer (route defines the base)
 
 ---
 
-## Phase E.2: Marketplace & Rest Stops (deferred)
+# Next Up
+
+---
+
+## Phase E.2: Marketplace & Rest Stops
 
 > Between-route phases for team building. Design questions still open.
 
+- [ ] Node bonus types — `marketplace`, `rest_stop`, `event` handlers (deferred from E.1)
 - [ ] Marketplace state, creature generation, pricing
 - [ ] Buy/sell creatures, currency validation
 - [ ] Rest stop logic (threshold boost, creature removal, preview — details TBD)
@@ -120,10 +122,10 @@ All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting 
 ## Open Design Questions
 
 - **Marketplace specifics:** Shared stock (competitive) vs individual offers? Trading between trainers?
-- **Route modifiers:** Weather? Terrain types? What makes routes feel different?
 - **Rest stops:** Heal threshold? Remove a creature? Preview draws?
 - **Events (random):** Group effects — "a storm reduces everyone's threshold by 2 next route"
 - **Turn order:** Random each route? Lowest score first (catchup)?
 - **Timer on HIT/STOP:** Keep pacing tight with large groups?
 - **Simultaneous mode:** Everyone draws at once instead of taking turns — better for 10+ trainers?
 - **Tiebreak rules:** Random among tied options? Something else?
+- **Node bonus types:** What happens when you land on a marketplace/rest_stop/event node?
