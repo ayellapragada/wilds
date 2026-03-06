@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PhoneViewState, Action } from '../../../engine/types';
   import { getAvailableNodes } from '../../../engine/models/world-map';
+  import { copy } from '../../../copy';
 
   let { gameState, send }: {
     gameState: PhoneViewState;
@@ -17,7 +18,7 @@
 </script>
 
 <section>
-  <h2>Vote on Next Route</h2>
+  <h2>Vote on Next {copy.route}</h2>
 
   <div class="vote-options">
     {#each availableNodes as node}
@@ -27,7 +28,7 @@
         onclick={() => castVote(node.id)}
       >
         <strong>{node.name}</strong>
-        <span class="node-type">{node.type === 'elite_route' ? 'Elite' : node.type === 'champion' ? 'Champion' : 'Route'}</span>
+        <span class="node-type">{node.type === 'elite_route' ? copy.elite : node.type === 'champion' ? copy.champion : copy.route}</span>
         {#if node.bonus}
           <span class="node-bonus">+ {node.bonus.replace('_', ' ')}</span>
         {/if}
@@ -36,9 +37,9 @@
   </div>
 
   {#if myVote}
-    <p>You voted for <strong>{gameState.map?.nodes[myVote]?.name}</strong></p>
+    <p>{copy.votedFor} <strong>{gameState.map?.nodes[myVote]?.name}</strong></p>
   {:else}
-    <p>Tap a route to vote</p>
+    <p>{copy.votePrompt}</p>
   {/if}
 </section>
 

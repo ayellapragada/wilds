@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { TVViewState, TrainerPublicInfo } from '../../../engine/types';
+  import { copy } from '../../../copy';
 
   let { gameState }: {
     gameState: TVViewState;
@@ -10,21 +11,21 @@
 </script>
 
 <section>
-  <h2>Lobby</h2>
+  <h2>{copy.lobby}</h2>
   <div class="join-info">
-    <p class="room-code">Room: <strong>{gameState.roomCode}</strong></p>
+    <p class="room-code">{copy.room}: <strong>{gameState.roomCode}</strong></p>
     <p class="join-url">{playerUrl}</p>
   </div>
 
   {#if trainerList.length > 0}
     <div class="trainer-list">
-      <h3>Trainers ({trainerList.length})</h3>
+      <h3>{copy.trainers} ({trainerList.length})</h3>
       {#each trainerList as trainer}
         <div class="trainer-row">{trainer.name}</div>
       {/each}
     </div>
   {:else}
-    <p>Waiting for trainers to join...</p>
+    <p>{copy.waitingForTrainers}</p>
   {/if}
 </section>
 

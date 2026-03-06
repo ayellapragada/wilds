@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PhoneViewState, Action } from '../../../engine/types';
   import { spriteUrl, typeColor } from '../../lib/assets';
+  import { copy } from '../../../copy';
 
   let { gameState, send }: {
     gameState: PhoneViewState;
@@ -17,36 +18,36 @@
 </script>
 
 <section>
-  <h2>Route {gameState.routeNumber}</h2>
+  <h2>{copy.route} {gameState.routeNumber}</h2>
   <p>
-    Distance: <strong>{me.routeProgress.totalDistance}</strong> |
-    Cost: <strong>{me.routeProgress.totalCost}</strong> / {me.bustThreshold}
+    {copy.distance}: <strong>{me.routeProgress.totalDistance}</strong> |
+    {copy.cost}: <strong>{me.routeProgress.totalCost}</strong> / {me.bustThreshold}
   </p>
-  <p>Score: {me.score} | Currency: {me.currency}</p>
+  <p>{copy.score}: {me.score} | {copy.currency}: {me.currency}</p>
 
   {#if me.status === 'exploring'}
     <div class="actions">
-      <button class="hit-btn" onclick={hit}>HIT</button>
-      <button class="stop-btn" onclick={stop} disabled={me.routeProgress.pokemonDrawn === 0}>STOP</button>
+      <button class="hit-btn" onclick={hit}>{copy.hitButton}</button>
+      <button class="stop-btn" onclick={stop} disabled={me.routeProgress.pokemonDrawn === 0}>{copy.stopButton}</button>
     </div>
   {:else if me.status === 'busted'}
-    <p><strong>Busted!</strong></p>
-    <p>Choose one to keep:</p>
+    <p><strong>{copy.bustMessage}</strong></p>
+    <p>{copy.choosePenalty}</p>
     <div class="actions">
-      <button onclick={() => choosePenalty('keep_score')}>Keep Score (+{me.routeProgress.totalDistance})</button>
-      <button onclick={() => choosePenalty('keep_currency')}>Keep Currency (+{Math.floor(me.routeProgress.totalDistance / 3)})</button>
+      <button onclick={() => choosePenalty('keep_score')}>{copy.keepScoreButton} (+{me.routeProgress.totalDistance})</button>
+      <button onclick={() => choosePenalty('keep_currency')}>{copy.keepCurrencyButton} (+{Math.floor(me.routeProgress.totalDistance / 3)})</button>
     </div>
   {:else if me.status === 'stopped'}
-    <p>Stopped! Waiting for others...</p>
+    <p>{copy.statusStopped}! {copy.waitingForOthers}</p>
   {/if}
 
   {#if me.deck.drawn.length > 0}
     <div class="drawn">
-      <h3>Drawn</h3>
+      <h3>{copy.drawn}</h3>
       {#each me.deck.drawn as pkmn}
         <span class="pokemon" title={pkmn.description} style="background: {typeColor(pkmn.types)}">
           <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
-          {pkmn.name} (+{pkmn.distance}d / +{pkmn.cost}c)
+          {pkmn.name} (+{pkmn.distance}{copy.distanceAbbr} / +{pkmn.cost}{copy.costAbbr})
         </span>
       {/each}
     </div>

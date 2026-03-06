@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { TVViewState, TrainerPublicInfo } from '../../../engine/types';
   import { getAvailableNodes } from '../../../engine/models/world-map';
+  import { copy } from '../../../copy';
 
   let { gameState }: {
     gameState: TVViewState;
@@ -13,14 +14,14 @@
 </script>
 
 <section>
-  <h2>Choose Next Route</h2>
-  <p>Route {gameState.routeNumber} complete! Waiting for votes.</p>
+  <h2>{copy.chooseRoute}</h2>
+  <p>{copy.routeComplete}</p>
 
   <div class="vote-options">
     {#each availableNodes as node}
       <div class="vote-card">
         <strong>{node.name}</strong>
-        <span class="node-type">{node.type === 'elite_route' ? 'Elite' : node.type === 'champion' ? 'Champion' : 'Route'}</span>
+        <span class="node-type">{node.type === 'elite_route' ? copy.elite : node.type === 'champion' ? copy.champion : copy.route}</span>
         {#if node.bonus}
           <span class="node-bonus">+ {node.bonus.replace('_', ' ')}</span>
         {/if}
@@ -31,16 +32,16 @@
     {/each}
   </div>
 
-  <p class="vote-status">{voteCount}/{trainerCount} voted</p>
+  <p class="vote-status">{voteCount}/{trainerCount} {copy.voted}</p>
 
   <div class="trainers">
-    <h3>Standings</h3>
+    <h3>{copy.standings}</h3>
     {#each trainerList as trainer}
       <div class="trainer-row">
         <strong>{trainer.name}</strong>
-        — Score: {trainer.score} | Currency: {trainer.currency}
+        — {copy.score}: {trainer.score} | {copy.currency}: {trainer.currency}
         {#if gameState.votes?.[trainer.id]}
-          <span class="badge">voted</span>
+          <span class="badge">{copy.voted}</span>
         {/if}
       </div>
     {/each}

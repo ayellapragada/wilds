@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PhoneViewState, Action } from '../../../engine/types';
+  import { copy } from '../../../copy';
 
   let { gameState, send }: {
     gameState: PhoneViewState;
@@ -18,8 +19,8 @@
 </script>
 
 <section>
-  <h2>Waiting for game to start...</h2>
-  <p>You are: <strong>{gameState.me?.name}</strong></p>
+  <h2>{copy.waitingForStart}</h2>
+  <p>{copy.youAre}: <strong>{gameState.me?.name}</strong></p>
 
   <div class="trainer-list">
     {#each allTrainers as trainer}
@@ -27,7 +28,7 @@
     {/each}
   </div>
 
-  <button onclick={startGame} disabled={allTrainers.length < 1}>Start Game</button>
+  <button onclick={startGame} disabled={allTrainers.length < 1}>{copy.startGameButton}</button>
 </section>
 
 <style>

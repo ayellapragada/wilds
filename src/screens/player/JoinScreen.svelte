@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Action } from '../../../engine/types';
+  import { copy } from '../../../copy';
 
   let { roomCode, send, onJoin }: {
     roomCode: string;
@@ -19,10 +20,10 @@
 </script>
 
 <section>
-  <h2>Join Game</h2>
-  <p>Room: <strong>{roomCode}</strong></p>
+  <h2>{copy.joinButton} Game</h2>
+  <p>{copy.room}: <strong>{roomCode}</strong></p>
   <input bind:value={trainerName} placeholder="Your name" />
-  <button onclick={join} disabled={!trainerName}>Join</button>
+  <button onclick={join} disabled={!trainerName}>{copy.joinButton}</button>
 </section>
 
 <style>

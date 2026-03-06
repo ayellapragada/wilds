@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { TVViewState, TrainerPublicInfo } from '../../../engine/types';
   import { spriteUrl } from '../../lib/assets';
+  import { copy } from '../../../copy';
 
   let { gameState }: {
     gameState: TVViewState;
@@ -11,32 +12,32 @@
 </script>
 
 <section>
-  <h2>Hub</h2>
+  <h2>{copy.hub}</h2>
 
   {#if gameState.hub}
-    <h3>Shop</h3>
+    <h3>{copy.shop}</h3>
     <div class="shop-items">
       {#each gameState.hub.shopPokemon as pkmn}
         {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
         <div class="pokemon-card {pkmn.types[0]}">
           <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           <strong>{pkmn.name}</strong>
-          <span class="pokemon-stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
+          <span class="pokemon-stats">+{pkmn.distance}{copy.distanceAbbr} / +{pkmn.cost}{copy.costAbbr}</span>
           <span class="pokemon-price">${price}</span>
         </div>
       {/each}
     </div>
-    <p>{gameState.hub.confirmedTrainers.length}/{trainerCount} confirmed</p>
+    <p>{gameState.hub.confirmedTrainers.length}/{trainerCount} {copy.confirmed}</p>
   {/if}
 
   <div class="trainers">
-    <h3>Trainers</h3>
+    <h3>{copy.trainers}</h3>
     {#each trainerList as trainer}
       <div class="trainer-row">
         <strong>{trainer.name}</strong>
-        — Score: {trainer.score} | Currency: {trainer.currency}
+        — {copy.score}: {trainer.score} | {copy.currency}: {trainer.currency}
         {#if gameState.hub?.confirmedTrainers.includes(trainer.id)}
-          <span class="badge">confirmed</span>
+          <span class="badge">{copy.confirmed}</span>
         {/if}
       </div>
     {/each}

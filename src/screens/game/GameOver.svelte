@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { TVViewState, TrainerPublicInfo } from '../../../engine/types';
+  import { copy } from '../../../copy';
 
   let { gameState }: {
     gameState: TVViewState;
@@ -12,14 +13,14 @@
 </script>
 
 <section>
-  <h2>Game Over!</h2>
+  <h2>{copy.gameOver}</h2>
 
   <div class="standings">
     {#each sortedTrainers as trainer, i}
       <div class="trainer-row" class:champion={i === 0}>
         <span class="rank">#{i + 1}</span>
         <strong>{trainer.name}</strong>
-        — Score: {trainer.score} | Currency: {trainer.currency}
+        — {copy.score}: {trainer.score} | {copy.currency}: {trainer.currency}
       </div>
     {/each}
   </div>

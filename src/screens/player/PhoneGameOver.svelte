@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PhoneViewState } from '../../../engine/types';
+  import { copy } from '../../../copy';
 
   let { gameState }: {
     gameState: PhoneViewState;
@@ -16,9 +17,9 @@
 </script>
 
 <section>
-  <h2>Game Over!</h2>
-  <p class="your-score">Your Score: <strong>{me?.score ?? 0}</strong></p>
-  <p>Rank: #{myRank} of {allTrainers.length}</p>
+  <h2>{copy.gameOver}</h2>
+  <p class="your-score">{copy.yourScore}: <strong>{me?.score ?? 0}</strong></p>
+  <p>{copy.rank}: #{myRank} of {allTrainers.length}</p>
 
   <div class="standings">
     {#each allTrainers as trainer, i}

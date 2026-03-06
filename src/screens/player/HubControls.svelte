@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PhoneViewState, Action } from '../../../engine/types';
   import { spriteUrl } from '../../lib/assets';
+  import { copy } from '../../../copy';
 
   let { gameState, send }: {
     gameState: PhoneViewState;
@@ -12,8 +13,8 @@
 </script>
 
 <section>
-  <h2>Hub</h2>
-  <p>Score: {me.score} | Currency: {me.currency}</p>
+  <h2>{copy.hub}</h2>
+  <p>{copy.score}: {me.score} | {copy.currency}: {me.currency}</p>
 
   {#if gameState.hub}
     {@const mySelections = gameState.hub.selections[me.id] ?? []}
@@ -33,8 +34,8 @@
         >
           <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           <strong>{pkmn.name}</strong>
-          <span class="stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
-          <span class="price free">FREE</span>
+          <span class="stats">+{pkmn.distance}{copy.distanceAbbr} / +{pkmn.cost}{copy.costAbbr}</span>
+          <span class="price free">{copy.free}</span>
         </button>
       {/each}
       {#each gameState.hub.shopPokemon as pkmn}
@@ -48,17 +49,17 @@
         >
           <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           <strong>{pkmn.name}</strong>
-          <span class="stats">+{pkmn.distance}d / +{pkmn.cost}c</span>
+          <span class="stats">+{pkmn.distance}{copy.distanceAbbr} / +{pkmn.cost}{copy.costAbbr}</span>
           <span class="price">${price}</span>
         </button>
       {/each}
     </div>
 
     {#if isConfirmed}
-      <p>Waiting for others... ({gameState.hub.confirmedTrainers.length}/{trainerCount})</p>
+      <p>{copy.waitingForOthers} ({gameState.hub.confirmedTrainers.length}/{trainerCount})</p>
     {:else}
       <button class="confirm-btn" onclick={() => send({ type: 'confirm_selections', trainerId: me.id })}>
-        Confirm ({mySelections.length}/2)
+        {copy.confirmButton} ({mySelections.length}/2)
       </button>
     {/if}
   {/if}

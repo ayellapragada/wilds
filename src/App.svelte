@@ -6,6 +6,7 @@
   import Sandbox from './Sandbox.svelte';
   import GameScreen from './screens/game/GameScreen.svelte';
   import PlayerScreen from './screens/player/PlayerScreen.svelte';
+  import { copy } from '../copy';
 
   let hash = $state(window.location.hash);
   window.addEventListener('hashchange', () => { hash = window.location.hash; });
@@ -83,9 +84,9 @@
 </script>
 
 {#if connectionStatus === 'reconnecting'}
-  <div class="connection-banner reconnecting">Reconnecting...</div>
+  <div class="connection-banner reconnecting">{copy.reconnecting}</div>
 {:else if connectionStatus === 'disconnected' && route.screen !== 'landing' && route.screen !== 'sandbox'}
-  <div class="connection-banner disconnected">Disconnected. Refresh to try again.</div>
+  <div class="connection-banner disconnected">{copy.disconnected}</div>
 {/if}
 
 {#if route.screen === 'sandbox'}
@@ -95,11 +96,11 @@
     <h1>Wilds</h1>
     <a href="#/sandbox" style="font-size: 0.85rem; color: #666;">Sandbox →</a>
     <section>
-      <h2>Join a Room</h2>
-      <input bind:value={roomInput} placeholder="Room code" />
+      <h2>{copy.joinRoom}</h2>
+      <input bind:value={roomInput} placeholder={copy.roomCode} />
       <div class="join-buttons">
-        <button onclick={goToGame} disabled={!roomInput}>TV Display</button>
-        <button onclick={goToPlayer} disabled={!roomInput}>Phone Controller</button>
+        <button onclick={goToGame} disabled={!roomInput}>{copy.tvDisplay}</button>
+        <button onclick={goToPlayer} disabled={!roomInput}>{copy.phoneController}</button>
       </div>
     </section>
   </main>
@@ -118,7 +119,7 @@
 {:else if connectionStatus === 'connecting' || connectionStatus === 'reconnecting'}
   <main>
     <h1>Wilds</h1>
-    <p>Connecting...</p>
+    <p>{copy.connecting}</p>
   </main>
 {/if}
 

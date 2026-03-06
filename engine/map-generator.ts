@@ -1,5 +1,6 @@
 import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier } from "./types";
 import { getAllTemplateIds, getTemplate } from "./pokemon/catalog";
+import { copy, modTypeTerrain } from "../copy";
 
 export type RngFn = () => number;
 
@@ -144,15 +145,15 @@ function generateModifiers(
   // Elite routes always get a harsh modifier
   if (type === "elite_route") {
     if (rng() < 0.5) {
-      modifiers.push({ id: "elite_cost", description: "Harsh terrain: +1 cost to all draws", type: "cost_bonus", value: 1 });
+      modifiers.push({ id: "elite_cost", description: copy.modHarshTerrain, type: "cost_bonus", value: 1 });
     } else {
-      modifiers.push({ id: "elite_threshold", description: "Thin air: -1 bust threshold", type: "threshold_modifier", value: -1 });
+      modifiers.push({ id: "elite_threshold", description: copy.modThinAir, type: "threshold_modifier", value: -1 });
     }
   }
 
   // Later tiers: 30% chance of distance bonus
   if (tier >= 5 && type !== "champion" && rng() < 0.3) {
-    modifiers.push({ id: "deep_bonus", description: "Tailwind: +1 distance to all draws", type: "distance_bonus", value: 1 });
+    modifiers.push({ id: "deep_bonus", description: copy.modTailwind, type: "distance_bonus", value: 1 });
   }
 
   // 20% chance of type bonus (not on champion/start)
@@ -160,7 +161,7 @@ function generateModifiers(
     const bonusType = TYPE_BONUS_TYPES[Math.floor(rng() * TYPE_BONUS_TYPES.length)];
     modifiers.push({
       id: `type_${bonusType}`,
-      description: `${bonusType} terrain: ${bonusType}-type Pokemon get +2 distance`,
+      description: modTypeTerrain(bonusType),
       type: "type_bonus",
       value: 2,
       targetType: bonusType,

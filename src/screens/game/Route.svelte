@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { TVViewState, TrainerPublicInfo } from '../../../engine/types';
+  import { copy } from '../../../copy';
 
   let { gameState }: {
     gameState: TVViewState;
@@ -9,16 +10,16 @@
 </script>
 
 <section>
-  <h2>Route {gameState.routeNumber} — {gameState.currentRoute?.name}</h2>
+  <h2>{copy.route} {gameState.routeNumber} — {gameState.currentRoute?.name}</h2>
 
   <div class="trainers">
     {#each trainerList as trainer}
       <div class="trainer-row">
         <strong>{trainer.name}</strong>
         — {trainer.status}
-        | distance: {trainer.routeProgress.totalDistance}
-        | cost: {trainer.routeProgress.totalCost}
-        | score: {trainer.score}
+        | {copy.distance.toLowerCase()}: {trainer.routeProgress.totalDistance}
+        | {copy.cost.toLowerCase()}: {trainer.routeProgress.totalCost}
+        | {copy.score.toLowerCase()}: {trainer.score}
       </div>
     {/each}
   </div>
