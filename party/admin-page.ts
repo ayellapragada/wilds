@@ -43,7 +43,7 @@ export const ADMIN_HTML = `<!DOCTYPE html>
   <div id="mainSection" class="hidden">
     <div class="logged-in-as" id="loggedInAs"></div>
     <div class="lookup">
-      <input type="text" id="roomCode" placeholder="Enter room code..." />
+      <input type="text" id="roomCode" placeholder="Enter room code..." value="test" />
       <button onclick="lookupRoom()">Inspect</button>
     </div>
     <div id="status"></div>

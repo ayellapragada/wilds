@@ -20,7 +20,7 @@
   let connected = $state(false);
   let myId = $state('');
   let connection: ReturnType<typeof createConnection> | null = $state(null);
-  let roomInput = $state('');
+  let roomInput = $state('test');
 
   // Auto-connect when route has a room code
   $effect(() => {
