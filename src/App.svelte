@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createConnection, type ServerMessage } from './lib/connection';
-  import type { GameState, Action } from '../engine/types';
+  import type { GameState, Action, TVViewState, PhoneViewState } from '../engine/types';
   import Sandbox from './Sandbox.svelte';
   import GameScreen from './screens/game/GameScreen.svelte';
   import PlayerScreen from './screens/player/PlayerScreen.svelte';
@@ -16,7 +16,7 @@
     return { screen: 'landing' as const };
   });
 
-  let gameState = $state<GameState | null>(null);
+  let gameState = $state<TVViewState | PhoneViewState | null>(null);
   let connected = $state(false);
   let myId = $state('');
   let connection: ReturnType<typeof createConnection> | null = $state(null);
@@ -32,7 +32,13 @@
 
   function connectToRoom(roomCode: string) {
     if (connection) return;
-    const conn = createConnection(roomCode);
+    const r = route;
+    const isPlayer = 'screen' in r && r.screen === 'player';
+    const token = isPlayer ? (localStorage.getItem(`wilds-token-${roomCode}`) ?? undefined) : undefined;
+    const conn = createConnection(roomCode, {
+      role: isPlayer ? 'phone' : 'tv',
+      token,
+    });
     connection = conn;
 
     conn.socket.addEventListener('open', () => {
@@ -88,13 +94,13 @@
   <main>
     <h1>Wilds</h1>
     <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
-    <GameScreen {gameState} bind:myId {send} />
+    <GameScreen gameState={gameState as any} bind:myId {send} />
   </main>
 {:else if route.screen === 'player' && gameState}
   <main>
     <h1>Wilds</h1>
     <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
-    <PlayerScreen {gameState} {myId} {send} />
+    <PlayerScreen gameState={gameState as any} {myId} {send} />
   </main>
 {:else if connected && !gameState}
   <main>

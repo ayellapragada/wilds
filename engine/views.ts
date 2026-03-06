@@ -1,0 +1,55 @@
+import type { GameState, Trainer, TVViewState, PhoneViewState, TrainerPublicInfo } from "./types";
+
+function toPublicInfo(trainer: Trainer): TrainerPublicInfo {
+  return {
+    id: trainer.id,
+    name: trainer.name,
+    score: trainer.score,
+    currency: trainer.currency,
+    status: trainer.status,
+    routeProgress: trainer.routeProgress,
+    deckSize: trainer.deck.drawPile.length + trainer.deck.drawn.length + trainer.deck.discard.length,
+  };
+}
+
+export function createTVView(state: GameState): TVViewState {
+  const trainers: Record<string, TrainerPublicInfo> = {};
+  for (const [id, trainer] of Object.entries(state.trainers)) {
+    trainers[id] = toPublicInfo(trainer);
+  }
+
+  return {
+    type: "tv",
+    roomCode: state.roomCode,
+    phase: state.phase,
+    trainers,
+    map: state.map,
+    currentRoute: state.currentRoute,
+    hub: state.hub,
+    votes: state.votes,
+    routeNumber: state.routeNumber,
+    settings: state.settings,
+  };
+}
+
+export function createPhoneView(state: GameState, trainerId: string): PhoneViewState {
+  const otherTrainers: Record<string, TrainerPublicInfo> = {};
+  for (const [id, trainer] of Object.entries(state.trainers)) {
+    if (id !== trainerId) {
+      otherTrainers[id] = toPublicInfo(trainer);
+    }
+  }
+
+  return {
+    type: "phone",
+    roomCode: state.roomCode,
+    phase: state.phase,
+    me: state.trainers[trainerId],
+    otherTrainers,
+    currentRoute: state.currentRoute,
+    hub: state.hub,
+    votes: state.votes,
+    routeNumber: state.routeNumber,
+    map: state.map,
+  };
+}

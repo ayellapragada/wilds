@@ -169,3 +169,50 @@ export type GameEvent =
   | { type: "selections_confirmed"; trainerId: string; pokemon: Pokemon[] }
   | { type: "all_ready" }
   | { type: "game_over"; finalScores: Record<string, number>; championId: string };
+
+// === Connection ===
+
+export type ConnectionRole = "tv" | "phone";
+
+export interface ConnectionInfo {
+  readonly role: ConnectionRole;
+  readonly trainerId: string | null;
+}
+
+// === Views (server sends these, not raw GameState) ===
+
+export interface TrainerPublicInfo {
+  readonly id: string;
+  readonly name: string;
+  readonly score: number;
+  readonly currency: number;
+  readonly status: TrainerStatus;
+  readonly routeProgress: RouteProgress;
+  readonly deckSize: number;
+}
+
+export interface TVViewState {
+  readonly type: "tv";
+  readonly roomCode: string;
+  readonly phase: GamePhase;
+  readonly trainers: Record<string, TrainerPublicInfo>;
+  readonly map: WorldMap | null;
+  readonly currentRoute: Route | null;
+  readonly hub: HubState | null;
+  readonly votes: Record<string, string> | null;
+  readonly routeNumber: number;
+  readonly settings: GameSettings;
+}
+
+export interface PhoneViewState {
+  readonly type: "phone";
+  readonly roomCode: string;
+  readonly phase: GamePhase;
+  readonly me: Trainer;
+  readonly otherTrainers: Record<string, TrainerPublicInfo>;
+  readonly currentRoute: Route | null;
+  readonly hub: HubState | null;
+  readonly votes: Record<string, string> | null;
+  readonly routeNumber: number;
+  readonly map: WorldMap | null;
+}

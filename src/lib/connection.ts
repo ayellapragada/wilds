@@ -1,16 +1,21 @@
-import type { GameState, Action, GameEvent } from "../../engine/types";
+import type { Action, GameEvent, ConnectionRole, TVViewState, PhoneViewState } from "../../engine/types";
 
 export type ServerMessage =
-  | { type: "state_sync"; state: GameState }
-  | { type: "state_update"; state: GameState; events: GameEvent[] }
+  | { type: "state_sync"; state: TVViewState | PhoneViewState }
+  | { type: "state_update"; state: TVViewState | PhoneViewState; events: GameEvent[] }
   | { type: "error"; message: string };
 
 const BASE_URL = import.meta.env.DEV
   ? "ws://localhost:8787"
   : "wss://wilds.ayellapragada.workers.dev";
 
-export function createConnection(roomCode: string) {
-  const url = `${BASE_URL}/parties/wilds/${roomCode}`;
+export function createConnection(
+  roomCode: string,
+  options: { role: ConnectionRole; token?: string } = { role: "tv" }
+) {
+  const params = new URLSearchParams({ role: options.role });
+  if (options.token) params.set("token", options.token);
+  const url = `${BASE_URL}/parties/wilds/${roomCode}?${params}`;
   const socket = new WebSocket(url);
 
   return {

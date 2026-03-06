@@ -1,7 +1,7 @@
 import { routePartykitRequest, Server } from "partyserver";
 import type { Connection, ConnectionContext } from "partyserver";
-import type { GameState, Action } from "../engine/types";
-import { createInitialState, resolveAction } from "../engine/index";
+import type { GameState, Action, ConnectionRole, ConnectionInfo, GameEvent } from "../engine/types";
+import { createInitialState, resolveAction, createTVView, createPhoneView } from "../engine/index";
 import { ADMIN_HTML } from "./admin-page";
 
 const ADMIN_USER = "admin";
@@ -23,19 +23,47 @@ function checkAuth(request: Request): Response | null {
   return null;
 }
 
-export class Wilds extends Server {
+function parseConnParams(url: string): { role: ConnectionRole; token: string | null } {
+  const parsed = new URL(url);
+  const role = (parsed.searchParams.get("role") as ConnectionRole) || "tv";
+  const token = parsed.searchParams.get("token");
+  return { role, token };
+}
+
+export class Wilds extends Server<ConnectionInfo> {
   state: GameState | null = null;
 
-  onStart() {
-    this.state = createInitialState(this.name);
-    console.log(`[${this.name}] Room started`);
+  async onStart() {
+    const stored = await this.ctx.storage.get<GameState>("state");
+    if (stored) {
+      this.state = stored;
+      console.log(`[${this.name}] Room restored from storage`);
+    } else {
+      this.state = createInitialState(this.name);
+      this.ctx.storage.put("state", this.state);
+      console.log(`[${this.name}] Room started`);
+    }
   }
 
-  onConnect(conn: Connection, _ctx: ConnectionContext) {
-    this.sendTo(conn, { type: "state_sync", state: this.state! });
+  getConnectionTags(_conn: Connection, ctx: ConnectionContext): string[] {
+    const { role } = parseConnParams(ctx.request.url);
+    return [role];
   }
 
-  onMessage(sender: Connection, message: string | ArrayBuffer) {
+  onConnect(conn: Connection<ConnectionInfo>, ctx: ConnectionContext) {
+    const { role, token } = parseConnParams(ctx.request.url);
+
+    const trainerId = token && this.state!.trainers[token] ? token : null;
+    conn.setState({ role, trainerId });
+
+    if (role === "phone" && trainerId) {
+      this.sendTo(conn, { type: "state_sync", state: createPhoneView(this.state!, trainerId) });
+    } else {
+      this.sendTo(conn, { type: "state_sync", state: createTVView(this.state!) });
+    }
+  }
+
+  onMessage(sender: Connection<ConnectionInfo>, message: string | ArrayBuffer) {
     let action: Action;
     try {
       action = JSON.parse(message as string);
@@ -48,12 +76,18 @@ export class Wilds extends Server {
 
     const [newState, events] = resolveAction(this.state!, action);
     this.state = newState;
+    this.ctx.storage.put("state", this.state);
 
-    this.broadcast(JSON.stringify({
-      type: "state_update",
-      events,
-      state: this.state,
-    }));
+    // If join_game succeeded, update the sender's connection state with new trainerId
+    if (action.type === "join_game" && events.some((e: GameEvent) => e.type === "trainer_joined")) {
+      const joinEvent = events.find((e: GameEvent) => e.type === "trainer_joined") as Extract<GameEvent, { type: "trainer_joined" }>;
+      const senderState = sender.state;
+      if (senderState) {
+        sender.setState({ ...senderState, trainerId: joinEvent.trainerId });
+      }
+    }
+
+    this.broadcastViews(events);
   }
 
   async onRequest(request: Request): Promise<Response> {
@@ -74,16 +108,45 @@ export class Wilds extends Server {
       const body = await request.json<{ action: string }>();
       if (body.action === "reset") {
         this.state = createInitialState(this.name);
-        this.broadcast(JSON.stringify({
-          type: "state_sync",
-          state: this.state,
-        }));
+        this.ctx.storage.put("state", this.state);
+
+        // Send filtered views to all connections, resetting trainerIds
+        for (const conn of this.getConnections<ConnectionInfo>()) {
+          const connState = conn.state;
+          if (connState) {
+            conn.setState({ ...connState, trainerId: null });
+          }
+          this.sendTo(conn, { type: "state_sync", state: createTVView(this.state!) });
+        }
+
         return Response.json({ ok: true, message: "Room reset" });
       }
       return Response.json({ error: "Unknown action" }, { status: 400 });
     }
 
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  private broadcastViews(events: GameEvent[]) {
+    for (const conn of this.getConnections<ConnectionInfo>()) {
+      const connState = conn.state;
+      const role = connState?.role ?? "tv";
+      const trainerId = connState?.trainerId ?? null;
+
+      if (role === "phone" && trainerId) {
+        this.sendTo(conn, {
+          type: "state_update",
+          events,
+          state: createPhoneView(this.state!, trainerId),
+        });
+      } else {
+        this.sendTo(conn, {
+          type: "state_update",
+          events,
+          state: createTVView(this.state!),
+        });
+      }
+    }
   }
 
   private sendTo(conn: Connection, data: unknown) {

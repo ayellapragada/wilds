@@ -82,13 +82,13 @@ All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting 
 
 ---
 
-## Phase G: PartyKit Server (full)
+## Phase G: PartyKit Server (full) ✅
 
 > Upgrade the thin wrapper to handle the full game.
 
-- [ ] State persistence to Durable Object storage for crash recovery
-- [ ] Session token validation for reconnection
-- [ ] State sync sends appropriate view per connection (TV vs phone)
+- [x] State persistence to Durable Object storage for crash recovery
+- [x] Session token validation for reconnection
+- [x] State sync sends appropriate view per connection (TV vs phone)
 
 ---
 
@@ -115,7 +115,7 @@ All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting 
 
 ## Current Goal
 
-**Phase E.2** — Marketplace & Rest Stops (next). Phase E.1 complete. 158 tests passing.
+**Phase H** — Svelte Frontend (phone screens, game_over, polish). Phase G complete. 165 tests passing.
 
 ---
 
