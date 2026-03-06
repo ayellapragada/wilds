@@ -3,7 +3,7 @@
   import { resolveAction } from '../engine/action-resolver';
   import { createInitialState } from '../engine/index';
   import { getAllTemplateIds, getTemplate, createPokemon, resetPokemonIdCounter } from '../engine/pokemon/catalog';
-  import { spriteUrl } from './lib/assets';
+  import { spriteUrl, typeColor } from './lib/assets';
   import { shuffle } from '../engine/models/deck';
   import type { GameState, GameEvent, Pokemon } from '../engine/types';
   import type { Move } from '../engine/abilities/types';
@@ -151,16 +151,6 @@
     return tip;
   }
 
-  function typeColor(types: readonly string[]): string {
-    const colors: Record<string, string> = {
-      normal: '#f0f0e8', fire: '#ffe0e0', water: '#e0e8ff', grass: '#e0ffe0',
-      electric: '#fff8d0', ice: '#e0f8ff', fighting: '#f0d8d0', poison: '#e8d8f0',
-      ground: '#f0e8d0', flying: '#e8e0f8', psychic: '#ffe0f0', bug: '#e8f0d0',
-      rock: '#e8e0d0', ghost: '#d8d0e8', dragon: '#d0d0f8', dark: '#d8d0c8',
-      steel: '#e0e0e8', fairy: '#ffe8f0',
-    };
-    return colors[types[0]] ?? '#fff';
-  }
 
   function rarityBorder(rarity: string): string {
     const colors: Record<string, string> = {

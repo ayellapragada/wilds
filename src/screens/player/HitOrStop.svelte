@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PhoneViewState, Action } from '../../../engine/types';
-  import { spriteUrl } from '../../lib/assets';
+  import { spriteUrl, typeColor } from '../../lib/assets';
 
   let { gameState, send }: {
     gameState: PhoneViewState;
@@ -44,7 +44,7 @@
     <div class="drawn">
       <h3>Drawn</h3>
       {#each me.deck.drawn as pkmn}
-        <span class="pokemon" title={pkmn.description}>
+        <span class="pokemon" title={pkmn.description} style="background: {typeColor(pkmn.types)}">
           <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           {pkmn.name} (+{pkmn.distance}d / +{pkmn.cost}c)
         </span>

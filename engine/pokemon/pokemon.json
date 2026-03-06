@@ -10,7 +10,7 @@
   },
   "pidgey": {
     "name": "Pidgey",
-    "types": ["flying"],
+    "types": ["normal", "flying"],
     "distance": 2,
     "cost": 1,
     "rarity": "common",
@@ -100,7 +100,7 @@
   },
   "bulbasaur": {
     "name": "Bulbasaur",
-    "types": ["grass"],
+    "types": ["grass", "poison"],
     "distance": 2,
     "cost": 1,
     "rarity": "common",
@@ -217,7 +217,7 @@
   },
   "swellow": {
     "name": "Swellow",
-    "types": ["flying"],
+    "types": ["normal", "flying"],
     "distance": 6,
     "cost": 5,
     "rarity": "uncommon",
@@ -271,7 +271,7 @@
   },
   "gengar": {
     "name": "Gengar",
-    "types": ["ghost"],
+    "types": ["ghost", "poison"],
     "distance": 0,
     "cost": 0,
     "rarity": "rare",

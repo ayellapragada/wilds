@@ -1,0 +1,12 @@
+#!/bin/sh
+# Check if any party/ files were in the pushed commits
+CHANGED=$(git diff --name-only HEAD@{1}..HEAD 2>/dev/null | grep '^party/' || true)
+
+if [ -n "$CHANGED" ]; then
+  echo ""
+  echo "⚠️  Server files changed:"
+  echo "$CHANGED"
+  echo ""
+  echo "Remember to deploy the backend: npm run deploy"
+  echo ""
+fi

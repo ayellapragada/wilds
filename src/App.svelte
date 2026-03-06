@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { createConnection, type ServerMessage } from './lib/connection';
+  import { createConnection, type ServerMessage, type ConnectionStatus } from './lib/connection';
   import type { Action, TVViewState, PhoneViewState } from '../engine/types';
+  import { EventQueueManager } from './lib/event-queue';
   import Sandbox from './Sandbox.svelte';
   import GameScreen from './screens/game/GameScreen.svelte';
   import PlayerScreen from './screens/player/PlayerScreen.svelte';
@@ -8,7 +9,6 @@
   let hash = $state(window.location.hash);
   window.addEventListener('hashchange', () => { hash = window.location.hash; });
 
-  // Parse hash: #/{roomCode}/game, #/{roomCode}/player, #/sandbox
   let route = $derived.by(() => {
     if (hash === '#/sandbox') return { screen: 'sandbox' as const };
     const match = hash.match(/^#\/([^/]+)\/(game|player)$/);
@@ -17,14 +17,14 @@
   });
 
   let gameState = $state<TVViewState | PhoneViewState | null>(null);
-  let connected = $state(false);
+  let connectionStatus = $state<ConnectionStatus>("disconnected");
   let connection: ReturnType<typeof createConnection> | null = $state(null);
   let roomInput = $state('test');
+  const eventQueue = new EventQueueManager(500);
 
-  // Auto-connect when route has a room code
   $effect(() => {
     const r = route;
-    if ('roomCode' in r && r.roomCode && !connected) {
+    if ('roomCode' in r && r.roomCode && !connection) {
       connectToRoom(r.roomCode);
     }
   });
@@ -37,23 +37,20 @@
     const conn = createConnection(roomCode, {
       role: isPlayer ? 'phone' : 'tv',
       token,
+    }, {
+      onMessage(msg: ServerMessage) {
+        if (msg.type === 'state_sync' || msg.type === 'state_update') {
+          gameState = msg.state;
+        }
+        if (msg.type === 'state_update' && msg.events) {
+          eventQueue.queueEvents(msg.events);
+        }
+      },
+      onStatusChange(status: ConnectionStatus) {
+        connectionStatus = status;
+      },
     });
     connection = conn;
-
-    conn.socket.addEventListener('open', () => { connected = true; });
-    conn.socket.addEventListener('close', () => {
-      connected = false;
-      connection = null;
-    });
-
-    conn.onMessage((msg: ServerMessage) => {
-      if (msg.type === 'state_sync' || msg.type === 'state_update') {
-        gameState = msg.state;
-      }
-      if (msg.type === 'state_update' && msg.events) {
-        msg.events.forEach((e: any) => console.log(`[event] ${e.type}`, e));
-      }
-    });
   }
 
   function send(action: Action) {
@@ -61,12 +58,11 @@
   }
 
   function handleJoin(token: string) {
-    // Reconnect with the new token so server associates this connection with the trainer
     const r = route;
     if ('roomCode' in r && r.roomCode) {
       connection?.close();
       connection = null;
-      connected = false;
+      connectionStatus = "disconnected";
       gameState = null;
       localStorage.setItem(`wilds-token-${r.roomCode}`, token);
       connectToRoom(r.roomCode);
@@ -83,6 +79,12 @@
     window.location.hash = `#/${roomInput}/player`;
   }
 </script>
+
+{#if connectionStatus === 'reconnecting'}
+  <div class="connection-banner reconnecting">Reconnecting...</div>
+{:else if connectionStatus === 'disconnected' && route.screen !== 'landing' && route.screen !== 'sandbox'}
+  <div class="connection-banner disconnected">Disconnected. Refresh to try again.</div>
+{/if}
 
 {#if route.screen === 'sandbox'}
   <Sandbox />
@@ -111,7 +113,7 @@
     <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
     <PlayerScreen gameState={gameState as PhoneViewState} {send} onJoin={handleJoin} />
   </main>
-{:else if connected && !gameState}
+{:else if connectionStatus === 'connecting' || connectionStatus === 'reconnecting'}
   <main>
     <h1>Wilds</h1>
     <p>Connecting...</p>
@@ -151,5 +153,23 @@
     display: flex;
     gap: 0.5rem;
     margin-top: 0.5rem;
+  }
+  .connection-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.85rem;
+    z-index: 100;
+  }
+  .connection-banner.reconnecting {
+    background: #fff3cd;
+    color: #856404;
+  }
+  .connection-banner.disconnected {
+    background: #f8d7da;
+    color: #721c24;
   }
 </style>
