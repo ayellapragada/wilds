@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { createConnection, type ServerMessage, type ConnectionStatus } from './lib/connection';
   import type { Action, TVViewState, PhoneViewState } from '../engine/types';
   import { EventQueueManager } from './lib/event-queue';
@@ -18,54 +19,55 @@
 
   let gameState = $state<TVViewState | PhoneViewState | null>(null);
   let connectionStatus = $state<ConnectionStatus>("disconnected");
-  let connection: ReturnType<typeof createConnection> | null = $state(null);
+  let currentConnection: ReturnType<typeof createConnection> | null = null;
   let roomInput = $state('test');
+  let connectionKey = $state(0);
   const eventQueue = new EventQueueManager(500);
 
   $effect(() => {
+    const _key = connectionKey; // track reconnection requests
     const r = route;
-    if ('roomCode' in r && r.roomCode && !connection) {
-      connectToRoom(r.roomCode);
+    if ('roomCode' in r && r.roomCode) {
+      const { roomCode, screen } = r;
+      const conn = untrack(() => {
+        const isPlayer = screen === 'player';
+        const token = isPlayer ? (localStorage.getItem(`wilds-token-${roomCode}`) ?? undefined) : undefined;
+        return createConnection(roomCode, {
+          role: isPlayer ? 'phone' : 'tv',
+          token,
+        }, {
+          onMessage(msg: ServerMessage) {
+            if (msg.type === 'state_sync' || msg.type === 'state_update') {
+              gameState = msg.state;
+            }
+            if (msg.type === 'state_update' && msg.events) {
+              eventQueue.queueEvents(msg.events);
+            }
+          },
+          onStatusChange(status: ConnectionStatus) {
+            connectionStatus = status;
+          },
+        });
+      });
+      currentConnection = conn;
+      return () => {
+        conn.close();
+        currentConnection = null;
+        connectionStatus = "disconnected";
+        gameState = null;
+      };
     }
   });
 
-  function connectToRoom(roomCode: string) {
-    if (connection) return;
-    const r = route;
-    const isPlayer = 'screen' in r && r.screen === 'player';
-    const token = isPlayer ? (localStorage.getItem(`wilds-token-${roomCode}`) ?? undefined) : undefined;
-    const conn = createConnection(roomCode, {
-      role: isPlayer ? 'phone' : 'tv',
-      token,
-    }, {
-      onMessage(msg: ServerMessage) {
-        if (msg.type === 'state_sync' || msg.type === 'state_update') {
-          gameState = msg.state;
-        }
-        if (msg.type === 'state_update' && msg.events) {
-          eventQueue.queueEvents(msg.events);
-        }
-      },
-      onStatusChange(status: ConnectionStatus) {
-        connectionStatus = status;
-      },
-    });
-    connection = conn;
-  }
-
   function send(action: Action) {
-    connection?.send(action);
+    currentConnection?.send(action);
   }
 
   function handleJoin(token: string) {
     const r = route;
     if ('roomCode' in r && r.roomCode) {
-      connection?.close();
-      connection = null;
-      connectionStatus = "disconnected";
-      gameState = null;
       localStorage.setItem(`wilds-token-${r.roomCode}`, token);
-      connectToRoom(r.roomCode);
+      connectionKey++; // force effect to re-run with new token
     }
   }
 
