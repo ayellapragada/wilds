@@ -21,7 +21,7 @@
     "name": "Caterpie",
     "types": ["bug"],
     "distance": 1,
-    "cost": 0,
+    "cost": 1,
     "rarity": "common",
     "description": "A small caterpillar Pokemon.",
     "moves": [{"name": "String Shot", "reminderText": "+1 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 1, "duration": "route"}}]
@@ -33,7 +33,7 @@
     "cost": 2,
     "rarity": "common",
     "description": "A rock Pokemon with fists.",
-    "moves": [{"name": "Harden", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}]
+    "moves": [{"name": "Harden", "reminderText": "+1 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 1, "duration": "route"}}]
   },
   "magikarp": {
     "name": "Magikarp",
@@ -42,7 +42,7 @@
     "cost": 0,
     "rarity": "common",
     "description": "A useless fish Pokemon.",
-    "moves": []
+    "moves": [{"name": "Splash", "reminderText": "+2 distance if 3+ cards drawn", "trigger": "on_draw", "condition": {"type": "min_cards_played", "min": 3}, "effect": {"type": "bonus_distance", "amount": 2}}]
   },
   "zubat": {
     "name": "Zubat",
@@ -60,13 +60,13 @@
     "cost": 3,
     "rarity": "common",
     "description": "A muscular Pokemon.",
-    "moves": []
+    "moves": [{"name": "Karate Chop", "reminderText": "+1 distance", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance", "amount": 1}}]
   },
   "oddish": {
     "name": "Oddish",
     "types": ["grass"],
     "distance": 2,
-    "cost": 1,
+    "cost": 2,
     "rarity": "common",
     "description": "A small plant Pokemon.",
     "moves": [{"name": "Absorb", "reminderText": "-1 cost when Grass ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "grass", "min": 1}, "effect": {"type": "reduce_cost", "amount": 1, "target": "self"}}]
@@ -75,7 +75,7 @@
     "name": "Pikachu",
     "types": ["electric"],
     "distance": 3,
-    "cost": 2,
+    "cost": 3,
     "rarity": "common",
     "description": "An electric mouse Pokemon.",
     "moves": [{"name": "Thundershock", "reminderText": "+1 distance per Electric drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 1, "per": "element_count", "element": "electric"}}]
@@ -87,7 +87,7 @@
     "cost": 3,
     "rarity": "common",
     "description": "A fire lizard Pokemon.",
-    "moves": []
+    "moves": [{"name": "Ember", "reminderText": "+1 distance if Fire ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "fire", "min": 1}, "effect": {"type": "bonus_distance", "amount": 1}}]
   },
   "squirtle": {
     "name": "Squirtle",
@@ -96,13 +96,13 @@
     "cost": 2,
     "rarity": "common",
     "description": "A tiny turtle Pokemon.",
-    "moves": [{"name": "Water Gun", "reminderText": "Reduces total cost by 1", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 1, "target": "all"}}]
+    "moves": [{"name": "Water Gun", "reminderText": "Reduces own cost by 1", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 1, "target": "self"}}]
   },
   "bulbasaur": {
     "name": "Bulbasaur",
     "types": ["grass", "poison"],
     "distance": 2,
-    "cost": 1,
+    "cost": 2,
     "rarity": "common",
     "description": "A seed Pokemon.",
     "moves": [{"name": "Vine Whip", "reminderText": "+1 distance if Grass ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "grass", "min": 1}, "effect": {"type": "bonus_distance", "amount": 1}}]
@@ -114,16 +114,16 @@
     "cost": 3,
     "rarity": "common",
     "description": "A dark hyena Pokemon.",
-    "moves": []
+    "moves": [{"name": "Bite", "reminderText": "+1 distance if Dark ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "dark", "min": 1}, "effect": {"type": "bonus_distance", "amount": 1}}]
   },
   "aron": {
     "name": "Aron",
     "types": ["steel"],
     "distance": 1,
-    "cost": 0,
+    "cost": 1,
     "rarity": "common",
     "description": "A small iron armor Pokemon.",
-    "moves": [{"name": "Iron Defense", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}]
+    "moves": [{"name": "Iron Defense", "reminderText": "+1 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 1, "duration": "route"}}]
   },
   "haunter": {
     "name": "Haunter",
@@ -138,7 +138,7 @@
     "name": "Charmeleon",
     "types": ["fire"],
     "distance": 5,
-    "cost": 4,
+    "cost": 3,
     "rarity": "uncommon",
     "description": "A fierce flame Pokemon.",
     "moves": [{"name": "Flamethrower", "reminderText": "+1 distance per Fire drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 1, "per": "element_count", "element": "fire"}}]
@@ -150,7 +150,7 @@
     "cost": 2,
     "rarity": "uncommon",
     "description": "A turtle Pokemon with a fluffy tail.",
-    "moves": [{"name": "Aqua Tail", "reminderText": "Reduces total cost by 2", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 2, "target": "all"}}]
+    "moves": [{"name": "Aqua Tail", "reminderText": "Reduces total cost by 1", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 1, "target": "all"}}]
   },
   "ivysaur": {
     "name": "Ivysaur",
@@ -165,16 +165,16 @@
     "name": "Graveler",
     "types": ["rock", "ground"],
     "distance": 2,
-    "cost": 1,
+    "cost": 2,
     "rarity": "uncommon",
     "description": "A rolling boulder Pokemon.",
-    "moves": [{"name": "Rock Throw", "reminderText": "If 3+ Rock drawn, +5 distance", "trigger": "on_draw", "condition": {"type": "element_count", "element": "rock", "min": 3}, "effect": {"type": "bonus_distance", "amount": 5}}]
+    "moves": [{"name": "Rock Throw", "reminderText": "If 3+ Rock drawn, +3 distance", "trigger": "on_draw", "condition": {"type": "element_count", "element": "rock", "min": 3}, "effect": {"type": "bonus_distance", "amount": 3}}]
   },
   "kadabra": {
     "name": "Kadabra",
     "types": ["psychic"],
     "distance": 4,
-    "cost": 3,
+    "cost": 2,
     "rarity": "uncommon",
     "description": "A psychic Pokemon with a silver spoon.",
     "moves": [{"name": "Psybeam", "reminderText": "Peek at top 2 cards", "trigger": "on_draw", "condition": null, "effect": {"type": "peek_deck", "count": 2}}]
@@ -183,7 +183,7 @@
     "name": "Electabuzz",
     "types": ["electric"],
     "distance": 5,
-    "cost": 4,
+    "cost": 3,
     "rarity": "uncommon",
     "description": "A Pokemon that crackles with electricity.",
     "moves": [{"name": "Thunder Punch", "reminderText": "+1 distance per Electric drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 1, "per": "element_count", "element": "electric"}}]
@@ -192,10 +192,10 @@
     "name": "Sneasel",
     "types": ["ice", "dark"],
     "distance": 4,
-    "cost": 3,
+    "cost": 4,
     "rarity": "uncommon",
     "description": "A sneaky ice Pokemon.",
-    "moves": [{"name": "Icy Wind", "reminderText": "Reduces total cost by 2", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 2, "target": "all"}}]
+    "moves": [{"name": "Icy Wind", "reminderText": "Reduces total cost by 1", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 1, "target": "all"}}]
   },
   "skarmory": {
     "name": "Skarmory",
@@ -213,16 +213,16 @@
     "cost": 4,
     "rarity": "uncommon",
     "description": "A mushroom Pokemon with powerful punches.",
-    "moves": [{"name": "Mach Punch", "reminderText": "+2 distance if drawn first", "trigger": "on_draw", "condition": {"type": "position", "position": "first"}, "effect": {"type": "bonus_distance", "amount": 2}}]
+    "moves": [{"name": "Mach Punch", "reminderText": "+2 distance if 2+ cards drawn", "trigger": "on_draw", "condition": {"type": "min_cards_played", "min": 2}, "effect": {"type": "bonus_distance", "amount": 2}}]
   },
   "swellow": {
     "name": "Swellow",
     "types": ["normal", "flying"],
     "distance": 6,
-    "cost": 5,
+    "cost": 3,
     "rarity": "uncommon",
     "description": "A swift bird Pokemon.",
-    "moves": []
+    "moves": [{"name": "Aerial Ace", "reminderText": "+1 distance if Flying ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "flying", "min": 1}, "effect": {"type": "bonus_distance", "amount": 1}}]
   },
   "nuzleaf": {
     "name": "Nuzleaf",
@@ -253,8 +253,8 @@
     "rarity": "rare",
     "description": "A powerful turtle with water cannons.",
     "moves": [
-      {"name": "Hydro Pump", "reminderText": "Washes away all cost", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": "all", "target": "all"}},
-      {"name": "Protect", "reminderText": "+3 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 3, "duration": "route"}}
+      {"name": "Hydro Pump", "reminderText": "Reduces total cost by 5", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 5, "target": "all"}},
+      {"name": "Protect", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}
     ]
   },
   "venusaur": {
@@ -266,7 +266,7 @@
     "description": "A massive Pokemon with a flower on its back.",
     "moves": [
       {"name": "Solar Beam", "reminderText": "+3 distance if 3+ Grass drawn", "trigger": "on_draw", "condition": {"type": "element_count", "element": "grass", "min": 3}, "effect": {"type": "bonus_distance", "amount": 3}},
-      {"name": "Synthesis", "reminderText": "Reduces total cost by 2", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 2, "target": "all"}}
+      {"name": "Leech Seed", "reminderText": "+2 distance if 2+ Grass drawn", "trigger": "on_draw", "condition": {"type": "element_count", "element": "grass", "min": 2}, "effect": {"type": "bonus_distance", "amount": 2}}
     ]
   },
   "gengar": {
@@ -278,19 +278,20 @@
     "description": "A shadow Pokemon that feeds on fear.",
     "moves": [
       {"name": "Shadow Punch", "reminderText": "+6 distance if 3+ cards drawn", "trigger": "on_draw", "condition": {"type": "min_cards_played", "min": 3}, "effect": {"type": "bonus_distance", "amount": 6}},
-      {"name": "Curse", "reminderText": "+3 distance per Ghost drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 3, "per": "element_count", "element": "ghost"}}
+      {"name": "Curse", "reminderText": "+2 distance per Ghost drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "ghost"}}
     ]
   },
   "alakazam": {
     "name": "Alakazam",
     "types": ["psychic"],
     "distance": 6,
-    "cost": 5,
+    "cost": 4,
     "rarity": "rare",
     "description": "A Pokemon with an IQ over 5000.",
     "moves": [
       {"name": "Psychic", "reminderText": "Peek at top 3 cards", "trigger": "on_draw", "condition": null, "effect": {"type": "peek_deck", "count": 3}},
-      {"name": "Calm Mind", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}
+      {"name": "Calm Mind", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}},
+      {"name": "Future Sight", "reminderText": "+3 distance if 3+ cards drawn", "trigger": "on_draw", "condition": {"type": "min_cards_played", "min": 3}, "effect": {"type": "bonus_distance", "amount": 3}}
     ]
   },
   "snorlax": {
@@ -309,12 +310,13 @@
     "name": "Flygon",
     "types": ["ground", "dragon"],
     "distance": 6,
-    "cost": 4,
+    "cost": 3,
     "rarity": "rare",
     "description": "A desert spirit Pokemon.",
     "moves": [
       {"name": "Earthquake", "reminderText": "+1 distance per Ground drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 1, "per": "element_count", "element": "ground"}},
-      {"name": "Dragon Breath", "reminderText": "+3 distance if Ground ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "ground", "min": 1}, "effect": {"type": "bonus_distance", "amount": 3}}
+      {"name": "Dragon Breath", "reminderText": "+3 distance if Ground ally present", "trigger": "on_draw", "condition": {"type": "element_count", "element": "ground", "min": 1}, "effect": {"type": "bonus_distance", "amount": 3}},
+      {"name": "Sandstorm", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}
     ]
   },
   "gardevoir": {
@@ -325,8 +327,7 @@
     "rarity": "rare",
     "description": "A graceful psychic Pokemon.",
     "moves": [
-      {"name": "Moonblast", "reminderText": "Reduces total cost by 3", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 3, "target": "all"}},
-      {"name": "Wish", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}
+      {"name": "Moonblast", "reminderText": "Reduces total cost by 2", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 2, "target": "all"}}
     ]
   },
   "absol": {
@@ -362,8 +363,7 @@
     "description": "A genetically engineered Pokemon.",
     "moves": [
       {"name": "Psystrike", "reminderText": "+2 distance per Psychic drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "psychic"}},
-      {"name": "Barrier", "reminderText": "+5 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 5, "duration": "route"}},
-      {"name": "Recover", "reminderText": "Reduces total cost by 3", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 3, "target": "all"}}
+      {"name": "Barrier", "reminderText": "+5 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 5, "duration": "route"}}
     ]
   },
   "rayquaza": {
@@ -387,9 +387,8 @@
     "rarity": "legendary",
     "description": "A legendary continent Pokemon.",
     "moves": [
-      {"name": "Precipice Blades", "reminderText": "Washes away all cost", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": "all", "target": "all"}},
-      {"name": "Earthquake", "reminderText": "+2 distance per Ground drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "ground"}},
-      {"name": "Drought", "reminderText": "+2 distance per Fire drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "fire"}}
+      {"name": "Precipice Blades", "reminderText": "Reduces total cost by 4", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 4, "target": "all"}},
+      {"name": "Earthquake", "reminderText": "+2 distance per Ground drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "ground"}}
     ]
   },
   "kyogre": {
@@ -400,9 +399,9 @@
     "rarity": "legendary",
     "description": "A legendary ocean Pokemon.",
     "moves": [
-      {"name": "Origin Pulse", "reminderText": "Washes away all cost", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": "all", "target": "all"}},
+      {"name": "Origin Pulse", "reminderText": "Reduces total cost by 4", "trigger": "on_draw", "condition": null, "effect": {"type": "reduce_cost", "amount": 4, "target": "all"}},
       {"name": "Drizzle", "reminderText": "+2 distance per Water drawn", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance_per", "amount": 2, "per": "element_count", "element": "water"}},
-      {"name": "Ice Beam", "reminderText": "+4 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 4, "duration": "route"}}
+      {"name": "Ice Beam", "reminderText": "+2 bust threshold", "trigger": "on_draw", "condition": null, "effect": {"type": "modify_threshold", "amount": 2, "duration": "route"}}
     ]
   },
   "meowth": {
@@ -418,7 +417,7 @@
     "name": "Aipom",
     "types": ["normal"],
     "distance": 3,
-    "cost": 2,
+    "cost": 1,
     "rarity": "uncommon",
     "description": "A mischievous monkey Pokemon.",
     "moves": [{"name": "Pickup", "reminderText": "+3 currency if 4+ cards drawn", "trigger": "end_of_round", "condition": {"type": "min_cards_played", "min": 4}, "effect": {"type": "bonus_currency", "amount": 3}}]
@@ -427,12 +426,13 @@
     "name": "Persian",
     "types": ["normal"],
     "distance": 4,
-    "cost": 3,
+    "cost": 1,
     "rarity": "rare",
     "description": "An elegant cat Pokemon with a gem on its forehead.",
     "moves": [
-      {"name": "Payday Jackpot", "reminderText": "+5 currency if 5+ cards drawn", "trigger": "end_of_round", "condition": {"type": "min_cards_played", "min": 5}, "effect": {"type": "bonus_currency", "amount": 5}},
-      {"name": "Slash", "reminderText": "+1 distance", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance", "amount": 1}}
+      {"name": "Payday Jackpot", "reminderText": "+8 currency if 5+ cards drawn", "trigger": "end_of_round", "condition": {"type": "min_cards_played", "min": 5}, "effect": {"type": "bonus_currency", "amount": 8}},
+      {"name": "Slash", "reminderText": "+1 distance", "trigger": "on_draw", "condition": null, "effect": {"type": "bonus_distance", "amount": 1}},
+      {"name": "Technician", "reminderText": "Peek at top 2 cards", "trigger": "on_draw", "condition": null, "effect": {"type": "peek_deck", "count": 2}}
     ]
   }
 }

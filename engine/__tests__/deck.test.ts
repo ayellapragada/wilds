@@ -126,8 +126,8 @@ describe("Bust detection", () => {
       totalCost += drawnPokemon.cost;
     }
 
-    // All 9 pokemon: 3×1 + 2×1 + 0 + 3 + 2 + 1 = 11
-    expect(totalCost).toBe(11);
+    // All 9 pokemon: 3×1 + 2×1 + 1 + 3 + 2 + 2 = 13
+    expect(totalCost).toBe(13);
   });
 
   it("can bust when total cost exceeds threshold", () => {
@@ -173,7 +173,7 @@ describe("Starter team composition", () => {
     const totalCost = pokemon.reduce((sum, c) => sum + c.cost, 0);
     // 3×1 + 2×2 + 1 + 3 + 2 + 2 = 15 distance
     expect(totalDistance).toBe(15);
-    // 3×1 + 2×1 + 0 + 3 + 2 + 1 = 11 cost
-    expect(totalCost).toBe(11);
+    // 3×1 + 2×1 + 1 + 3 + 2 + 2 = 13 cost
+    expect(totalCost).toBe(13);
   });
 });
