@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createConnection, type ServerMessage } from './lib/connection';
-  import type { GameState, Action, TVViewState, PhoneViewState } from '../engine/types';
+  import type { Action, TVViewState, PhoneViewState } from '../engine/types';
   import Sandbox from './Sandbox.svelte';
   import GameScreen from './screens/game/GameScreen.svelte';
   import PlayerScreen from './screens/player/PlayerScreen.svelte';
@@ -18,7 +18,6 @@
 
   let gameState = $state<TVViewState | PhoneViewState | null>(null);
   let connected = $state(false);
-  let myId = $state('');
   let connection: ReturnType<typeof createConnection> | null = $state(null);
   let roomInput = $state('test');
 
@@ -41,10 +40,7 @@
     });
     connection = conn;
 
-    conn.socket.addEventListener('open', () => {
-      connected = true;
-    });
-
+    conn.socket.addEventListener('open', () => { connected = true; });
     conn.socket.addEventListener('close', () => {
       connected = false;
       connection = null;
@@ -62,6 +58,19 @@
 
   function send(action: Action) {
     connection?.send(action);
+  }
+
+  function handleJoin(token: string) {
+    // Reconnect with the new token so server associates this connection with the trainer
+    const r = route;
+    if ('roomCode' in r && r.roomCode) {
+      connection?.close();
+      connection = null;
+      connected = false;
+      gameState = null;
+      localStorage.setItem(`wilds-token-${r.roomCode}`, token);
+      connectToRoom(r.roomCode);
+    }
   }
 
   function goToGame() {
@@ -85,22 +94,22 @@
       <h2>Join a Room</h2>
       <input bind:value={roomInput} placeholder="Room code" />
       <div class="join-buttons">
-        <button onclick={goToGame} disabled={!roomInput}>TV Display (USE THIS ONE FOR NOW)</button>
-        <button onclick={goToPlayer} disabled={!roomInput}>Phone Controller (IGNORE, WIP)</button>
+        <button onclick={goToGame} disabled={!roomInput}>TV Display</button>
+        <button onclick={goToPlayer} disabled={!roomInput}>Phone Controller</button>
       </div>
     </section>
   </main>
-{:else if route.screen === 'game' && gameState}
+{:else if route.screen === 'game' && gameState?.type === 'tv'}
   <main>
     <h1>Wilds</h1>
     <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
-    <GameScreen gameState={gameState as any} bind:myId {send} />
+    <GameScreen gameState={gameState} />
   </main>
 {:else if route.screen === 'player' && gameState}
   <main>
     <h1>Wilds</h1>
     <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
-    <PlayerScreen gameState={gameState as any} {myId} {send} />
+    <PlayerScreen gameState={gameState as PhoneViewState} {send} onJoin={handleJoin} />
   </main>
 {:else if connected && !gameState}
   <main>

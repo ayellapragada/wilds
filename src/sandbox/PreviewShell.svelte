@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolveAction } from '../../engine/action-resolver';
-  import type { Action, GameState, GameEvent } from '../../engine/types';
+  import { createTVView } from '../../engine/views';
+  import type { Action, GameState, GameEvent, TVViewState } from '../../engine/types';
   import type { Preset, PresetPhase } from './presets';
   import { presets } from './presets';
   import GameScreen from '../screens/game/GameScreen.svelte';
@@ -9,8 +10,8 @@
 
   let activePhase = $state<PresetPhase>('lobby');
   let activePresetIndex = $state(0);
-  let gameState = $state<GameState>(presets['lobby'][0].state);
-  let myId = $state<string>(presets['lobby'][0].myId);
+  let rawState = $state<GameState>(presets['lobby'][0].state);
+  let tvView = $derived<TVViewState>(createTVView(rawState));
   let events = $state<GameEvent[]>([]);
   let logOpen = $state(false);
 
@@ -31,21 +32,15 @@
     const preset = (presets[activePhase] ?? [])[index];
     if (!preset) return;
     // Deep clone the state so mutations don't affect the original preset
-    gameState = JSON.parse(JSON.stringify(preset.state));
-    myId = preset.myId;
+    rawState = JSON.parse(JSON.stringify(preset.state));
     events = [];
   }
 
   function send(action: Action) {
     try {
-      const [newState, newEvents] = resolveAction(gameState, action);
-      gameState = newState;
+      const [newState, newEvents] = resolveAction(rawState, action);
+      rawState = newState;
       events = [...newEvents, ...events];
-
-      // When a join_game action is processed, update myId to the sessionToken
-      if (action.type === 'join_game') {
-        myId = action.sessionToken;
-      }
     } catch (e) {
       console.error('PreviewShell: action failed', action, e);
     }
@@ -86,7 +81,7 @@
 
   <!-- Game screen -->
   <div class="preview-area">
-    <GameScreen {gameState} bind:myId {send} />
+    <GameScreen gameState={tvView} />
   </div>
 
   <!-- Event log (collapsed by default) -->

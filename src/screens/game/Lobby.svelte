@@ -1,55 +1,38 @@
 <script lang="ts">
-  import type { GameState, Action, Trainer } from '../../../engine/types';
+  import type { TVViewState, TrainerPublicInfo } from '../../../engine/types';
 
-  let { gameState, myId, send, onJoin }: {
-    gameState: GameState;
-    myId: string;
-    send: (action: Action) => void;
-    onJoin: (id: string) => void;
+  let { gameState }: {
+    gameState: TVViewState;
   } = $props();
 
-  let trainerName = $state('');
-  let trainerList = $derived(Object.values(gameState.trainers) as Trainer[]);
-  let myTrainer = $derived(gameState.trainers[myId] ?? null);
-
-  function join() {
-    if (!trainerName) return;
-    const token = crypto.randomUUID().slice(0, 8);
-    send({ type: 'join_game', trainerName, sessionToken: token });
-    onJoin(token);
-  }
-
-  function startGame() {
-    send({ type: 'start_game', trainerId: myId });
-  }
+  let trainerList = $derived(Object.values(gameState.trainers) as TrainerPublicInfo[]);
+  let playerUrl = $derived(`${window.location.origin}${window.location.pathname}#/${gameState.roomCode}/player`);
 </script>
 
-{#if !myId}
-  <section>
-    <h2>Lobby</h2>
-    <p>Phase: {gameState.phase}</p>
-    {#if trainerList.length > 0}
-      <p>Trainers: {trainerList.map(t => t.name).join(', ')}</p>
-    {:else}
-      <p>No trainers yet.</p>
-    {/if}
-    <input bind:value={trainerName} placeholder="Your name" />
-    <button onclick={join} disabled={!trainerName}>Join</button>
-  </section>
-{:else}
-  <section>
-    <h2>Lobby</h2>
-    <p>Trainers: {trainerList.map(t => t.name).join(', ')}</p>
-    <p>You are: <strong>{myTrainer?.name}</strong></p>
-    <button onclick={startGame} disabled={trainerList.length < 1}>Start Game</button>
-  </section>
-{/if}
+<section>
+  <h2>Lobby</h2>
+  <div class="join-info">
+    <p class="room-code">Room: <strong>{gameState.roomCode}</strong></p>
+    <p class="join-url">{playerUrl}</p>
+  </div>
+
+  {#if trainerList.length > 0}
+    <div class="trainer-list">
+      <h3>Trainers ({trainerList.length})</h3>
+      {#each trainerList as trainer}
+        <div class="trainer-row">{trainer.name}</div>
+      {/each}
+    </div>
+  {:else}
+    <p>Waiting for trainers to join...</p>
+  {/if}
+</section>
 
 <style>
-  section {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-  }
+  section { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
+  .join-info { background: #f0f8ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; }
+  .room-code { font-size: 2rem; margin: 0; }
+  .join-url { font-size: 0.8rem; color: #666; word-break: break-all; }
+  .trainer-list { margin-top: 1rem; }
+  .trainer-row { padding: 0.25rem 0; font-size: 1rem; }
 </style>

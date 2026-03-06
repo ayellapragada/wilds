@@ -80,42 +80,19 @@ All done. Lobby, route (push-your-luck), hub (free picks + shop), world (voting 
 
 - [ ] `engine/__tests__/full-game.test.ts` — Bot plays complete game loop
 
----
-
-## Phase G: PartyKit Server (full) ✅
-
-> Upgrade the thin wrapper to handle the full game.
-
-- [x] State persistence to Durable Object storage for crash recovery
-- [x] Session token validation for reconnection
-- [x] State sync sends appropriate view per connection (TV vs phone)
-
----
-
-## Phase H: Svelte Frontend
-
-> TV display and phone controller UIs.
-
-- [ ] **Phone screens:** JoinScreen, HitOrStop, BustChoice, WorldControls (vote + marketplace + team), DeckView
-- [ ] **TV screens:** game_over screen (missing), polish existing screens
-- [ ] **Shared:** CreatureCard, TrainerIcon, QRCode
-
----
-
 ## Phase I: Polish & Deploy
 
 - [ ] Reconnection handling (session tokens, state recovery)
 - [ ] Animation/event queue on frontend
 - [ ] Remaining abilities (rebirth, gamble, phoenix, legendary creatures)
 - [ ] Balancing and playtesting
-- [ ] GitHub Pages deployment for frontend
 - [ ] Production deploy to Cloudflare
 
 ---
 
 ## Current Goal
 
-**Phase H** — Svelte Frontend (phone screens, game_over, polish). Phase G complete. 165 tests passing.
+**Phase I** — Polish & Deploy. Phases A–H complete. 165 tests passing.
 
 ---
 

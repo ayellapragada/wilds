@@ -1,0 +1,38 @@
+<script lang="ts">
+  import type { PhoneViewState } from '../../../engine/types';
+
+  let { gameState }: {
+    gameState: PhoneViewState;
+  } = $props();
+
+  let me = $derived(gameState.me);
+  let allTrainers = $derived(
+    [
+      ...(me ? [{ name: me.name, score: me.score }] : []),
+      ...Object.values(gameState.otherTrainers).map(t => ({ name: t.name, score: t.score })),
+    ].sort((a, b) => b.score - a.score)
+  );
+  let myRank = $derived(allTrainers.findIndex(t => t.name === me?.name) + 1);
+</script>
+
+<section>
+  <h2>Game Over!</h2>
+  <p class="your-score">Your Score: <strong>{me?.score ?? 0}</strong></p>
+  <p>Rank: #{myRank} of {allTrainers.length}</p>
+
+  <div class="standings">
+    {#each allTrainers as trainer, i}
+      <div class="row" class:you={trainer.name === me?.name}>
+        #{i + 1} <strong>{trainer.name}</strong> — {trainer.score}
+      </div>
+    {/each}
+  </div>
+</section>
+
+<style>
+  section { padding: 1rem; text-align: center; }
+  .your-score { font-size: 1.5rem; }
+  .standings { text-align: left; margin-top: 1rem; }
+  .row { padding: 0.3rem 0; }
+  .row.you { font-weight: bold; color: #4a90d9; }
+</style>

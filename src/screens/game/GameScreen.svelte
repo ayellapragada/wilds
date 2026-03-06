@@ -1,27 +1,24 @@
 <script lang="ts">
-  import type { GameState, Action } from '../../../engine/types';
+  import type { TVViewState } from '../../../engine/types';
   import Lobby from './Lobby.svelte';
   import Route from './Route.svelte';
   import Hub from './Hub.svelte';
   import World from './World.svelte';
+  import GameOver from './GameOver.svelte';
 
-  let { gameState, myId = $bindable(), send }: {
-    gameState: GameState;
-    myId: string;
-    send: (action: Action) => void;
+  let { gameState }: {
+    gameState: TVViewState;
   } = $props();
-
-  function handleJoin(id: string) {
-    myId = id;
-  }
 </script>
 
 {#if gameState.phase === 'lobby'}
-  <Lobby {gameState} {myId} {send} onJoin={handleJoin} />
+  <Lobby {gameState} />
 {:else if gameState.phase === 'route'}
-  <Route {gameState} {myId} {send} />
+  <Route {gameState} />
 {:else if gameState.phase === 'hub'}
-  <Hub {gameState} {myId} {send} />
+  <Hub {gameState} />
 {:else if gameState.phase === 'world'}
-  <World {gameState} {myId} {send} />
+  <World {gameState} />
+{:else if gameState.phase === 'game_over'}
+  <GameOver {gameState} />
 {/if}
