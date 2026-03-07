@@ -29,9 +29,9 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
     const tierNodeIds: string[] = [];
 
     if (tier === 0) {
-      // Tier 0: single start node
+      // Tier 0: single beginner start node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "route", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng), 8, []);
+      nodes[id] = makeNode(id, "beginner", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng), 8, []);
       tierNodeIds.push(id);
     } else if (tier === totalTiers - 1) {
       // Last tier: single champion node
@@ -41,10 +41,11 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
     } else {
       // Middle tiers: 2-3 nodes
       const count = 2 + (rng() < 0.5 ? 1 : 0);
-      const type: RouteNodeType = tier >= 4 && rng() < 0.3 ? "elite_route" : "route";
+      const defaultType: RouteNodeType = tier <= 1 ? "beginner" : "route";
+      const type: RouteNodeType = tier >= 4 && rng() < 0.3 ? "elite_route" : defaultType;
       for (let i = 0; i < count; i++) {
         const id = `t${tier}_${i}`;
-        const nodeType: RouteNodeType = i === 0 ? type : "route";
+        const nodeType: RouteNodeType = i === 0 ? type : defaultType;
         const bonus = rng() < 0.3 ? BONUS_TYPES[Math.floor(rng() * BONUS_TYPES.length)] : null;
         const bustThreshold = nodeType === "elite_route" ? (5 + Math.floor(rng() * 2)) : 7;
         const modifiers = generateModifiers(nodeType, tier, totalTiers, rng);

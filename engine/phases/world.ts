@@ -49,7 +49,7 @@ export function handleVote(
   const chosenNode = newMap.nodes[chosenNodeId];
 
   const routeNumber = state.routeNumber + 1;
-  const route = createRoute(routeNumber, chosenNode, trainerIds);
+  const route = createRoute(routeNumber, chosenNode, trainerIds, rng, newMap.totalTiers);
 
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {

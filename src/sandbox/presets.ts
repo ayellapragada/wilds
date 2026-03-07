@@ -1,6 +1,7 @@
 import type { GameState, GamePhase, Trainer, Deck, HubState, WorldMap, Route, RouteNode, Pokemon } from "../../engine/types";
 import { createInitialState } from "../../engine/index";
 import { resolveAction } from "../../engine/action-resolver";
+import { generateTrail } from "../../engine/models/trail";
 import { createPokemon, resetPokemonIdCounter } from "../../engine/pokemon/catalog";
 
 // === Types ===
@@ -122,6 +123,7 @@ function makeMap(): WorldMap {
 
 /** Build a route for use in route-phase presets. */
 function makeRoute(trainerIds: string[]): Route {
+  const trail = generateTrail({ routeType: "route", tier: 3, totalTiers: 8 }, Math.random);
   return {
     routeNumber: 1,
     name: "Ember Trail",
@@ -131,6 +133,7 @@ function makeRoute(trainerIds: string[]): Route {
     status: "in_progress",
     bustThreshold: 6,
     modifiers: [],
+    trail,
   };
 }
 

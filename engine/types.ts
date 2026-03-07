@@ -51,10 +51,23 @@ export interface Trainer {
   readonly routeProgress: RouteProgress;
 }
 
+// === Trail ===
+
+export interface TrailSpot {
+  readonly index: number;
+  readonly vp: number;
+  readonly distanceCost: number;
+}
+
+export interface Trail {
+  readonly spots: readonly TrailSpot[];
+}
+
 // === Route (a single push-your-luck round) ===
 
 export interface RouteResult {
   readonly distance: number;
+  readonly vp: number;
   readonly currencyEarned: number;
   readonly busted: boolean;
 }
@@ -68,6 +81,7 @@ export interface Route {
   readonly status: "in_progress" | "complete";
   readonly bustThreshold: number;
   readonly modifiers: readonly RouteModifier[];
+  readonly trail: Trail;
 }
 
 export interface RouteModifier {
@@ -80,7 +94,7 @@ export interface RouteModifier {
 
 // === World Map ===
 
-export type RouteNodeType = "route" | "elite_route" | "champion";
+export type RouteNodeType = "beginner" | "route" | "elite_route" | "champion";
 export type BonusType = "marketplace" | "rest_stop" | "event";
 
 export interface RouteNode {
@@ -157,7 +171,7 @@ export type GameEvent =
   | { type: "pokemon_drawn"; trainerId: string; pokemon: Pokemon; progress: RouteProgress }
   | { type: "ability_triggered"; pokemonId: string; effect: AbilityEffect; description: string }
   | { type: "trainer_busted"; trainerId: string; totalDistance: number; totalCost: number }
-  | { type: "trainer_stopped"; trainerId: string; totalDistance: number }
+  | { type: "trainer_stopped"; trainerId: string; totalDistance: number; vpEarned: number }
   | { type: "bust_penalty_chosen"; trainerId: string; choice: "keep_score" | "keep_currency" }
   | { type: "route_completed"; results: Record<string, RouteResult> }
   | { type: "world_entered" }

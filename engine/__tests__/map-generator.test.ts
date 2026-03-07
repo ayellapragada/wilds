@@ -27,7 +27,7 @@ describe("map-generator", () => {
     const map = generate();
     const tier0 = Object.values(map.nodes).filter(n => n.tier === 0);
     expect(tier0).toHaveLength(1);
-    expect(tier0[0].type).toBe("route");
+    expect(tier0[0].type).toBe("beginner");
   });
 
   test("last tier has exactly one champion node", () => {

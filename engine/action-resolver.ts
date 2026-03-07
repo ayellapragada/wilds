@@ -2,6 +2,7 @@ import type { GameState, Action, GameEvent, Trainer, RouteProgress } from "./typ
 import { createStarterTeam } from "./pokemon/catalog";
 import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
+import { getTrailPosition } from "./models/trail";
 import { resolveMoves } from "./abilities/resolver";
 import { handleVote } from "./phases/world";
 import { enterHub, handleSelectPokemon, handleConfirmSelections } from "./phases/hub";
@@ -88,7 +89,7 @@ function handleStart(
     trainers[id] = { ...t, status: "exploring", bustThreshold: startNode.bustThreshold, routeProgress: freshProgress() };
   }
 
-  const route = createRoute(1, startNode, trainerIds);
+  const route = createRoute(1, startNode, trainerIds, Math.random, map.totalTiers);
 
   return [
     { ...state, phase: "route", trainers, currentRoute: route, routeNumber: 1, map: updatedMap },
@@ -257,6 +258,9 @@ function handleStop(
   if (!trainer || trainer.status !== "exploring") return [state, []];
 
   const distanceEarned = trainer.routeProgress.totalDistance;
+  const trail = state.currentRoute!.trail;
+  const trailPos = getTrailPosition(trail, distanceEarned);
+  const vpEarned = trail.spots[trailPos].vp;
 
   // Fire end_of_round abilities
   let bonusCurrency = 0;
@@ -279,12 +283,12 @@ function handleStop(
   const currencyEarned = Math.floor(distanceEarned / 3) + bonusCurrency;
 
   events.push(
-    { type: "trainer_stopped", trainerId: trainer.id, totalDistance: distanceEarned },
+    { type: "trainer_stopped", trainerId: trainer.id, totalDistance: distanceEarned, vpEarned },
   );
 
   const updatedTrainer: Trainer = {
     ...trainer,
-    score: trainer.score + distanceEarned,
+    score: trainer.score + vpEarned,
     currency: trainer.currency + currencyEarned,
     status: "stopped",
     deck: endTurn(trainer.deck),
@@ -309,6 +313,9 @@ function handleBustPenalty(
   if (!trainer || trainer.status !== "busted") return [state, []];
 
   const distance = trainer.routeProgress.totalDistance;
+  const trail = state.currentRoute!.trail;
+  const trailPos = getTrailPosition(trail, distance);
+  const vpEarned = trail.spots[trailPos].vp;
 
   // Fire end_of_round abilities
   let bonusCurrency = 0;
@@ -332,7 +339,7 @@ function handleBustPenalty(
 
   const updatedTrainer: Trainer = {
     ...trainer,
-    score: action.choice === "keep_score" ? trainer.score + distance : trainer.score,
+    score: action.choice === "keep_score" ? trainer.score + vpEarned : trainer.score,
     currency: action.choice === "keep_currency" ? trainer.currency + currency : trainer.currency,
     status: "stopped",
     deck: endTurn(trainer.deck),
@@ -370,9 +377,9 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
   }
 
   // Build route results
-  const results: Record<string, { distance: number; currencyEarned: number; busted: boolean }> = {};
+  const results: Record<string, { distance: number; vp: number; currencyEarned: number; busted: boolean }> = {};
   for (const t of Object.values(state.trainers)) {
-    results[t.id] = { distance: t.score, currencyEarned: t.currency, busted: bustedTrainerIds.includes(t.id) };
+    results[t.id] = { distance: t.score, vp: t.score, currencyEarned: t.currency, busted: bustedTrainerIds.includes(t.id) };
   }
 
   // Reset trainers to waiting

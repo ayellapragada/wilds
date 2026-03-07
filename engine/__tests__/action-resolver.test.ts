@@ -4,6 +4,7 @@ import { createInitialState } from "../index";
 import type { GameState, Trainer, RouteNode, RouteModifier, Pokemon } from "../types";
 import { createPokemon } from "../pokemon/catalog";
 import { createDeck } from "../models/deck";
+import { getTrailPosition } from "../models/trail";
 
 // === Helpers ===
 
@@ -288,15 +289,17 @@ describe("action-resolver", () => {
   // --- stop ---
 
   describe("stop", () => {
-    test("trainer earns score and currency on stop", () => {
+    test("trainer earns VP from trail and currency on stop", () => {
       let state = setupRoute(2); // 2 trainers so stopping one doesn't end route
       [state] = hit(state, "t0");
       const distance = state.trainers["t0"].routeProgress.totalDistance;
+      const trail = state.currentRoute!.trail;
+      const expectedVP = trail.spots[getTrailPosition(trail, distance)].vp;
 
       [state] = stop(state, "t0");
       const trainer = state.trainers["t0"];
 
-      expect(trainer.score).toBe(distance);
+      expect(trainer.score).toBe(expectedVP);
       expect(trainer.currency).toBe(Math.floor(distance / 3));
       expect(trainer.status).toBe("stopped");
     });
@@ -382,15 +385,17 @@ describe("action-resolver", () => {
       };
     }
 
-    test("keep_score adds distance to score, no currency", () => {
+    test("keep_score adds VP from trail to score, no currency", () => {
       let state = setupRoute(2);
       state = forceBust(state, "t0");
       const scoreBefore = state.trainers["t0"].score;
       const currencyBefore = state.trainers["t0"].currency;
+      const trail = state.currentRoute!.trail;
+      const expectedVP = trail.spots[getTrailPosition(trail, 7)].vp;
 
       [state] = bustPenalty(state, "t0", "keep_score");
 
-      expect(state.trainers["t0"].score).toBe(scoreBefore + 7);
+      expect(state.trainers["t0"].score).toBe(scoreBefore + expectedVP);
       expect(state.trainers["t0"].currency).toBe(currencyBefore); // no currency gain
       expect(state.trainers["t0"].status).toBe("stopped");
     });
@@ -514,9 +519,11 @@ describe("action-resolver", () => {
       let state = setupRoute(1);
       [state] = hit(state, "t0");
       const distance = state.trainers["t0"].routeProgress.totalDistance;
+      const trail = state.currentRoute!.trail;
+      const expectedVP = trail.spots[getTrailPosition(trail, distance)].vp;
       [state] = stop(state, "t0");
 
-      expect(state.trainers["t0"].score).toBe(distance);
+      expect(state.trainers["t0"].score).toBe(expectedVP);
     });
   });
 
