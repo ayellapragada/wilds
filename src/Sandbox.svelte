@@ -377,7 +377,6 @@
     max-width: 1100px;
     margin: 0 auto;
     padding: var(--space-6);
-    overflow-x: hidden;
   }
 
   .sandbox-tabs {
@@ -415,16 +414,12 @@
     grid-template-columns: 1fr 1fr;
     gap: var(--space-6);
     margin-top: var(--space-6);
-    overflow: hidden;
   }
 
   .panel {
     padding: var(--space-6);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    overflow-x: hidden;
-    overflow-y: auto;
-    max-height: 85vh;
     min-width: 0;
   }
 
@@ -446,7 +441,7 @@
 
   .catalog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-3);
   }
 
