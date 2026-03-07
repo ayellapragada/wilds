@@ -53,6 +53,7 @@ function makeTrainer(id: string, name: string, overrides: Partial<Trainer> = {})
     score: 0,
     bustThreshold: 6,
     currency: 0,
+    items: [],
     status: "waiting",
     routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] },
     ...overrides,
@@ -200,6 +201,7 @@ function routeMidGame(): Preset {
     score: 0,
     bustThreshold: 6,
     currency: 0,
+    items: [],
     status: "exploring",
     routeProgress: {
       totalDistance: drawnPokemon1.distance + drawnPokemon2.distance,
@@ -258,6 +260,7 @@ function routeOneBusted(): Preset {
     score: 5,
     bustThreshold: 1, // forced low threshold to guarantee bust
     currency: 3,
+    items: [],
     status: "busted",
     routeProgress: {
       totalDistance: drawnPokemon1.distance + drawnPokemon2.distance,

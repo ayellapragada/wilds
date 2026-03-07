@@ -12,6 +12,7 @@ function makeTrainer(id: string, overrides: Partial<Trainer> = {}): Trainer {
     score: 0,
     bustThreshold: 10,
     currency: 0,
+    items: [],
     status: "waiting",
     routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] },
     ...overrides,

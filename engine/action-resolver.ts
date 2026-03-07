@@ -53,6 +53,7 @@ function handleJoin(
     score: 0,
     bustThreshold: 0,
     currency: 0,
+    items: [],
     status: "waiting",
     routeProgress: freshProgress(),
   };
@@ -224,11 +225,28 @@ function handleHit(
     }
   }
 
+  // Check for item pickup
+  let collectedItems = [...trainer.items];
+  if (state.currentRoute?.trail) {
+    const trailPos = getTrailPosition(state.currentRoute.trail, progress.totalDistance);
+    const spot = state.currentRoute.trail.spots[trailPos];
+    if (spot.item) {
+      collectedItems.push(spot.item.id);
+      events.push({
+        type: "item_collected",
+        trainerId: trainer.id,
+        item: spot.item,
+        spotIndex: spot.index,
+      });
+    }
+  }
+
   const updatedTrainer: Trainer = {
     ...trainer,
     deck: newDeck,
     routeProgress: progress,
     bustThreshold: newThreshold,
+    items: collectedItems,
     status: busted ? "busted" : "exploring",
   };
 

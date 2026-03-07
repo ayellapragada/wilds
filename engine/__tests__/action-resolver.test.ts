@@ -772,6 +772,98 @@ describe("action-resolver", () => {
     });
   });
 
+  // --- Item collection ---
+
+  describe("item collection", () => {
+    function setupWithItemOnSpot(spotIndex: number): GameState {
+      let state = setupRoute(2);
+      const trail = state.currentRoute!.trail;
+      const updatedSpots = trail.spots.map((s, i) =>
+        i === spotIndex
+          ? { ...s, item: { id: "nugget" as const, name: "Nugget", description: "A nugget", hidden: false } }
+          : { ...s, item: null }
+      );
+      state = {
+        ...state,
+        currentRoute: {
+          ...state.currentRoute!,
+          trail: { spots: updatedSpots },
+        },
+      };
+      return state;
+    }
+
+    test("trainer collects item when landing on spot with item", () => {
+      let state = setupWithItemOnSpot(3);
+      const pokemon: Pokemon = {
+        id: "p1", templateId: "test", name: "Mover",
+        types: ["normal"], distance: 3, cost: 0, rarity: "common",
+        description: "", moves: [],
+      };
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            deck: createDeck([pokemon]),
+          },
+        },
+      };
+
+      const [newState, events] = hit(state, "t0");
+      expect(newState.trainers.t0.items).toContain("nugget");
+      const collectEvent = events.find(e => e.type === "item_collected");
+      expect(collectEvent).toBeDefined();
+    });
+
+    test("trainer does not collect item when not landing on item spot", () => {
+      let state = setupWithItemOnSpot(5);
+      const pokemon: Pokemon = {
+        id: "p1", templateId: "test", name: "Mover",
+        types: ["normal"], distance: 3, cost: 0, rarity: "common",
+        description: "", moves: [],
+      };
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            deck: createDeck([pokemon]),
+          },
+        },
+      };
+
+      const [newState, events] = hit(state, "t0");
+      expect(newState.trainers.t0.items).toHaveLength(0);
+      expect(events.find(e => e.type === "item_collected")).toBeUndefined();
+    });
+
+    test("multiple trainers can collect same item", () => {
+      let state = setupWithItemOnSpot(3);
+      const pokemon: Pokemon = {
+        id: "p1", templateId: "test", name: "Mover",
+        types: ["normal"], distance: 3, cost: 0, rarity: "common",
+        description: "", moves: [],
+      };
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: { ...state.trainers.t0, deck: createDeck([{ ...pokemon, id: "p1" }]) },
+          t1: { ...state.trainers.t1, deck: createDeck([{ ...pokemon, id: "p2" }]) },
+        },
+      };
+
+      let [next] = hit(state, "t0");
+      expect(next.trainers.t0.items).toContain("nugget");
+
+      [next] = hit(next, "t1");
+      expect(next.trainers.t1.items).toContain("nugget");
+    });
+  });
+
   // --- Unknown action ---
 
   describe("unknown action", () => {

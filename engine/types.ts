@@ -8,6 +8,15 @@ export type PokemonType =
   | "rock" | "ghost" | "dragon" | "dark" | "steel" | "fairy";
 export type Rarity = "common" | "uncommon" | "rare" | "legendary";
 
+export type ItemId = "nugget";
+
+export interface ItemTemplate {
+  readonly id: ItemId;
+  readonly name: string;
+  readonly description: string;
+  readonly hidden: boolean;
+}
+
 export interface Pokemon {
   readonly id: string;
   readonly templateId: string;
@@ -47,6 +56,7 @@ export interface Trainer {
   readonly score: number;
   readonly bustThreshold: number;
   readonly currency: number;
+  readonly items: readonly ItemId[];
   readonly status: TrainerStatus;
   readonly routeProgress: RouteProgress;
 }
@@ -58,6 +68,7 @@ export interface TrailSpot {
   readonly vp: number;
   readonly currency: number;
   readonly distanceCost: number;
+  readonly item: ItemTemplate | null;
 }
 
 export interface Trail {
@@ -191,6 +202,7 @@ export type GameEvent =
   | { type: "pokemon_deselected"; trainerId: string; pokemonId: string }
   | { type: "selections_confirmed"; trainerId: string; pokemon: Pokemon[] }
   | { type: "all_ready" }
+  | { type: "item_collected"; trainerId: string; item: ItemTemplate; spotIndex: number }
   | { type: "game_over"; finalScores: Record<string, number>; championId: string };
 
 // === Connection ===

@@ -138,6 +138,50 @@ describe("getTrailPosition", () => {
   });
 });
 
+describe("trail items", () => {
+  test("spot 0 never has an item", () => {
+    const trail = generateTrail(normalConfig, seededRng());
+    expect(trail.spots[0].item).toBeNull();
+  });
+
+  test("all spots have item field (null or ItemTemplate)", () => {
+    const trail = generateTrail(normalConfig, seededRng());
+    for (const spot of trail.spots) {
+      expect(spot).toHaveProperty("item");
+    }
+  });
+
+  test("some spots have items with seeded rng", () => {
+    const trail = generateTrail(normalConfig, seededRng());
+    const itemSpots = trail.spots.filter(s => s.item !== null);
+    expect(itemSpots.length).toBeGreaterThan(0);
+  });
+
+  test("items are nuggets", () => {
+    const trail = generateTrail(normalConfig, seededRng());
+    const itemSpots = trail.spots.filter(s => s.item !== null);
+    for (const spot of itemSpots) {
+      expect(spot.item!.id).toBe("nugget");
+    }
+  });
+
+  test("some items are hidden and some are visible", () => {
+    let hiddenCount = 0;
+    let visibleCount = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const trail = generateTrail(normalConfig, seededRng(seed));
+      for (const spot of trail.spots) {
+        if (spot.item) {
+          if (spot.item.hidden) hiddenCount++;
+          else visibleCount++;
+        }
+      }
+    }
+    expect(hiddenCount).toBeGreaterThan(0);
+    expect(visibleCount).toBeGreaterThan(0);
+  });
+});
+
 describe("trail currency distribution", () => {
   test("spot 0 always has 0 currency", () => {
     const trail = generateTrail({ ...normalConfig, currencyDistribution: { total: 5, curve: "flat" } }, seededRng());

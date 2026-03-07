@@ -1,4 +1,4 @@
-import type { Trail, TrailSpot, RouteNodeType, CurrencyDistribution } from "../types";
+import type { Trail, TrailSpot, RouteNodeType, CurrencyDistribution, ItemTemplate } from "../types";
 import type { RngFn } from "../map-generator";
 
 export interface TrailConfig {
@@ -18,6 +18,7 @@ export function generateTrail(config: TrailConfig, _rng: RngFn): Trail {
     vp,
     currency: currencyValues[index],
     distanceCost: 1,
+    item: index === 0 ? null : placeItem(_rng),
   }));
 
   return { spots };
@@ -116,4 +117,18 @@ function distributeVP(routeType: RouteNodeType, length: number, config: TrailCon
   }
 
   return vps;
+}
+
+const ITEM_CHANCE = 0.15;
+const HIDDEN_CHANCE = 0.5;
+
+function placeItem(rng: RngFn): ItemTemplate | null {
+  if (rng() > ITEM_CHANCE) return null;
+  const hidden = rng() < HIDDEN_CHANCE;
+  return {
+    id: "nugget",
+    name: "Nugget",
+    description: "A nugget of pure gold. Sell it at the hub for a good price.",
+    hidden,
+  };
 }

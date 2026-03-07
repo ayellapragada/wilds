@@ -13,6 +13,9 @@
 <div class="spot" class:highlighted style="width: {size}px; height: {size}px;">
   <span class="vp">{spot.vp}</span>
   <span class="currency">{spot.currency}c</span>
+  {#if spot.item}
+    <span class="item-indicator">{spot.item.hidden ? '?' : 'N'}</span>
+  {/if}
   {#if children}
     {@render children()}
   {/if}
@@ -48,5 +51,18 @@
     font-size: 0.6rem;
     font-weight: bold;
     color: #b8860b;
+  }
+
+  .item-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 0.6rem;
+    font-weight: bold;
+    color: #d4a017;
+    background: #fff8dc;
+    border-radius: 3px;
+    padding: 0 2px;
+    line-height: 1;
   }
 </style>
