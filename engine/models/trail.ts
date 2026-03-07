@@ -1,5 +1,4 @@
-import type { Trail, TrailSpot, RouteNodeType, CurrencyDistribution, ItemTemplate } from "../types";
-import type { RngFn } from "../map-generator";
+import type { Trail, TrailSpot, RouteNodeType, CurrencyDistribution, ItemTemplate, RngFn } from "../types";
 
 export interface TrailConfig {
   readonly routeType: RouteNodeType;

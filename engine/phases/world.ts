@@ -1,7 +1,6 @@
-import type { GameState, GameEvent, Trainer } from "../types";
+import type { GameState, GameEvent, Trainer, ResolveResult } from "../types";
 import { getAvailableNodes, advanceToNode } from "../models/world-map";
 import { freshProgress, createRoute } from "../models/route";
-import type { ResolveResult } from "../action-resolver";
 
 export function handleVote(
   state: GameState,

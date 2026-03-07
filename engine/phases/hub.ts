@@ -1,37 +1,7 @@
-import type { GameState, GameEvent, HubState, Pokemon } from "../types";
-import { createPokemon, getAllTemplateIds, getTemplate } from "../pokemon/catalog";
+import type { GameState, GameEvent, HubState, Pokemon, ResolveResult, RngFn } from "../types";
+import { createPokemon, getAllTemplateIds } from "../pokemon/catalog";
+import { buildRarityBuckets, pickByRarity } from "../pokemon/rarity";
 import { addPokemon } from "../models/deck";
-
-type ResolveResult = [GameState, GameEvent[]];
-type RngFn = () => number;
-
-function buildRarityBuckets(allIds: string[]): Record<string, string[]> {
-  const buckets: Record<string, string[]> = {};
-  for (const id of allIds) {
-    const rarity = getTemplate(id).rarity;
-    (buckets[rarity] ??= []).push(id);
-  }
-  return buckets;
-}
-
-function pickByRarity(
-  weights: Record<string, number>,
-  buckets: Record<string, string[]>,
-  allIds: string[],
-  rng: RngFn,
-): string {
-  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-  let roll = rng() * totalWeight;
-  let targetRarity = "common";
-  for (const [rarity, weight] of Object.entries(weights)) {
-    roll -= weight;
-    if (roll <= 0) { targetRarity = rarity; break; }
-  }
-  const candidates = buckets[targetRarity];
-  return candidates?.length
-    ? candidates[Math.floor(rng() * candidates.length)]
-    : allIds[Math.floor(rng() * allIds.length)];
-}
 
 export function enterHub(
   state: GameState,

@@ -76,3 +76,12 @@ export const copy = {
 export function modTypeTerrain(type: string): string {
   return `${type} terrain: ${type}-type Pokémon get +2 distance`;
 }
+
+/** Display label for route node types */
+export function nodeTypeLabel(type: string): string {
+  switch (type) {
+    case "elite_route": return copy.elite;
+    case "champion": return copy.champion;
+    default: return copy.route;
+  }
+}

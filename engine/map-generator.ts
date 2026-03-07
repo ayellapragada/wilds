@@ -1,8 +1,7 @@
-import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier, CurrencyDistribution } from "./types";
-import { getAllTemplateIds, getTemplate } from "./pokemon/catalog";
+import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier, CurrencyDistribution, RngFn } from "./types";
+import { getAllTemplateIds } from "./pokemon/catalog";
+import { buildRarityBuckets, pickByRarity } from "./pokemon/rarity";
 import { copy, modTypeTerrain } from "../copy";
-
-export type RngFn = () => number;
 
 const ROUTE_NAMES = [
   "Ember Trail", "Misty Hollow", "Stone Pass", "Gale Ridge", "Shadow Vale",
@@ -89,33 +88,6 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
   return { nodes, currentNodeId: tiers[0][0], totalTiers };
 }
 
-function buildRarityBuckets(allIds: string[]): Record<string, string[]> {
-  const buckets: Record<string, string[]> = {};
-  for (const id of allIds) {
-    const rarity = getTemplate(id).rarity;
-    (buckets[rarity] ??= []).push(id);
-  }
-  return buckets;
-}
-
-function pickByRarity(
-  weights: Record<string, number>,
-  buckets: Record<string, string[]>,
-  allIds: string[],
-  rng: RngFn,
-): string {
-  const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-  let roll = rng() * totalWeight;
-  let targetRarity = "common";
-  for (const [rarity, weight] of Object.entries(weights)) {
-    roll -= weight;
-    if (roll <= 0) { targetRarity = rarity; break; }
-  }
-  const candidates = buckets[targetRarity];
-  return candidates?.length
-    ? candidates[Math.floor(rng() * candidates.length)]
-    : allIds[Math.floor(rng() * allIds.length)];
-}
 
 function generatePokemonPool(tier: number, totalTiers: number, rng: RngFn): string[] {
   const allIds = getAllTemplateIds();

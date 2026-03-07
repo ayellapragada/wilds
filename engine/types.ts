@@ -1,5 +1,9 @@
 import type { Move, AbilityEffect } from "./abilities/types";
 
+// === Utilities ===
+
+export type RngFn = () => number;
+
 // === Pokemon ===
 
 export type PokemonType =
@@ -252,3 +256,7 @@ export interface PhoneViewState {
   readonly routeNumber: number;
   readonly map: WorldMap | null;
 }
+
+// === Resolve Result ===
+
+export type ResolveResult = [GameState, GameEvent[]];

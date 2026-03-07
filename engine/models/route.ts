@@ -1,5 +1,4 @@
-import type { Route, RouteNode, RouteProgress } from "../types";
-import type { RngFn } from "../map-generator";
+import type { Route, RouteNode, RouteProgress, RngFn } from "../types";
 import { generateTrail } from "./trail";
 
 export function freshProgress(): RouteProgress {

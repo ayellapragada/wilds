@@ -1,4 +1,4 @@
-import type { GameState, Action, GameEvent, Trainer, RouteProgress } from "./types";
+import type { GameState, Action, GameEvent, Trainer, RouteProgress, ResolveResult, Trail } from "./types";
 import { createStarterTeam } from "./pokemon/catalog";
 import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
@@ -8,7 +8,7 @@ import { handleVote } from "./phases/world";
 import { enterHub, handleSelectPokemon, handleConfirmSelections } from "./phases/hub";
 import { generateMap } from "./map-generator";
 
-export type ResolveResult = [GameState, GameEvent[]];
+export type { ResolveResult } from "./types";
 
 export function resolveAction(state: GameState, action: Action): ResolveResult {
   switch (action.type) {
@@ -267,20 +267,15 @@ function handleHit(
   return [newState, events];
 }
 
-function handleStop(
-  state: GameState,
-  action: { type: "stop"; trainerId: string }
-): ResolveResult {
-  if (state.phase !== "route") return [state, []];
-  const trainer = state.trainers[action.trainerId];
-  if (!trainer || trainer.status !== "exploring") return [state, []];
-
-  const distanceEarned = trainer.routeProgress.totalDistance;
-  const trail = state.currentRoute!.trail;
-  const trailPos = getTrailPosition(trail, distanceEarned);
+/** Compute end-of-round rewards: trail position VP/currency + end_of_round ability effects. */
+function resolveRouteEnd(trainer: Trainer, trail: Trail): {
+  vpEarned: number;
+  currencyEarned: number;
+  events: GameEvent[];
+} {
+  const trailPos = getTrailPosition(trail, trainer.routeProgress.totalDistance);
   const vpEarned = trail.spots[trailPos].vp;
 
-  // Fire end_of_round abilities
   let bonusCurrency = 0;
   const events: GameEvent[] = [];
   for (const drawn of trainer.deck.drawn) {
@@ -299,9 +294,21 @@ function handleStop(
   }
 
   const currencyEarned = trail.spots[trailPos].currency + bonusCurrency;
+  return { vpEarned, currencyEarned, events };
+}
+
+function handleStop(
+  state: GameState,
+  action: { type: "stop"; trainerId: string }
+): ResolveResult {
+  if (state.phase !== "route") return [state, []];
+  const trainer = state.trainers[action.trainerId];
+  if (!trainer || trainer.status !== "exploring") return [state, []];
+
+  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail);
 
   events.push(
-    { type: "trainer_stopped", trainerId: trainer.id, totalDistance: distanceEarned, vpEarned },
+    { type: "trainer_stopped", trainerId: trainer.id, totalDistance: trainer.routeProgress.totalDistance, vpEarned },
   );
 
   const updatedTrainer: Trainer = {
@@ -330,35 +337,12 @@ function handleBustPenalty(
   const trainer = state.trainers[action.trainerId];
   if (!trainer || trainer.status !== "busted") return [state, []];
 
-  const distance = trainer.routeProgress.totalDistance;
-  const trail = state.currentRoute!.trail;
-  const trailPos = getTrailPosition(trail, distance);
-  const vpEarned = trail.spots[trailPos].vp;
-
-  // Fire end_of_round abilities
-  let bonusCurrency = 0;
-  const events: GameEvent[] = [];
-  for (const drawn of trainer.deck.drawn) {
-    const effects = resolveMoves(drawn, "end_of_round", trainer.deck.drawn, trainer.routeProgress, trainer.bustThreshold);
-    for (const effect of effects) {
-      if (effect.type === "bonus_currency") {
-        bonusCurrency += effect.amount;
-      }
-      events.push({
-        type: "ability_triggered",
-        pokemonId: drawn.id,
-        effect,
-        description: drawn.description,
-      });
-    }
-  }
-
-  const currency = trail.spots[trailPos].currency + bonusCurrency;
+  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail);
 
   const updatedTrainer: Trainer = {
     ...trainer,
     score: action.choice === "keep_score" ? trainer.score + vpEarned : trainer.score,
-    currency: action.choice === "keep_currency" ? trainer.currency + currency : trainer.currency,
+    currency: action.choice === "keep_currency" ? trainer.currency + currencyEarned : trainer.currency,
     status: "stopped",
     deck: endTurn(trainer.deck),
     routeProgress: freshProgress(),
