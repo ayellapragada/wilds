@@ -81,7 +81,7 @@
         <strong>{trainer.name}</strong>
         — {trainer.status}
         | {copy.distance.toLowerCase()}: {trainer.routeProgress.totalDistance}
-        | {copy.cost.toLowerCase()}: {trainer.routeProgress.totalCost}/{gameState.currentRoute?.bustThreshold ?? '?'}
+        | {copy.cost.toLowerCase()}: {trainer.routeProgress.totalCost}/{trainer.bustThreshold}
         | {copy.score.toLowerCase()}: {trainer.score}
       </div>
     {/each}

@@ -201,6 +201,7 @@ export interface TrainerPublicInfo {
   readonly score: number;
   readonly currency: number;
   readonly status: TrainerStatus;
+  readonly bustThreshold: number;
   readonly routeProgress: RouteProgress;
   readonly deckSize: number;
 }

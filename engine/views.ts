@@ -7,6 +7,7 @@ function toPublicInfo(trainer: Trainer): TrainerPublicInfo {
     score: trainer.score,
     currency: trainer.currency,
     status: trainer.status,
+    bustThreshold: trainer.bustThreshold,
     routeProgress: trainer.routeProgress,
     deckSize: trainer.deck.drawPile.length + trainer.deck.drawn.length + trainer.deck.discard.length,
   };
