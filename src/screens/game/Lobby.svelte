@@ -65,7 +65,7 @@
     padding: 0.4rem var(--space-5);
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.8rem;
+    font-size: var(--text-body);
     color: var(--color-text-muted);
     transition: border-color var(--duration-slow);
   }

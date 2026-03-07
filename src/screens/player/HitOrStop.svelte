@@ -133,7 +133,7 @@
     color: var(--color-primary);
   }
 
-  .connector { color: var(--color-text-faint); font-size: 0.8rem; }
+  .connector { color: var(--color-text-faint); font-size: var(--text-body); }
 
   .white-out-chance { font-size: var(--text-sm); color: rgba(255, 255, 255, 0.85); font-weight: normal; }
   .white-out-chance.danger { color: #ffcdd2; font-weight: 600; }

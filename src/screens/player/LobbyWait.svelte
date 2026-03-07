@@ -28,14 +28,12 @@
     {/each}
   </div>
 
-  <button onclick={startGame} disabled={allTrainers.length < 1}>{copy.startGameButton}</button>
+  <button class="btn-primary" onclick={startGame} disabled={allTrainers.length < 1}>{copy.startGameButton}</button>
 </section>
 
 <style>
   section { padding: var(--space-6); text-align: center; }
   .trainer-list { margin: var(--space-6) 0; }
   .trainer-row { padding: var(--space-2) 0; font-size: var(--text-lg); }
-  button { padding: var(--space-5) var(--space-8); font-size: var(--text-xl); background: var(--color-primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; margin-top: var(--space-6); }
-  button:hover { background: var(--color-primary-hover); }
-  button:disabled { opacity: 0.4; cursor: default; }
+  button { margin-top: var(--space-6); }
 </style>

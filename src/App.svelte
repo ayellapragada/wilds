@@ -138,7 +138,7 @@
   button {
     margin: var(--space-2);
     padding: var(--space-4) var(--space-6);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     border: 1px solid var(--color-border-dark);
     background: var(--color-bg);
     cursor: pointer;
@@ -148,7 +148,7 @@
   input {
     padding: var(--space-4);
     border: 1px solid var(--color-border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     margin-right: var(--space-4);
   }
   .join-buttons {

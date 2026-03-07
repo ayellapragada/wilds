@@ -113,7 +113,7 @@
     font-weight: 600;
     font-size: 0.95rem;
     padding: var(--space-1) var(--space-4);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
   .stat.compact {
     font-size: var(--text-sm);

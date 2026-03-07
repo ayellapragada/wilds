@@ -129,7 +129,7 @@
     {#if isConfirmed}
       <p>{copy.waitingForOthers} ({gameState.hub.confirmedTrainers.length}/{trainerCount})</p>
     {:else}
-      <button class="confirm-btn" onclick={() => send({ type: 'confirm_selections', trainerId: me.id })}>
+      <button class="btn-primary confirm-btn" onclick={() => send({ type: 'confirm_selections', trainerId: me.id })}>
         {copy.confirmButton} ({mySelections.length}/2)
       </button>
     {/if}
@@ -146,11 +146,11 @@
   .pokemon-card { border: 2px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); overflow: hidden; }
   .pokemon-card.selected { border-color: gold; background: rgba(255, 215, 0, 0.1); }
 
-  .card-row { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; padding: 0.4rem 0.6rem; cursor: pointer; text-align: left; width: 100%; font-size: 0.8rem; background: none; border: none; font: inherit; color: inherit; }
+  .card-row { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; padding: 0.4rem 0.6rem; cursor: pointer; text-align: left; width: 100%; font-size: var(--text-body); background: none; border: none; font: inherit; color: inherit; }
   .card-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-  .card-info strong { font-size: 0.8rem; }
-  .stats { font-size: 0.7rem; color: var(--color-text-secondary); }
-  .price { font-weight: bold; color: var(--color-gold); font-size: 0.8rem; flex-shrink: 0; }
+  .card-info strong { font-size: var(--text-body); }
+  .stats { font-size: var(--text-detail); color: var(--color-text-secondary); }
+  .price { font-weight: bold; color: var(--color-gold); font-size: var(--text-body); flex-shrink: 0; }
   .price.free { color: green; }
   .chevron { font-size: 0.6rem; color: var(--color-text-faint); flex-shrink: 0; }
 
@@ -164,13 +164,13 @@
   .rarity.legendary { color: #aa6a00; background: var(--color-gold-bg); }
   .description { margin: 0.2rem 0; color: var(--color-text-secondary); font-style: italic; }
   .move { margin: var(--space-1) 0; }
-  .move strong { font-size: 0.7rem; }
+  .move strong { font-size: var(--text-detail); }
   .move span { font-size: var(--text-xs); color: var(--color-text-muted); margin-left: 0.2rem; }
 
   .select-btn { margin-top: 0.3rem; padding: 0.3rem 0.8rem; font-size: var(--text-sm); background: var(--color-bg-muted); border: 1px solid var(--color-border); border-radius: 0.3rem; cursor: pointer; width: 100%; }
   .select-btn.selected { background: rgba(255, 215, 0, 0.2); border-color: gold; font-weight: bold; }
   .select-btn:disabled { opacity: 0.4; cursor: default; }
 
-  .confirm-btn { margin-top: var(--space-4); padding: var(--space-4) var(--space-7); font-size: var(--text-md); background: var(--color-primary); color: white; border: none; border-radius: var(--space-4); cursor: pointer; }
+  .confirm-btn { margin-top: var(--space-4); padding: var(--space-4) var(--space-7); font-size: var(--text-md); border-radius: var(--space-4); }
   .confirm-btn:hover { background: var(--color-primary-hover); }
 </style>

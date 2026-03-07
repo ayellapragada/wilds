@@ -50,5 +50,5 @@
   .vote-card:hover { border-color: var(--color-text-dim); }
   .vote-card.selected { border-color: var(--color-primary); background: var(--color-primary-bg-light); }
   .node-type { font-size: var(--text-sm); text-transform: uppercase; color: var(--color-text-dim); }
-  .node-bonus { font-size: 0.8rem; color: var(--color-success-confirmed); }
+  .node-bonus { font-size: var(--text-body); color: var(--color-success-confirmed); }
 </style>

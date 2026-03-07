@@ -435,7 +435,7 @@
   .rarity-header {
     padding-left: var(--space-4);
     margin: var(--space-5) 0 var(--space-2);
-    font-size: 0.8rem;
+    font-size: var(--text-body);
     text-transform: uppercase;
     color: var(--color-text-muted);
   }
@@ -454,7 +454,7 @@
     border: 1.5px solid;
     border-radius: var(--radius-md);
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: var(--text-body);
     position: relative;
     text-align: left;
   }
@@ -463,8 +463,8 @@
 
   .sprite { width: 40px; height: 34px; image-rendering: pixelated; }
   .sprite-sm { width: var(--sprite-sm-width); height: var(--sprite-sm-height); image-rendering: pixelated; }
-  .card-name { font-weight: 600; font-size: 0.8rem; }
-  .card-stats { font-size: 0.7rem; color: var(--color-text-secondary); }
+  .card-name { font-weight: 600; font-size: var(--text-body); }
+  .card-stats { font-size: var(--text-detail); color: var(--color-text-secondary); }
   .card-ability {
     position: absolute;
     top: 2px;
@@ -484,7 +484,7 @@
     align-items: center;
     gap: var(--space-3);
     padding: var(--space-2) var(--space-4);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-size: var(--text-base);
   }
 
@@ -508,7 +508,7 @@
 
   button {
     padding: 0.4rem 0.8rem;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     border: 1px solid var(--color-border-dark);
     background: var(--color-bg);
     cursor: pointer;
@@ -538,7 +538,7 @@
     border-radius: var(--radius-md);
   }
 
-  .stat-label { font-size: 0.7rem; color: var(--color-text-dim); display: block; }
+  .stat-label { font-size: var(--text-detail); color: var(--color-text-dim); display: block; }
   .stat-value { font-size: var(--text-xl); font-weight: 700; }
 
   .actions {
@@ -587,8 +587,8 @@
 
   .drawn-num { color: var(--color-text-faint); font-size: var(--text-sm); }
   .drawn-card-stats { font-size: var(--text-sm); color: var(--color-text-secondary); }
-  .drawn-card-types { font-size: 0.7rem; color: var(--color-text-dim); }
-  .drawn-card-desc { font-size: 0.7rem; color: var(--color-text-dim); font-style: italic; display: block; }
+  .drawn-card-types { font-size: var(--text-detail); color: var(--color-text-dim); }
+  .drawn-card-desc { font-size: var(--text-detail); color: var(--color-text-dim); font-style: italic; display: block; }
 
   .draw-pile {
     display: flex;
@@ -607,7 +607,7 @@
   .event-log {
     max-height: 200px;
     overflow-y: auto;
-    font-size: 0.8rem;
+    font-size: var(--text-body);
     font-family: var(--font-mono);
   }
 

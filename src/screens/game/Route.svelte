@@ -111,7 +111,7 @@
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.7rem;
+    font-size: var(--text-detail);
     font-weight: bold;
     border: 1px solid rgba(0,0,0,0.2);
   }

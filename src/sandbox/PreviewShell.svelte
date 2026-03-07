@@ -146,7 +146,7 @@
     border-radius: var(--radius-md);
     background: var(--color-bg-subtle);
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: var(--text-body);
     transition: background var(--duration-normal), border-color var(--duration-normal);
   }
 
