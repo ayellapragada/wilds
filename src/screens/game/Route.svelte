@@ -89,10 +89,10 @@
 </section>
 
 <style>
-  section { margin-bottom: 1.5rem; padding: 1rem; }
-  h2 { margin-bottom: 1rem; }
+  section { margin-bottom: var(--space-7); padding: var(--space-6); }
+  h2 { margin-bottom: var(--space-6); }
 
-  .trail { display: flex; flex-direction: column; gap: 2px; margin-bottom: 1.5rem; }
+  .trail { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-7); }
   .trail-row { display: flex; gap: 2px; }
   .trail-row.reversed { flex-direction: row-reverse; }
 
@@ -104,9 +104,9 @@
   }
 
   .marker {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
+    width: var(--marker-size);
+    height: var(--marker-size);
+    border-radius: var(--radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -116,7 +116,7 @@
     border: 1px solid rgba(0,0,0,0.2);
   }
 
-  .trainers { margin-top: 1rem; }
-  .trainer-row { padding: 0.25rem 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
-  .trainer-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .trainers { margin-top: var(--space-6); }
+  .trainer-row { padding: var(--space-2) 0; font-size: var(--text-md); display: flex; align-items: center; gap: var(--space-4); }
+  .trainer-dot { width: var(--dot-size); height: var(--dot-size); border-radius: var(--radius-full); display: inline-block; flex-shrink: 0; }
 </style>

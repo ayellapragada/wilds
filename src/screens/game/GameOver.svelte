@@ -27,9 +27,9 @@
 </section>
 
 <style>
-  section { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; text-align: center; }
-  .standings { text-align: left; margin-top: 1rem; }
-  .trainer-row { padding: 0.5rem 0; font-size: 1rem; }
-  .trainer-row.champion { font-size: 1.2rem; color: #c8a020; }
-  .rank { margin-right: 0.5rem; color: #888; }
+  section { margin-bottom: var(--space-7); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); text-align: center; }
+  .standings { text-align: left; margin-top: var(--space-6); }
+  .trainer-row { padding: var(--space-4) 0; font-size: var(--text-lg); }
+  .trainer-row.champion { font-size: 1.2rem; color: var(--color-gold); }
+  .rank { margin-right: var(--space-4); color: var(--color-text-dim); }
 </style>

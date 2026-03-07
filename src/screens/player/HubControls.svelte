@@ -137,40 +137,40 @@
 </section>
 
 <style>
-  section { padding: 0.5rem; }
-  .ghost-cost { color: #cc4444; opacity: 0.6; font-style: italic; }
-  .selection-status { font-size: 0.9rem; font-weight: bold; margin: 0.25rem 0; }
-  .shop-items { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.5rem 0; }
+  section { padding: var(--space-4); }
+  .ghost-cost { color: var(--color-danger-text); opacity: 0.6; font-style: italic; }
+  .selection-status { font-size: var(--text-md); font-weight: bold; margin: var(--space-2) 0; }
+  .shop-items { display: flex; flex-direction: column; gap: 0.4rem; margin: var(--space-4) 0; }
   .sprite { width: 2rem; height: 1.7rem; image-rendering: pixelated; flex-shrink: 0; }
 
-  .pokemon-card { border: 2px solid #ccc; border-radius: 0.4rem; background: #fff; overflow: hidden; }
+  .pokemon-card { border: 2px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); overflow: hidden; }
   .pokemon-card.selected { border-color: gold; background: rgba(255, 215, 0, 0.1); }
 
   .card-row { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; padding: 0.4rem 0.6rem; cursor: pointer; text-align: left; width: 100%; font-size: 0.8rem; background: none; border: none; font: inherit; color: inherit; }
   .card-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .card-info strong { font-size: 0.8rem; }
-  .stats { font-size: 0.7rem; color: #444; }
-  .price { font-weight: bold; color: #c8a020; font-size: 0.8rem; flex-shrink: 0; }
+  .stats { font-size: 0.7rem; color: var(--color-text-secondary); }
+  .price { font-weight: bold; color: var(--color-gold); font-size: 0.8rem; flex-shrink: 0; }
   .price.free { color: green; }
-  .chevron { font-size: 0.6rem; color: #999; flex-shrink: 0; }
+  .chevron { font-size: 0.6rem; color: var(--color-text-faint); flex-shrink: 0; }
 
-  .details { padding: 0.3rem 0.6rem 0.5rem; border-top: 1px solid #eee; font-size: 0.75rem; }
+  .details { padding: 0.3rem 0.6rem var(--space-4); border-top: 1px solid var(--color-border-lighter); font-size: var(--text-sm); }
   .detail-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
-  .types { text-transform: capitalize; color: #555; }
-  .rarity { text-transform: capitalize; font-weight: bold; font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 0.2rem; }
-  .rarity.common { color: #666; background: #eee; }
-  .rarity.uncommon { color: #2a7a2a; background: #e0ffe0; }
-  .rarity.rare { color: #2a5aaa; background: #ddeeff; }
-  .rarity.legendary { color: #aa6a00; background: #fff3d0; }
-  .description { margin: 0.2rem 0; color: #555; font-style: italic; }
-  .move { margin: 0.15rem 0; }
+  .types { text-transform: capitalize; color: var(--color-text-secondary); }
+  .rarity { text-transform: capitalize; font-weight: bold; font-size: var(--text-xs); padding: 0.1rem 0.3rem; border-radius: 0.2rem; }
+  .rarity.common { color: var(--color-text-muted); background: var(--color-bg-hover); }
+  .rarity.uncommon { color: var(--color-success-confirmed); background: var(--color-success-confirmed-bg); }
+  .rarity.rare { color: var(--color-primary-dark); background: #ddeeff; }
+  .rarity.legendary { color: #aa6a00; background: var(--color-gold-bg); }
+  .description { margin: 0.2rem 0; color: var(--color-text-secondary); font-style: italic; }
+  .move { margin: var(--space-1) 0; }
   .move strong { font-size: 0.7rem; }
-  .move span { font-size: 0.65rem; color: #666; margin-left: 0.2rem; }
+  .move span { font-size: var(--text-xs); color: var(--color-text-muted); margin-left: 0.2rem; }
 
-  .select-btn { margin-top: 0.3rem; padding: 0.3rem 0.8rem; font-size: 0.75rem; background: #f0f0f0; border: 1px solid #ccc; border-radius: 0.3rem; cursor: pointer; width: 100%; }
+  .select-btn { margin-top: 0.3rem; padding: 0.3rem 0.8rem; font-size: var(--text-sm); background: var(--color-bg-muted); border: 1px solid var(--color-border); border-radius: 0.3rem; cursor: pointer; width: 100%; }
   .select-btn.selected { background: rgba(255, 215, 0, 0.2); border-color: gold; font-weight: bold; }
   .select-btn:disabled { opacity: 0.4; cursor: default; }
 
-  .confirm-btn { margin-top: 0.5rem; padding: 0.5rem 1.5rem; font-size: 0.9rem; background: #4a90d9; color: white; border: none; border-radius: 0.5rem; cursor: pointer; }
-  .confirm-btn:hover { background: #3a7cc9; }
+  .confirm-btn { margin-top: var(--space-4); padding: var(--space-4) var(--space-7); font-size: var(--text-md); background: var(--color-primary); color: white; border: none; border-radius: var(--space-4); cursor: pointer; }
+  .confirm-btn:hover { background: var(--color-primary-hover); }
 </style>

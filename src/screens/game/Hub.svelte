@@ -47,15 +47,15 @@
 </section>
 
 <style>
-  section { margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #ccc; border-radius: 0.4rem; }
-  .shop-items { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.5rem 0; }
+  section { margin-bottom: var(--space-6); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: 0.4rem; }
+  .shop-items { display: flex; flex-direction: column; gap: 0.4rem; margin: var(--space-4) 0; }
   .sprite { width: 2rem; height: 1.7rem; image-rendering: pixelated; flex-shrink: 0; }
-  .pokemon-card { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; padding: 0.4rem 0.6rem; border: 2px solid #ccc; border-radius: 0.4rem; background: #fff; font-size: 0.8rem; }
+  .pokemon-card { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; padding: 0.4rem 0.6rem; border: 2px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); font-size: 0.8rem; }
   .card-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .card-info strong { font-size: 0.8rem; }
-  .pokemon-stats { font-size: 0.7rem; color: #444; }
-  .pokemon-price { font-weight: bold; color: #c8a020; font-size: 0.8rem; flex-shrink: 0; }
-  .trainer-row { padding: 0.15rem 0; font-size: 0.8rem; }
-  .badge { font-size: 0.65rem; background: #e0ffe0; padding: 0.1rem 0.3rem; border-radius: 0.25rem; color: #2a7a2a; margin-left: 0.25rem; }
-  h2, h3 { font-size: 0.9rem; margin: 0.25rem 0; }
+  .pokemon-stats { font-size: 0.7rem; color: var(--color-text-secondary); }
+  .pokemon-price { font-weight: bold; color: var(--color-gold); font-size: 0.8rem; flex-shrink: 0; }
+  .trainer-row { padding: var(--space-1) 0; font-size: 0.8rem; }
+  .badge { font-size: var(--text-xs); background: var(--color-success-confirmed-bg); padding: 0.1rem 0.3rem; border-radius: var(--space-2); color: var(--color-success-confirmed); margin-left: var(--space-2); }
+  h2, h3 { font-size: var(--text-md); margin: var(--space-2) 0; }
 </style>

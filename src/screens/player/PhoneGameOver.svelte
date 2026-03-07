@@ -31,9 +31,9 @@
 </section>
 
 <style>
-  section { padding: 1rem; text-align: center; }
-  .your-score { font-size: 1.5rem; }
-  .standings { text-align: left; margin-top: 1rem; }
+  section { padding: var(--space-6); text-align: center; }
+  .your-score { font-size: var(--text-3xl); }
+  .standings { text-align: left; margin-top: var(--space-6); }
   .row { padding: 0.3rem 0; }
-  .row.you { font-weight: bold; color: #4a90d9; }
+  .row.you { font-weight: bold; color: var(--color-primary); }
 </style>

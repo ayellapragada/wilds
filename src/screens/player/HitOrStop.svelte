@@ -116,42 +116,42 @@
 </section>
 
 <style>
-  section { padding: 1rem; text-align: center; }
+  section { padding: var(--space-6); text-align: center; }
 
   .trail-window {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-6);
     overflow-x: auto;
   }
 
   .you {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     font-weight: bold;
-    color: #4a90d9;
+    color: var(--color-primary);
   }
 
-  .connector { color: #999; font-size: 0.8rem; }
+  .connector { color: var(--color-text-faint); font-size: 0.8rem; }
 
-  .white-out-chance { font-size: 0.75rem; color: rgba(255, 255, 255, 0.85); font-weight: normal; }
+  .white-out-chance { font-size: var(--text-sm); color: rgba(255, 255, 255, 0.85); font-weight: normal; }
   .white-out-chance.danger { color: #ffcdd2; font-weight: 600; }
 
-  .actions { display: flex; gap: 1rem; justify-content: center; margin: 1rem 0; }
-  .hit-btn, .stop-btn { padding: 1rem 2rem; font-size: 1.3rem; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
-  .hit-btn { background: #4caf50; color: white; display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
-  .hit-btn:hover { background: #45a049; }
-  .stop-btn { background: #f44336; color: white; }
-  .stop-btn:hover { background: #e53935; }
+  .actions { display: flex; gap: var(--space-6); justify-content: center; margin: var(--space-6) 0; }
+  .hit-btn, .stop-btn { padding: var(--space-6) var(--space-8); font-size: var(--text-2xl); border: none; border-radius: var(--radius-2xl); cursor: pointer; font-weight: bold; }
+  .hit-btn { background: var(--color-success); color: white; display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+  .hit-btn:hover { background: var(--color-success-hover); }
+  .stop-btn { background: var(--color-danger); color: white; }
+  .stop-btn:hover { background: var(--color-danger-hover); }
   .stop-btn:disabled { opacity: 0.4; cursor: default; }
-  button { padding: 0.75rem 1.5rem; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background: #fff; }
-  button:hover { background: #f0f0f0; }
+  button { padding: var(--space-5) var(--space-7); border: 1px solid var(--color-border); border-radius: var(--radius-lg); cursor: pointer; background: var(--color-bg); }
+  button:hover { background: var(--color-bg-muted); }
   .card-slot {
-    animation: slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: slide-in var(--duration-enter) var(--ease-enter);
   }
   .card-slot.just-drawn {
-    animation: slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: slide-in var(--duration-enter) var(--ease-enter);
   }
 
   @keyframes slide-in {
@@ -160,11 +160,11 @@
   }
 
   .drawn {
-    margin-top: 1rem;
+    margin-top: var(--space-6);
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
+    gap: var(--space-4);
     max-width: 20rem;
     margin-left: auto;
     margin-right: auto;

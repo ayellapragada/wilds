@@ -1,0 +1,137 @@
+/* src/styles/tokens.css — Design system tokens */
+
+:root {
+  /* ——— Colors: Semantic ——— */
+  --color-primary: #4a90d9;
+  --color-primary-hover: #3a7cc9;
+  --color-primary-dark: #2a5aaa;
+  --color-primary-bg: #e0edff;
+  --color-primary-bg-light: #eef4ff;
+  --color-primary-bg-lighter: #f0f8ff;
+
+  --color-success: #4caf50;
+  --color-success-hover: #45a049;
+  --color-success-dark: #2e7d32;
+  --color-success-bg: #e8f5e9;
+  --color-success-confirmed: #2a7a2a;
+  --color-success-confirmed-bg: #e0ffe0;
+
+  --color-danger: #f44336;
+  --color-danger-hover: #e53935;
+  --color-danger-dark: #c62828;
+  --color-danger-bg: #fce4ec;
+  --color-danger-text: #cc4444;
+
+  --color-warning-bg: #fff3cd;
+  --color-warning-text: #856404;
+  --color-error-bg: #f8d7da;
+  --color-error-text: #721c24;
+
+  --color-gold: #c8a020;
+  --color-gold-dark: #b8860b;
+  --color-gold-light: #ffc107;
+  --color-gold-bg: #fff3d0;
+  --color-gold-indicator: #d4a017;
+  --color-gold-indicator-bg: #fff8dc;
+
+  --color-accent: #2563eb;
+
+  /* ——— Colors: Neutral ——— */
+  --color-white: #fff;
+  --color-bg: #fff;
+  --color-bg-subtle: #f8f8f8;
+  --color-bg-muted: #f0f0f0;
+  --color-bg-hover: #eee;
+
+  --color-border: #ccc;
+  --color-border-light: #ddd;
+  --color-border-lighter: #eee;
+  --color-border-dark: #666;
+
+  --color-text: #333;
+  --color-text-secondary: #555;
+  --color-text-muted: #666;
+  --color-text-dim: #888;
+  --color-text-faint: #999;
+
+  /* ——— Colors: Game-specific ——— */
+  --color-trail-border: #8b9b6b;
+  --color-trail-bg: #c8e6a0;
+  --color-trail-vp: #4a6a2a;
+
+  --color-distance-bg: #e8f5e9;
+  --color-distance-text: #2e7d32;
+  --color-cost-bg: #fce4ec;
+  --color-cost-text: #c62828;
+
+  /* ——— Typography ——— */
+  --font-family: system-ui, sans-serif;
+  --font-mono: monospace;
+
+  --text-xs: 0.65rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.85rem;
+  --text-md: 0.9rem;
+  --text-lg: 1rem;
+  --text-xl: 1.1rem;
+  --text-2xl: 1.3rem;
+  --text-3xl: 1.5rem;
+  --text-4xl: 2rem;
+
+  /* ——— Spacing ——— */
+  --space-0: 0;
+  --space-1: 0.15rem;
+  --space-2: 0.25rem;
+  --space-3: 0.35rem;
+  --space-4: 0.5rem;
+  --space-5: 0.75rem;
+  --space-6: 1rem;
+  --space-7: 1.5rem;
+  --space-8: 2rem;
+
+  /* ——— Border Radius ——— */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-full: 50%;
+
+  /* ——— Shadows ——— */
+  --shadow-sm: 0 0 8px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+  /* ——— Animation ——— */
+  --duration-fast: 0.1s;
+  --duration-normal: 0.15s;
+  --duration-slow: 0.2s;
+  --duration-enter: 0.35s;
+
+  --ease-standard: ease;
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: ease-out;
+
+  /* ——— Sizes (fixed pixel values for sprites/indicators) ——— */
+  --sprite-width: 48px;
+  --sprite-height: 40px;
+  --sprite-sm-width: 28px;
+  --sprite-sm-height: 24px;
+  --marker-size: 22px;
+  --dot-size: 12px;
+  --pip-size: 10px;
+}
+
+/* ——— Reset ——— */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+}

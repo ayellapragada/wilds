@@ -49,13 +49,13 @@
 </section>
 
 <style>
-  section { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
-  .vote-options { display: flex; flex-direction: column; gap: 0.75rem; margin: 1rem 0; }
-  .vote-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.75rem 1rem; border: 2px solid #ccc; border-radius: 8px; background: #fff; }
-  .node-type { font-size: 0.75rem; text-transform: uppercase; color: #888; }
-  .node-bonus { font-size: 0.8rem; color: #2a7a2a; font-weight: 500; }
-  .node-mods { font-size: 0.8rem; color: #666; font-style: italic; }
-  .vote-status { font-size: 0.9rem; color: #555; }
-  .trainer-row { padding: 0.25rem 0; font-size: 0.9rem; }
-  .badge { font-size: 0.75rem; background: #e0ffe0; padding: 0.1rem 0.4rem; border-radius: 4px; color: #2a7a2a; margin-left: 0.25rem; }
+  section { margin-bottom: var(--space-7); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+  .vote-options { display: flex; flex-direction: column; gap: var(--space-5); margin: var(--space-6) 0; }
+  .vote-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); padding: var(--space-5) var(--space-6); border: 2px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); }
+  .node-type { font-size: var(--text-sm); text-transform: uppercase; color: var(--color-text-dim); }
+  .node-bonus { font-size: 0.8rem; color: var(--color-success-confirmed); font-weight: 500; }
+  .node-mods { font-size: 0.8rem; color: var(--color-text-muted); font-style: italic; }
+  .vote-status { font-size: var(--text-md); color: var(--color-text-secondary); }
+  .trainer-row { padding: var(--space-2) 0; font-size: var(--text-md); }
+  .badge { font-size: var(--text-sm); background: var(--color-success-confirmed-bg); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--color-success-confirmed); margin-left: var(--space-2); }
 </style>

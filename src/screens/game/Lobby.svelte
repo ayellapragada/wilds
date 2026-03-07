@@ -51,25 +51,25 @@
 </section>
 
 <style>
-  section { margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
-  .join-info { background: #f0f8ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center; }
-  .room-code { font-size: 2rem; margin: 0; }
-  .qr-code { margin: 1rem auto; display: block; }
+  section { margin-bottom: var(--space-7); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+  .join-info { background: var(--color-primary-bg-lighter); padding: var(--space-6); border-radius: var(--radius-lg); margin-bottom: var(--space-6); text-align: center; }
+  .room-code { font-size: var(--text-4xl); margin: 0; }
+  .qr-code { margin: var(--space-6) auto; display: block; }
   .copy-url {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-4);
     background: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: 0.4rem var(--space-5);
     cursor: pointer;
     font-family: inherit;
     font-size: 0.8rem;
-    color: #666;
-    transition: border-color 0.2s;
+    color: var(--color-text-muted);
+    transition: border-color var(--duration-slow);
   }
-  .copy-url:hover { border-color: #999; background: #f5f5f5; }
-  .trainer-list { margin-top: 1rem; }
-  .trainer-row { padding: 0.25rem 0; font-size: 1rem; }
+  .copy-url:hover { border-color: var(--color-text-faint); background: #f5f5f5; }
+  .trainer-list { margin-top: var(--space-6); }
+  .trainer-row { padding: var(--space-2) 0; font-size: var(--text-lg); }
 </style>

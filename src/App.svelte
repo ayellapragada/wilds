@@ -94,7 +94,7 @@
 {:else if route.screen === 'landing'}
   <main>
     <h1>Wilds</h1>
-    <a href="#/sandbox" style="font-size: 0.85rem; color: #666;">Sandbox →</a>
+    <a href="#/sandbox" class="nav-link">Sandbox →</a>
     <section>
       <h2>{copy.joinRoom}</h2>
       <input bind:value={roomInput} placeholder={copy.roomCode} />
@@ -107,13 +107,13 @@
 {:else if route.screen === 'game' && gameState?.type === 'tv'}
   <main>
     <h1>Wilds</h1>
-    <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
+    <a href="#/" class="nav-link">← Back</a>
     <GameScreen gameState={gameState} />
   </main>
 {:else if route.screen === 'player' && gameState}
   <main>
     <h1>Wilds</h1>
-    <a href="#/" style="font-size: 0.85rem; color: #666;">← Back</a>
+    <a href="#/" class="nav-link">← Back</a>
     <PlayerScreen gameState={gameState as PhoneViewState} {send} onJoin={handleJoin} />
   </main>
 {:else if connectionStatus === 'connecting' || connectionStatus === 'reconnecting'}
@@ -125,54 +125,57 @@
 
 <style>
   main {
-    font-family: system-ui, sans-serif;
     max-width: 600px;
     margin: 0 auto;
-    padding: 1rem;
+    padding: var(--space-6);
   }
   section {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 8px;
+    margin-bottom: var(--space-7);
+    padding: var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
   }
   button {
-    margin: 0.25rem;
-    padding: 0.5rem 1rem;
+    margin: var(--space-2);
+    padding: var(--space-4) var(--space-6);
     border-radius: 4px;
-    border: 1px solid #666;
-    background: #fff;
+    border: 1px solid var(--color-border-dark);
+    background: var(--color-bg);
     cursor: pointer;
   }
-  button:hover { background: #eee; }
+  button:hover { background: var(--color-bg-hover); }
   button:disabled { opacity: 0.4; cursor: default; }
   input {
-    padding: 0.5rem;
-    border: 1px solid #ccc;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
     border-radius: 4px;
-    margin-right: 0.5rem;
+    margin-right: var(--space-4);
   }
   .join-buttons {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
   }
   .connection-banner {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    padding: 0.5rem;
+    padding: var(--space-4);
     text-align: center;
-    font-size: 0.85rem;
+    font-size: var(--text-base);
     z-index: 100;
   }
   .connection-banner.reconnecting {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
   }
   .connection-banner.disconnected {
-    background: #f8d7da;
-    color: #721c24;
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
+  }
+  .nav-link {
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
   }
 </style>

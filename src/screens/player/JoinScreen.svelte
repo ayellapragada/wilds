@@ -27,9 +27,9 @@
 </section>
 
 <style>
-  section { padding: 1rem; text-align: center; }
-  input { padding: 0.75rem; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 8px; width: 100%; max-width: 300px; margin-bottom: 1rem; }
-  button { padding: 0.75rem 2rem; font-size: 1.1rem; background: #4a90d9; color: white; border: none; border-radius: 8px; cursor: pointer; }
-  button:hover { background: #3a7cc9; }
+  section { padding: var(--space-6); text-align: center; }
+  input { padding: var(--space-5); font-size: var(--text-xl); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; max-width: 300px; margin-bottom: var(--space-6); }
+  button { padding: var(--space-5) var(--space-8); font-size: var(--text-xl); background: var(--color-primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; }
+  button:hover { background: var(--color-primary-hover); }
   button:disabled { opacity: 0.4; cursor: default; }
 </style>

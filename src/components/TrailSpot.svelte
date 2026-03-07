@@ -23,45 +23,44 @@
 
 <style>
   .spot {
-    /* width/height set via inline style */
-    border: 2px solid #8b9b6b;
-    border-radius: 6px;
-    background: #c8e6a0;
+    border: 2px solid var(--color-trail-border);
+    border-radius: var(--radius-md);
+    background: var(--color-trail-bg);
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .spot.highlighted { border-color: #4a90d9; border-width: 3px; background: #d4eaff; }
+  .spot.highlighted { border-color: var(--color-primary); border-width: 3px; background: #d4eaff; }
 
   .vp {
     position: absolute;
     top: 2px;
     right: 4px;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     font-weight: bold;
-    color: #4a6a2a;
+    color: var(--color-trail-vp);
   }
 
   .currency {
     position: absolute;
     top: 2px;
     left: 4px;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     font-weight: bold;
-    color: #b8860b;
+    color: var(--color-gold-dark);
   }
 
   .item-indicator {
     position: absolute;
     bottom: 2px;
     right: 4px;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     font-weight: bold;
-    color: #d4a017;
-    background: #fff8dc;
-    border-radius: 3px;
+    color: var(--color-gold-indicator);
+    background: var(--color-gold-indicator-bg);
+    border-radius: var(--radius-sm);
     padding: 0 2px;
     line-height: 1;
   }

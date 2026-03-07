@@ -44,11 +44,11 @@
 </section>
 
 <style>
-  section { padding: 1rem; text-align: center; }
-  .vote-options { display: flex; flex-direction: column; gap: 0.75rem; margin: 1rem 0; }
-  .vote-card { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.75rem 1rem; border: 2px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer; text-align: left; width: 100%; }
-  .vote-card:hover { border-color: #888; }
-  .vote-card.selected { border-color: #4a90d9; background: #eef4ff; }
-  .node-type { font-size: 0.75rem; text-transform: uppercase; color: #888; }
-  .node-bonus { font-size: 0.8rem; color: #2a7a2a; }
+  section { padding: var(--space-6); text-align: center; }
+  .vote-options { display: flex; flex-direction: column; gap: var(--space-5); margin: var(--space-6) 0; }
+  .vote-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); padding: var(--space-5) var(--space-6); border: 2px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); cursor: pointer; text-align: left; width: 100%; }
+  .vote-card:hover { border-color: var(--color-text-dim); }
+  .vote-card.selected { border-color: var(--color-primary); background: var(--color-primary-bg-light); }
+  .node-type { font-size: var(--text-sm); text-transform: uppercase; color: var(--color-text-dim); }
+  .node-bonus { font-size: 0.8rem; color: var(--color-success-confirmed); }
 </style>

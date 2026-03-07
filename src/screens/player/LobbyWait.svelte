@@ -32,10 +32,10 @@
 </section>
 
 <style>
-  section { padding: 1rem; text-align: center; }
-  .trainer-list { margin: 1rem 0; }
-  .trainer-row { padding: 0.25rem 0; font-size: 1rem; }
-  button { padding: 0.75rem 2rem; font-size: 1.1rem; background: #4a90d9; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 1rem; }
-  button:hover { background: #3a7cc9; }
+  section { padding: var(--space-6); text-align: center; }
+  .trainer-list { margin: var(--space-6) 0; }
+  .trainer-row { padding: var(--space-2) 0; font-size: var(--text-lg); }
+  button { padding: var(--space-5) var(--space-8); font-size: var(--text-xl); background: var(--color-primary); color: white; border: none; border-radius: var(--radius-lg); cursor: pointer; margin-top: var(--space-6); }
+  button:hover { background: var(--color-primary-hover); }
   button:disabled { opacity: 0.4; cursor: default; }
 </style>
