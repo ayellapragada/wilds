@@ -1,12 +1,12 @@
 export const copy = {
   // Game mechanics
-  cost: "Cost",
+  cost: "Fatigue",
   distance: "Distance",
   score: "Score",
   currency: "Currency",
 
   // Stat abbreviations (used inline like "+3d / +2c")
-  costAbbr: "c",
+  costAbbr: "f",
   distanceAbbr: "d",
 
   // Trainer statuses
@@ -67,7 +67,7 @@ export const copy = {
   youAre: "You are",
 
   // Route modifier templates
-  modHarshTerrain: "Harsh terrain: +1 cost to all draws",
+  modHarshTerrain: "Harsh terrain: +1 fatigue to all draws",
   modThinAir: "Thin air: -1 bust threshold",
   modTailwind: "Tailwind: +1 distance to all draws",
 } as const;
