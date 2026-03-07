@@ -16,6 +16,15 @@
   let myPosition = $derived(trail ? getTrailPosition(trail, me.routeProgress.totalDistance) : 0);
   let currentVP = $derived(trail ? trail.spots[myPosition].vp : 0);
 
+  let whiteOutChance = $derived.by(() => {
+    if (me.routeProgress.pokemonDrawn === 0) return null;
+    // drawPile may be empty if all cards drawn; discard would reshuffle on next draw
+    const remaining = me.deck.drawPile.length > 0 ? me.deck.drawPile : me.deck.discard;
+    if (remaining.length === 0) return 100;
+    const bustCards = remaining.filter(p => me.routeProgress.totalCost + p.cost > me.bustThreshold);
+    return Math.round((bustCards.length / remaining.length) * 100);
+  });
+
   // Sliding window: show current spot + next N spots
   let windowSpots = $derived.by(() => {
     if (!trail) return [];
@@ -58,7 +67,12 @@
 
   {#if me.status === 'exploring'}
     <div class="actions">
-      <button class="hit-btn" onclick={hit}>{copy.hitButton}</button>
+      <button class="hit-btn" onclick={hit}>
+        {copy.hitButton}
+        {#if whiteOutChance !== null}
+          <span class="white-out-chance" class:danger={whiteOutChance >= 50}>{whiteOutChance}%</span>
+        {/if}
+      </button>
       <button class="stop-btn" onclick={stop} disabled={me.routeProgress.pokemonDrawn === 0}>{copy.stopButton}</button>
     </div>
   {:else if me.status === 'busted'}
@@ -128,9 +142,12 @@
 
   .connector { color: #999; font-size: 0.8rem; }
 
+  .white-out-chance { font-size: 0.75rem; color: rgba(255, 255, 255, 0.85); font-weight: normal; }
+  .white-out-chance.danger { color: #ffcdd2; font-weight: 600; }
+
   .actions { display: flex; gap: 1rem; justify-content: center; margin: 1rem 0; }
   .hit-btn, .stop-btn { padding: 1rem 2rem; font-size: 1.3rem; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; }
-  .hit-btn { background: #4caf50; color: white; }
+  .hit-btn { background: #4caf50; color: white; display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
   .hit-btn:hover { background: #45a049; }
   .stop-btn { background: #f44336; color: white; }
   .stop-btn:hover { background: #e53935; }
