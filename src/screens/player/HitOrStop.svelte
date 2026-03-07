@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { PhoneViewState, Action, TrailSpot } from '../../../engine/types';
   import { getTrailPosition } from '../../../engine/models/trail';
-  import { spriteUrl, typeColor } from '../../lib/assets';
   import { copy } from '../../../copy';
+  import PokemonCard from '../../components/PokemonCard.svelte';
 
   const TRAIL_WINDOW_SIZE = 5;
 
@@ -31,6 +31,23 @@
     const start = myPosition;
     const end = Math.min(start + TRAIL_WINDOW_SIZE + 1, trail.spots.length);
     return trail.spots.slice(start, end);
+  });
+
+  let lastDrawnId = $state<string | null>(null);
+  let prevDrawnCount = $state(0);
+  let drawnReversed = $derived([...me.deck.drawn].reverse());
+
+  $effect(() => {
+    const count = me.deck.drawn.length;
+    if (count === 0) {
+      lastDrawnId = null;
+      prevDrawnCount = 0;
+      return;
+    }
+    if (count > prevDrawnCount) {
+      lastDrawnId = me.deck.drawn[count - 1].id;
+    }
+    prevDrawnCount = count;
   });
 
   function hit() { send({ type: 'hit', trainerId: me.id }); }
@@ -89,11 +106,10 @@
   {#if me.deck.drawn.length > 0}
     <div class="drawn">
       <h3>{copy.drawn}</h3>
-      {#each me.deck.drawn as pkmn}
-        <span class="pokemon" title={pkmn.description} style="background: {typeColor(pkmn.types)}">
-          <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
-          {pkmn.name} (+{pkmn.distance}{copy.distanceAbbr} / +{pkmn.cost}{copy.costAbbr})
-        </span>
+      {#each drawnReversed as pkmn (pkmn.id)}
+        <div class="card-slot" class:just-drawn={pkmn.id === lastDrawnId}>
+          <PokemonCard pokemon={pkmn} highlighted={pkmn.id === lastDrawnId} collapsed={pkmn.id !== lastDrawnId} />
+        </div>
       {/each}
     </div>
   {/if}
@@ -154,7 +170,26 @@
   .stop-btn:disabled { opacity: 0.4; cursor: default; }
   button { padding: 0.75rem 1.5rem; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background: #fff; }
   button:hover { background: #f0f0f0; }
-  .drawn { margin-top: 1rem; text-align: left; display: flex; flex-direction: column; gap: 0.5rem; }
-  .sprite { width: 34px; height: 28px; image-rendering: pixelated; vertical-align: middle; margin-right: 0.25rem; }
-  .pokemon { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; border: 1px solid #aaa; }
+  .card-slot {
+    animation: slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .card-slot.just-drawn {
+    animation: slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes slide-in {
+    from { transform: translateY(-40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .drawn {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    max-width: 20rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
 </style>
