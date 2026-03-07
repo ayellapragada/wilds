@@ -1,19 +1,22 @@
-import type { Trail, TrailSpot, RouteNodeType } from "../types";
+import type { Trail, TrailSpot, RouteNodeType, CurrencyDistribution } from "../types";
 import type { RngFn } from "../map-generator";
 
 export interface TrailConfig {
   readonly routeType: RouteNodeType;
   readonly tier: number;
   readonly totalTiers: number;
+  readonly currencyDistribution: CurrencyDistribution;
 }
 
 export function generateTrail(config: TrailConfig, _rng: RngFn): Trail {
   const length = trailLength(config);
   const vpValues = distributeVP(config.routeType, length, config);
+  const currencyValues = distributeCurrency(config.currencyDistribution, length);
 
   const spots: TrailSpot[] = vpValues.map((vp, index) => ({
     index,
     vp,
+    currency: currencyValues[index],
     distanceCost: 1,
   }));
 
@@ -54,6 +57,33 @@ function maxVP(config: TrailConfig): number {
     config.routeType === "elite_route" ? 12 :
     config.routeType === "beginner" ? 7 : 9;
   return baseMax + tierBonus;
+}
+
+function distributeCurrency(dist: CurrencyDistribution, length: number): number[] {
+  const values = new Array(length).fill(0);
+  if (length <= 1) return values;
+
+  for (let i = 1; i < length; i++) {
+    const t = i / (length - 1);
+    let frac: number;
+    switch (dist.curve) {
+      case "flat":
+        frac = 1;
+        break;
+      case "linear":
+        frac = t;
+        break;
+      case "accelerating":
+        frac = t * t * t;
+        break;
+      case "front_loaded":
+        frac = Math.sqrt(t);
+        break;
+    }
+    values[i] = dist.curve === "flat" ? dist.total : Math.max(1, Math.round(frac * dist.total));
+  }
+
+  return values;
 }
 
 function distributeVP(routeType: RouteNodeType, length: number, config: TrailConfig): number[] {

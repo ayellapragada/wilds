@@ -20,6 +20,7 @@ function makeTestState(): GameState {
     id: "node1", type: "route", bonus: null, name: "Test Route", tier: 1,
     connections: ["node2"], bustThreshold: 7, modifiers: [], visited: true,
     pokemonPool: ["charmeleon", "graveler", "wartortle", "haunter", "swellow", "snorlax"],
+    currencyDistribution: { total: 3, curve: "flat" as const },
   };
 
   const map: WorldMap = {

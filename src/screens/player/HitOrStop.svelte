@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { PhoneViewState, Action, TrailSpot } from '../../../engine/types';
+  import type { PhoneViewState, Action } from '../../../engine/types';
   import { getTrailPosition } from '../../../engine/models/trail';
   import { copy } from '../../../copy';
   import PokemonCard from '../../components/PokemonCard.svelte';
+  import TrailSpot from '../../components/TrailSpot.svelte';
 
   const TRAIL_WINDOW_SIZE = 5;
 
@@ -63,12 +64,11 @@
   {#if trail}
     <div class="trail-window">
       {#each windowSpots as spot, i}
-        <div class="spot" class:current={i === 0}>
-          <span class="vp">{spot.vp}</span>
+        <TrailSpot {spot} highlighted={i === 0}>
           {#if i === 0}
             <span class="you">You</span>
           {/if}
-        </div>
+        </TrailSpot>
         {#if i < windowSpots.length - 1}
           <span class="connector">→</span>
         {/if}
@@ -97,7 +97,7 @@
     <p>{copy.choosePenalty}</p>
     <div class="actions">
       <button onclick={() => choosePenalty('keep_score')}>{copy.keepScoreButton} (+{currentVP} VP)</button>
-      <button onclick={() => choosePenalty('keep_currency')}>{copy.keepCurrencyButton} (+{Math.floor(me.routeProgress.totalDistance / 3)})</button>
+      <button onclick={() => choosePenalty('keep_currency')}>{copy.keepCurrencyButton} (+{trail ? trail.spots[myPosition].currency : 0})</button>
     </div>
   {:else if me.status === 'stopped'}
     <p>{copy.statusStopped}! {copy.waitingForOthers}</p>
@@ -125,29 +125,6 @@
     gap: 4px;
     margin-bottom: 1rem;
     overflow-x: auto;
-  }
-
-  .spot {
-    width: 52px;
-    height: 52px;
-    border: 2px solid #8b9b6b;
-    border-radius: 6px;
-    background: #c8e6a0;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .spot.current { border-color: #4a90d9; border-width: 3px; background: #d4eaff; }
-
-  .vp {
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    font-size: 0.6rem;
-    font-weight: bold;
-    color: #4a6a2a;
   }
 
   .you {

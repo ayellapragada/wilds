@@ -72,6 +72,7 @@ function makeMap(): WorldMap {
     modifiers: [],
     visited: true,
     pokemonPool: ["rattata", "pidgey", "charmander", "squirtle"],
+    currencyDistribution: { total: 3, curve: "flat" },
   };
   const nodeA: RouteNode = {
     id: "node_a",
@@ -84,6 +85,7 @@ function makeMap(): WorldMap {
     modifiers: [],
     visited: false,
     pokemonPool: ["rattata", "pidgey", "caterpie", "bulbasaur"],
+    currencyDistribution: { total: 3, curve: "flat" },
   };
   const nodeB: RouteNode = {
     id: "node_b",
@@ -96,6 +98,7 @@ function makeMap(): WorldMap {
     modifiers: [{ id: "mod1", description: "+1 distance per draw", type: "distance_bonus", value: 1 }],
     visited: false,
     pokemonPool: ["charmander", "squirtle", "bulbasaur"],
+    currencyDistribution: { total: 3, curve: "flat" },
   };
   const nodeC: RouteNode = {
     id: "node_c",
@@ -108,6 +111,7 @@ function makeMap(): WorldMap {
     modifiers: [],
     visited: false,
     pokemonPool: ["charmander", "squirtle", "bulbasaur"],
+    currencyDistribution: { total: 3, curve: "flat" },
   };
   return {
     nodes: {
@@ -123,7 +127,7 @@ function makeMap(): WorldMap {
 
 /** Build a route for use in route-phase presets. */
 function makeRoute(trainerIds: string[]): Route {
-  const trail = generateTrail({ routeType: "route", tier: 3, totalTiers: 8 }, Math.random);
+  const trail = generateTrail({ routeType: "route", tier: 3, totalTiers: 8, currencyDistribution: { total: 3, curve: "flat" } }, Math.random);
   return {
     routeNumber: 1,
     name: "Ember Trail",

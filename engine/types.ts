@@ -56,11 +56,19 @@ export interface Trainer {
 export interface TrailSpot {
   readonly index: number;
   readonly vp: number;
+  readonly currency: number;
   readonly distanceCost: number;
 }
 
 export interface Trail {
   readonly spots: readonly TrailSpot[];
+}
+
+export type CurrencyCurve = "flat" | "linear" | "accelerating" | "front_loaded";
+
+export interface CurrencyDistribution {
+  readonly total: number;
+  readonly curve: CurrencyCurve;
 }
 
 // === Route (a single push-your-luck round) ===
@@ -106,6 +114,7 @@ export interface RouteNode {
   readonly connections: readonly string[];
   readonly bustThreshold: number;
   readonly modifiers: readonly RouteModifier[];
+  readonly currencyDistribution: CurrencyDistribution;
   readonly visited: boolean;
   readonly pokemonPool: readonly string[];
 }

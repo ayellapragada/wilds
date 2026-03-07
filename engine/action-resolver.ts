@@ -280,7 +280,7 @@ function handleStop(
     }
   }
 
-  const currencyEarned = Math.floor(distanceEarned / 3) + bonusCurrency;
+  const currencyEarned = trail.spots[trailPos].currency + bonusCurrency;
 
   events.push(
     { type: "trainer_stopped", trainerId: trainer.id, totalDistance: distanceEarned, vpEarned },
@@ -335,7 +335,7 @@ function handleBustPenalty(
     }
   }
 
-  const currency = Math.floor(distance / 3) + bonusCurrency;
+  const currency = trail.spots[trailPos].currency + bonusCurrency;
 
   const updatedTrainer: Trainer = {
     ...trainer,

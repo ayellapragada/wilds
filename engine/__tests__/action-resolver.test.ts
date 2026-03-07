@@ -300,7 +300,8 @@ describe("action-resolver", () => {
       const trainer = state.trainers["t0"];
 
       expect(trainer.score).toBe(expectedVP);
-      expect(trainer.currency).toBe(Math.floor(distance / 3));
+      const expectedCurrency = trail.spots[getTrailPosition(trail, distance)].currency;
+      expect(trainer.currency).toBe(expectedCurrency);
       expect(trainer.status).toBe("stopped");
     });
 
@@ -405,11 +406,13 @@ describe("action-resolver", () => {
       state = forceBust(state, "t0");
       const scoreBefore = state.trainers["t0"].score;
       const currencyBefore = state.trainers["t0"].currency;
+      const trail = state.currentRoute!.trail;
+      const expectedCurrency = trail.spots[getTrailPosition(trail, 7)].currency;
 
       [state] = bustPenalty(state, "t0", "keep_currency");
 
       expect(state.trainers["t0"].score).toBe(scoreBefore); // no score gain
-      expect(state.trainers["t0"].currency).toBe(currencyBefore + Math.floor(7 / 3));
+      expect(state.trainers["t0"].currency).toBe(currencyBefore + expectedCurrency);
       expect(state.trainers["t0"].status).toBe("stopped");
     });
 
@@ -550,6 +553,7 @@ describe("action-resolver", () => {
       const champNode: RouteNode = {
         id: "champ", type: "champion", bonus: null, name: "Champion", tier: 7,
         connections: [], bustThreshold: 5, modifiers: [], visited: true, pokemonPool: [],
+        currencyDistribution: { total: 3, curve: "flat" as const },
       };
       state = {
         ...state,
@@ -598,8 +602,8 @@ describe("action-resolver", () => {
       // Stop — end_of_round should fire Meowth's Pay Day (+1 currency)
       const [finalState] = stop(state, "t0");
       const trainer = finalState.trainers.t0;
-      // Base currency: floor(2/3) = 0, plus bonus_currency: 1
-      expect(trainer.currency).toBe(1);
+      // Tile currency at position 2: 3, plus bonus_currency from Pay Day: 1
+      expect(trainer.currency).toBe(4);
     });
 
     test("bonus_currency from end_of_round is included in bust keep_currency choice", () => {
@@ -627,8 +631,8 @@ describe("action-resolver", () => {
 
       const [finalState] = bustPenalty(state, "t0", "keep_currency");
       const trainer = finalState.trainers.t0;
-      // distance = 2 + 5 = 7, base currency = floor(7/3) = 2, bonus = 1 from meowth
-      expect(trainer.currency).toBe(3);
+      // distance = 2 + 5 = 7, tile currency at position 7: 3, bonus = 1 from meowth
+      expect(trainer.currency).toBe(4);
     });
 
     test("bonus_currency is lost when bust and keep_score", () => {

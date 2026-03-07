@@ -1,7 +1,8 @@
 <script lang="ts">
-  import type { TVViewState, TrainerPublicInfo, TrailSpot } from '../../../engine/types';
+  import type { TVViewState, TrainerPublicInfo, TrailSpot as TrailSpotType } from '../../../engine/types';
   import { getTrailPosition } from '../../../engine/models/trail';
   import { copy } from '../../../copy';
+  import TrailSpot from '../../components/TrailSpot.svelte';
 
   const SPOTS_PER_ROW = 8;
   const TRAINER_COLORS = ['#4a90d9', '#e85d75', '#50b86c', '#f5a623', '#9b59b6', '#1abc9c'];
@@ -16,7 +17,7 @@
   // Build rows for the snaking trail
   let rows = $derived.by(() => {
     if (!trail) return [];
-    const result: TrailSpot[][] = [];
+    const result: TrailSpotType[][] = [];
     for (let i = 0; i < trail.spots.length; i += SPOTS_PER_ROW) {
       const row = trail.spots.slice(i, i + SPOTS_PER_ROW);
       const rowIndex = Math.floor(i / SPOTS_PER_ROW);
@@ -56,8 +57,7 @@
       {#each rows as row, rowIdx}
         <div class="trail-row" class:reversed={rowIdx % 2 === 1}>
           {#each row as spot}
-            <div class="spot" class:start={spot.index === 0}>
-              <span class="vp">{spot.vp}</span>
+            <TrailSpot {spot} size={64} highlighted={spot.index === 0}>
               <div class="markers">
                 {#each trainerPositions.get(spot.index) ?? [] as trainer}
                   <span
@@ -67,7 +67,7 @@
                   >{trainer.name[0]}</span>
                 {/each}
               </div>
-            </div>
+            </TrailSpot>
           {/each}
         </div>
       {/each}
@@ -95,29 +95,6 @@
   .trail { display: flex; flex-direction: column; gap: 2px; margin-bottom: 1.5rem; }
   .trail-row { display: flex; gap: 2px; }
   .trail-row.reversed { flex-direction: row-reverse; }
-
-  .spot {
-    width: 64px;
-    height: 64px;
-    border: 2px solid #8b9b6b;
-    border-radius: 6px;
-    background: #c8e6a0;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .spot.start { background: #a8d878; border-color: #5a8a3a; }
-
-  .vp {
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    font-size: 0.65rem;
-    font-weight: bold;
-    color: #4a6a2a;
-  }
 
   .markers {
     display: flex;

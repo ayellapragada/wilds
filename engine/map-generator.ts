@@ -1,4 +1,4 @@
-import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier } from "./types";
+import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier, CurrencyDistribution } from "./types";
 import { getAllTemplateIds, getTemplate } from "./pokemon/catalog";
 import { copy, modTypeTerrain } from "../copy";
 
@@ -31,12 +31,12 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
     if (tier === 0) {
       // Tier 0: single beginner start node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "beginner", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng), 8, []);
+      nodes[id] = makeNode(id, "beginner", tier, pickName(), null, generatePokemonPool(tier, totalTiers, rng), 8, [], defaultCurrencyDistribution("beginner"));
       tierNodeIds.push(id);
     } else if (tier === totalTiers - 1) {
       // Last tier: single champion node
       const id = `t${tier}_0`;
-      nodes[id] = makeNode(id, "champion", tier, "Champion Route", null, [], 5, []);
+      nodes[id] = makeNode(id, "champion", tier, "Champion Route", null, [], 5, [], defaultCurrencyDistribution("champion"));
       tierNodeIds.push(id);
     } else {
       // Middle tiers: 2-3 nodes
@@ -49,7 +49,7 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
         const bonus = rng() < 0.3 ? BONUS_TYPES[Math.floor(rng() * BONUS_TYPES.length)] : null;
         const bustThreshold = nodeType === "elite_route" ? (5 + Math.floor(rng() * 2)) : 7;
         const modifiers = generateModifiers(nodeType, tier, totalTiers, rng);
-        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generatePokemonPool(tier, totalTiers, rng), bustThreshold, modifiers);
+        nodes[id] = makeNode(id, nodeType, tier, pickName(), bonus, generatePokemonPool(tier, totalTiers, rng), bustThreshold, modifiers, defaultCurrencyDistribution(nodeType));
         tierNodeIds.push(id);
       }
     }
@@ -172,10 +172,15 @@ function generateModifiers(
   return modifiers;
 }
 
+function defaultCurrencyDistribution(_type: RouteNodeType): CurrencyDistribution {
+  return { total: 3, curve: "flat" };
+}
+
 function makeNode(
   id: string, type: RouteNodeType, tier: number,
   name: string, bonus: BonusType | null, pokemonPool: string[],
   bustThreshold: number, modifiers: RouteModifier[],
+  currencyDistribution: CurrencyDistribution,
 ): RouteNode {
-  return { id, type, bonus, name, tier, connections: [], bustThreshold, modifiers, visited: false, pokemonPool };
+  return { id, type, bonus, name, tier, connections: [], bustThreshold, modifiers, currencyDistribution, visited: false, pokemonPool };
 }

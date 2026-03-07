@@ -17,6 +17,7 @@ export function createRoute(
     routeType: node.type,
     tier: node.tier,
     totalTiers,
+    currencyDistribution: node.currencyDistribution,
   }, rng);
 
   return {
