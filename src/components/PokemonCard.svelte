@@ -43,11 +43,6 @@
   </div>
 
   {#if !isCollapsed}
-    <div class="stats">
-      <span class="stat distance">+{pokemon.distance}{copy.distanceAbbr}</span>
-      <span class="stat cost">+{pokemon.cost}{copy.costAbbr}</span>
-    </div>
-
     {#if pokemon.moves.length > 0}
       <div class="moves">
         {#each pokemon.moves as move}
@@ -58,6 +53,11 @@
         {/each}
       </div>
     {/if}
+
+    <div class="stats">
+      <span class="stat distance">+{pokemon.distance}{copy.distanceAbbr}</span>
+      <span class="stat cost">+{pokemon.cost}{copy.costAbbr}</span>
+    </div>
   {/if}
 </div>
 
@@ -69,7 +69,6 @@
     background: var(--color-bg);
     width: 100%;
     cursor: pointer;
-    height: 11.25rem;
     display: flex;
     flex-direction: column;
   }
@@ -107,7 +106,7 @@
     gap: var(--space-4);
     padding: 0.3rem var(--space-4);
     justify-content: center;
-    border-bottom: 1px solid var(--color-border-lighter);
+    border-top: 1px solid var(--color-border-lighter);
   }
   .stat {
     font-weight: 600;
