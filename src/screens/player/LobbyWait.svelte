@@ -7,20 +7,20 @@
     send: (action: Action) => void;
   } = $props();
 
+  let me = $derived(gameState.me);
   let allTrainers = $derived([
-    ...(gameState.me ? [{ id: gameState.me.id, name: gameState.me.name }] : []),
+    { id: me.id, name: me.name },
     ...Object.values(gameState.otherTrainers).map(t => ({ id: t.id, name: t.name })),
   ]);
 
   function startGame() {
-    if (!gameState.me) return;
-    send({ type: 'start_game', trainerId: gameState.me.id });
+    send({ type: 'start_game', trainerId: me.id });
   }
 </script>
 
 <section>
   <h2>{copy.waitingForStart}</h2>
-  <p>{copy.youAre}: <strong>{gameState.me?.name}</strong></p>
+  <p>{copy.youAre}: <strong>{me.name}</strong></p>
 
   <div class="trainer-list">
     {#each allTrainers as trainer}

@@ -9,21 +9,21 @@
   let me = $derived(gameState.me);
   let allTrainers = $derived(
     [
-      ...(me ? [{ name: me.name, score: me.score }] : []),
+      { name: me.name, score: me.score },
       ...Object.values(gameState.otherTrainers).map(t => ({ name: t.name, score: t.score })),
     ].sort((a, b) => b.score - a.score)
   );
-  let myRank = $derived(allTrainers.findIndex(t => t.name === me?.name) + 1);
+  let myRank = $derived(allTrainers.findIndex(t => t.name === me.name) + 1);
 </script>
 
 <section>
   <h2>{copy.gameOver}</h2>
-  <p class="your-score">{copy.yourScore}: <strong>{me?.score ?? 0}</strong></p>
+  <p class="your-score">{copy.yourScore}: <strong>{me.score}</strong></p>
   <p>{copy.rank}: #{myRank} of {allTrainers.length}</p>
 
   <div class="standings">
     {#each allTrainers as trainer, i}
-      <div class="row" class:you={trainer.name === me?.name}>
+      <div class="row" class:you={trainer.name === me.name}>
         #{i + 1} <strong>{trainer.name}</strong> — {trainer.score}
       </div>
     {/each}

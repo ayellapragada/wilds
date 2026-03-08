@@ -13,9 +13,10 @@
   } = $props();
 
   let me = $derived(gameState.me);
-  let trail = $derived(gameState.currentRoute?.trail);
-  let myPosition = $derived(trail ? getTrailPosition(trail, me.routeProgress.totalDistance) : 0);
-  let currentVP = $derived(trail ? trail.spots[myPosition].vp : 0);
+  let route = $derived(gameState.currentRoute!);
+  let trail = $derived(route.trail);
+  let myPosition = $derived(getTrailPosition(trail, me.routeProgress.totalDistance));
+  let currentVP = $derived(trail.spots[myPosition].vp);
 
   let whiteOutChance = $derived.by(() => {
     if (me.routeProgress.pokemonDrawn === 0) return null;
@@ -28,7 +29,6 @@
 
   // Sliding window: show current spot + next N spots
   let windowSpots = $derived.by(() => {
-    if (!trail) return [];
     const start = myPosition;
     const end = Math.min(start + TRAIL_WINDOW_SIZE + 1, trail.spots.length);
     return trail.spots.slice(start, end);
@@ -61,20 +61,18 @@
 <section>
   <h2>{copy.route} {gameState.routeNumber}</h2>
 
-  {#if trail}
-    <div class="trail-window">
-      {#each windowSpots as spot, i}
-        <TrailSpot {spot} highlighted={i === 0}>
-          {#if i === 0}
-            <span class="you">You</span>
-          {/if}
-        </TrailSpot>
-        {#if i < windowSpots.length - 1}
-          <span class="connector">→</span>
+  <div class="trail-window">
+    {#each windowSpots as spot, i}
+      <TrailSpot {spot} highlighted={i === 0}>
+        {#if i === 0}
+          <span class="you">You</span>
         {/if}
-      {/each}
-    </div>
-  {/if}
+      </TrailSpot>
+      {#if i < windowSpots.length - 1}
+        <span class="connector">→</span>
+      {/if}
+    {/each}
+  </div>
 
   <p>
     {copy.distance}: <strong>{me.routeProgress.totalDistance}</strong> |
@@ -97,7 +95,7 @@
     <p>{copy.choosePenalty}</p>
     <div class="actions">
       <button onclick={() => choosePenalty('keep_score')}>{copy.keepScoreButton} (+{currentVP} VP)</button>
-      <button onclick={() => choosePenalty('keep_currency')}>{copy.keepCurrencyButton} (+{trail ? trail.spots[myPosition].currency : 0})</button>
+      <button onclick={() => choosePenalty('keep_currency')}>{copy.keepCurrencyButton} (+{trail.spots[myPosition].currency})</button>
     </div>
   {:else if me.status === 'stopped'}
     <p>{copy.statusStopped}! {copy.waitingForOthers}</p>

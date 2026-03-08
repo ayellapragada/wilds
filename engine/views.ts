@@ -34,6 +34,9 @@ export function createTVView(state: GameState): TVViewState {
 }
 
 export function createPhoneView(state: GameState, trainerId: string): PhoneViewState {
+  const me = state.trainers[trainerId];
+  if (!me) throw new Error(`Trainer ${trainerId} not found in game state`);
+
   const otherTrainers: Record<string, TrainerPublicInfo> = {};
   for (const [id, trainer] of Object.entries(state.trainers)) {
     if (id !== trainerId) {
@@ -45,7 +48,7 @@ export function createPhoneView(state: GameState, trainerId: string): PhoneViewS
     type: "phone",
     roomCode: state.roomCode,
     phase: state.phase,
-    me: state.trainers[trainerId],
+    me,
     otherTrainers,
     currentRoute: state.currentRoute,
     hub: state.hub,

@@ -9,8 +9,10 @@
   } = $props();
 
   let trainerList = $derived(Object.values(gameState.trainers) as TrainerPublicInfo[]);
-  let availableNodes = $derived(gameState.map ? getAvailableNodes(gameState.map) : []);
-  let voteCount = $derived(Object.keys(gameState.votes ?? {}).length);
+  let map = $derived(gameState.map!);
+  let votes = $derived(gameState.votes!);
+  let availableNodes = $derived(getAvailableNodes(map));
+  let voteCount = $derived(Object.keys(votes).length);
   let trainerCount = $derived(Object.keys(gameState.trainers).length);
 </script>
 
@@ -32,7 +34,7 @@
       <div class="trainer-row">
         <strong>{trainer.name}</strong>
         — {copy.score}: {trainer.score} | {copy.currency}: {trainer.currency}
-        {#if gameState.votes?.[trainer.id]}
+        {#if votes[trainer.id]}
           <span class="badge">{copy.voted}</span>
         {/if}
       </div>

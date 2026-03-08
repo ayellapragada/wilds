@@ -14,36 +14,31 @@
   let expandedId: string | null = $state(null);
   let showConfirmWarning = $state(false);
 
-  let selectionCost = $derived.by(() => {
-    if (!gameState.hub) return 0;
-    const selections = gameState.hub.selections[me.id] ?? [];
-    const prices = gameState.hub.shopPrices;
-    return selections.reduce((sum, id) => sum + (prices[id] ?? 0), 0);
-  });
+  let hub = $derived(gameState.hub!);
+  let mySelections = $derived(hub.selections[me.id] ?? []);
+  let isConfirmed = $derived(hub.confirmedTrainers.includes(me.id));
+  let myFreeOffers = $derived(hub.freePickOffers[me.id] ?? []);
+
+  let selectionCost = $derived(mySelections.reduce((sum, id) => sum + hub.shopPrices[id], 0));
 
   function toggleExpand(id: string) {
     expandedId = expandedId === id ? null : id;
   }
 
   let couldStillPick = $derived.by(() => {
-    if (!gameState.hub) return false;
-    const mySelections = gameState.hub.selections[me.id] ?? [];
     if (mySelections.length >= 2) return false;
 
-    const myFreeOffers = gameState.hub.freePickOffers[me.id] ?? [];
     const hasUnselectedFree = myFreeOffers.some(p => !mySelections.includes(p.id));
     if (hasUnselectedFree) return true;
 
-    const alreadySpending = mySelections.reduce((sum, id) => sum + (gameState.hub!.shopPrices[id] ?? 0), 0);
-    const remaining = me.currency - alreadySpending;
-    const canAffordShop = gameState.hub.shopPokemon.some(p =>
-      !mySelections.includes(p.id) && (gameState.hub!.shopPrices[p.id] ?? 0) <= remaining
+    const remaining = me.currency - selectionCost;
+    const canAffordShop = hub.shopPokemon.some(p =>
+      !mySelections.includes(p.id) && hub.shopPrices[p.id] <= remaining
     );
     return canAffordShop;
   });
 
   function handleConfirm() {
-    const mySelections = gameState.hub?.selections[me.id] ?? [];
     if (mySelections.length < 2 && couldStillPick) {
       showConfirmWarning = true;
       return;
@@ -61,12 +56,7 @@
   <h2>{copy.hub}</h2>
   <p>{copy.score}: {me.score} | {copy.currency}: {me.currency}{#if selectionCost > 0}<span class="ghost-cost"> − {selectionCost}</span>{/if}</p>
 
-  {#if gameState.hub}
-    {@const mySelections = gameState.hub.selections[me.id] ?? []}
-    {@const isConfirmed = gameState.hub.confirmedTrainers.includes(me.id)}
-    {@const myFreeOffers = gameState.hub.freePickOffers[me.id] ?? []}
-
-    <p class="selection-status">{mySelections.length}/2 selected</p>
+  <p class="selection-status">{mySelections.length}/2 selected</p>
 
     <div class="shop-items">
       {#each myFreeOffers as pkmn}
@@ -80,8 +70,8 @@
           onToggleSelect={() => toggleSelect(pkmn)}
         />
       {/each}
-      {#each gameState.hub.shopPokemon as pkmn}
-        {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
+      {#each hub.shopPokemon as pkmn}
+        {@const price = hub.shopPrices[pkmn.id]}
         <HubPokemonCard
           pokemon={pkmn}
           priceLabel={'$' + price}
@@ -95,7 +85,7 @@
     </div>
 
     {#if isConfirmed}
-      <p>{copy.waitingForOthers} ({gameState.hub.confirmedTrainers.length}/{trainerCount})</p>
+      <p>{copy.waitingForOthers} ({hub.confirmedTrainers.length}/{trainerCount})</p>
     {:else}
       {#if showConfirmWarning}
         <div class="confirm-warning">
@@ -113,7 +103,6 @@
         </button>
       {/if}
     {/if}
-  {/if}
 </section>
 
 <style>

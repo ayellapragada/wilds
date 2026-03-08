@@ -9,16 +9,16 @@
 
   let trainerList = $derived(Object.values(gameState.trainers) as TrainerPublicInfo[]);
   let trainerCount = $derived(Object.keys(gameState.trainers).length);
+  let hub = $derived(gameState.hub!);
 </script>
 
 <section>
   <h2>{copy.hub}</h2>
 
-  {#if gameState.hub}
     <h3>{copy.shop}</h3>
     <div class="shop-items">
-      {#each gameState.hub.shopPokemon as pkmn}
-        {@const price = gameState.hub.shopPrices[pkmn.id] ?? 0}
+      {#each hub.shopPokemon as pkmn}
+        {@const price = hub.shopPrices[pkmn.id]}
         <div class="pokemon-card {pkmn.types[0]}">
           <img class="sprite" src={spriteUrl(pkmn.templateId)} alt={pkmn.name} />
           <div class="card-info">
@@ -29,8 +29,7 @@
         </div>
       {/each}
     </div>
-    <p>{gameState.hub.confirmedTrainers.length}/{trainerCount} {copy.confirmed}</p>
-  {/if}
+    <p>{hub.confirmedTrainers.length}/{trainerCount} {copy.confirmed}</p>
 
   <div class="trainers">
     <h3>{copy.trainers}</h3>
@@ -38,7 +37,7 @@
       <div class="trainer-row">
         <strong>{trainer.name}</strong>
         — {copy.score}: {trainer.score} | {copy.currency}: {trainer.currency}
-        {#if gameState.hub?.confirmedTrainers.includes(trainer.id)}
+        {#if hub.confirmedTrainers.includes(trainer.id)}
           <span class="badge">{copy.confirmed}</span>
         {/if}
       </div>

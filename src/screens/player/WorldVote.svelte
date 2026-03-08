@@ -10,8 +10,10 @@
   } = $props();
 
   let me = $derived(gameState.me);
-  let availableNodes = $derived(gameState.map ? getAvailableNodes(gameState.map) : []);
-  let myVote = $derived(gameState.votes?.[me.id] ?? null);
+  let map = $derived(gameState.map!);
+  let votes = $derived(gameState.votes!);
+  let availableNodes = $derived(getAvailableNodes(map));
+  let myVote = $derived(votes[me.id] ?? null);
 
   function castVote(nodeId: string) {
     send({ type: 'cast_vote', trainerId: me.id, nodeId });
@@ -28,7 +30,7 @@
   </div>
 
   {#if myVote}
-    <p>{copy.votedFor} <strong>{gameState.map?.nodes[myVote]?.name}</strong></p>
+    <p>{copy.votedFor} <strong>{map.nodes[myVote].name}</strong></p>
   {:else}
     <p>{copy.votePrompt}</p>
   {/if}

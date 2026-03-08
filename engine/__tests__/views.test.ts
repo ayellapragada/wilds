@@ -87,10 +87,8 @@ describe("createPhoneView", () => {
     expect(view.map).toBeNull();
   });
 
-  it("returns me as null-ish fields when trainerId not found", () => {
+  it("throws when trainerId not found", () => {
     const state = stateWithTrainers("t1");
-    const view = createPhoneView(state, "unknown");
-    expect(view.me).toBeUndefined();
-    expect(Object.keys(view.otherTrainers)).toEqual(["t1"]);
+    expect(() => createPhoneView(state, "unknown")).toThrow("Trainer unknown not found in game state");
   });
 });

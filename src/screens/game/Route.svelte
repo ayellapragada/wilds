@@ -11,12 +11,12 @@
     gameState: TVViewState;
   } = $props();
 
-  let trail = $derived(gameState.currentRoute?.trail);
+  let route = $derived(gameState.currentRoute!);
+  let trail = $derived(route.trail);
   let trainerList = $derived(Object.values(gameState.trainers) as TrainerPublicInfo[]);
 
   // Build rows for the snaking trail
   let rows = $derived.by(() => {
-    if (!trail) return [];
     const result: TrailSpotType[][] = [];
     for (let i = 0; i < trail.spots.length; i += SPOTS_PER_ROW) {
       const row = trail.spots.slice(i, i + SPOTS_PER_ROW);
@@ -29,7 +29,6 @@
 
   // Map trainer positions on the trail
   let trainerPositions = $derived.by(() => {
-    if (!trail) return new Map<number, TrainerPublicInfo[]>();
     const positions = new Map<number, TrainerPublicInfo[]>();
     for (const trainer of trainerList) {
       if (trainer.status === 'waiting') continue;
@@ -50,10 +49,9 @@
 </script>
 
 <section>
-  <h2>{copy.route} {gameState.routeNumber} — {gameState.currentRoute?.name}</h2>
+  <h2>{copy.route} {gameState.routeNumber} — {route.name}</h2>
 
-  {#if trail}
-    <div class="trail">
+  <div class="trail">
       {#each rows as row, rowIdx}
         <div class="trail-row" class:reversed={rowIdx % 2 === 1}>
           {#each row as spot}
@@ -71,8 +69,7 @@
           {/each}
         </div>
       {/each}
-    </div>
-  {/if}
+  </div>
 
   <div class="trainers">
     {#each trainerList as trainer, i}
