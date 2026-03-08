@@ -62,6 +62,7 @@ export const copy = {
   roomCode: "Room code",
   tvDisplay: "TV Display",
   phoneController: "Phone Controller",
+  playSolo: "Play Solo",
   yourScore: "Your Score",
   rank: "Rank",
   youAre: "You are",
