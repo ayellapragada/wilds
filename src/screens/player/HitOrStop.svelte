@@ -5,7 +5,9 @@
   import PokemonCard from '../../components/PokemonCard.svelte';
   import TrailSpot from '../../components/TrailSpot.svelte';
 
-  const TRAIL_WINDOW_SIZE = 5;
+  const SPOT_SIZE = 52;
+  const SPOT_GAP = 4;
+  const VISIBLE_SPOTS = 6;
 
   let { gameState, send }: {
     gameState: PhoneViewState;
@@ -27,12 +29,10 @@
     return Math.round((bustCards.length / remaining.length) * 100);
   });
 
-  // Sliding window: show current spot + next N spots
-  let windowSpots = $derived.by(() => {
-    const start = myPosition;
-    const end = Math.min(start + TRAIL_WINDOW_SIZE + 1, trail.spots.length);
-    return trail.spots.slice(start, end);
-  });
+  // Pixel offset to keep "You" marker at the left of the visible area
+  let scrollOffset = $derived(myPosition * (SPOT_SIZE + SPOT_GAP));
+  // "You" marker pixel position within the full strip
+  let markerX = $derived(myPosition * (SPOT_SIZE + SPOT_GAP) + (SPOT_SIZE - 22) / 2);
 
   let lastDrawnId = $state<string | null>(null);
   let prevDrawnCount = $state(0);
@@ -61,17 +61,13 @@
 <section>
   <h2>{copy.route} {gameState.routeNumber}</h2>
 
-  <div class="trail-window">
-    {#each windowSpots as spot, i}
-      <TrailSpot {spot} highlighted={i === 0}>
-        {#if i === 0}
-          <span class="you">You</span>
-        {/if}
-      </TrailSpot>
-      {#if i < windowSpots.length - 1}
-        <span class="connector">→</span>
-      {/if}
-    {/each}
+  <div class="trail-viewport" style="width: {VISIBLE_SPOTS * (SPOT_SIZE + SPOT_GAP)}px;">
+    <div class="trail-strip" style="transform: translateX(-{scrollOffset}px);">
+      {#each trail.spots as spot}
+        <TrailSpot {spot} highlighted={spot.index === myPosition} />
+      {/each}
+      <span class="you-marker" style="transform: translate({markerX}px, -6px);">You</span>
+    </div>
   </div>
 
   <p>
@@ -116,22 +112,31 @@
 <style>
   section { padding: var(--space-6); text-align: center; }
 
-  .trail-window {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    margin-bottom: var(--space-6);
-    overflow-x: auto;
+  .trail-viewport {
+    overflow: hidden;
+    margin: 0 auto var(--space-6);
+    position: relative;
   }
 
-  .you {
+  .trail-strip {
+    display: flex;
+    gap: 4px;
+    position: relative;
+    transition: transform 600ms ease-out;
+  }
+
+  .you-marker {
+    position: absolute;
+    bottom: 0;
+    left: 0;
     font-size: var(--text-xs);
     font-weight: bold;
     color: var(--color-primary);
+    transition: transform 600ms ease-out;
+    pointer-events: none;
+    text-align: center;
+    width: var(--marker-size);
   }
-
-  .connector { color: var(--color-text-faint); font-size: var(--text-body); }
 
   .white-out-chance { font-size: var(--text-sm); color: rgba(255, 255, 255, 0.85); font-weight: normal; }
   .white-out-chance.danger { color: #ffcdd2; font-weight: 600; }
