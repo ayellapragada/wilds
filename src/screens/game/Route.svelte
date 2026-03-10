@@ -5,6 +5,8 @@
   import TrailSpot from '../../components/TrailSpot.svelte';
 
   const SPOTS_PER_ROW = 8;
+  const SPOT_SIZE = 64;
+  const SPOT_GAP = 2;
   const TRAINER_COLORS = ['#4a90d9', '#e85d75', '#50b86c', '#f5a623', '#9b59b6', '#1abc9c'];
 
   let { gameState }: {
@@ -27,25 +29,44 @@
     return result;
   });
 
-  // Map trainer positions on the trail
-  let trainerPositions = $derived.by(() => {
-    const positions = new Map<number, TrainerPublicInfo[]>();
+  // Compute pixel position for a trail spot index
+  function spotPixelPosition(spotIndex: number): { x: number; y: number } {
+    const row = Math.floor(spotIndex / SPOTS_PER_ROW);
+    let col = spotIndex % SPOTS_PER_ROW;
+    // Odd rows are reversed (snaking)
+    if (row % 2 === 1) col = SPOTS_PER_ROW - 1 - col;
+    return {
+      x: col * (SPOT_SIZE + SPOT_GAP),
+      y: row * (SPOT_SIZE + SPOT_GAP),
+    };
+  }
+
+  // Build flat list of markers with pixel positions for overlay rendering
+  let trainerMarkers = $derived.by(() => {
+    // Group trainers by spot index to offset overlapping markers
+    const bySpot = new Map<number, number>();
+    const markers: { trainer: TrainerPublicInfo; idx: number; x: number; y: number }[] = [];
+
     for (const trainer of trainerList) {
       if (trainer.status === 'waiting') continue;
       const distance = trainer.finalRouteDistance ?? trainer.routeProgress.totalDistance;
       const pos = getTrailPosition(trail, distance);
-      if (!positions.has(pos)) positions.set(pos, []);
-      positions.get(pos)!.push(trainer);
+      const idx = trainerList.indexOf(trainer);
+      const countAtSpot = bySpot.get(pos) ?? 0;
+      bySpot.set(pos, countAtSpot + 1);
+
+      const { x, y } = spotPixelPosition(pos);
+      // Center marker in spot, offset multiples horizontally
+      const markerSize = 22;
+      const centerX = x + (SPOT_SIZE - markerSize) / 2 + countAtSpot * (markerSize / 2);
+      const centerY = y + (SPOT_SIZE - markerSize) / 2;
+      markers.push({ trainer, idx, x: centerX, y: centerY });
     }
-    return positions;
+    return markers;
   });
 
   function trainerColor(index: number): string {
     return TRAINER_COLORS[index % TRAINER_COLORS.length];
-  }
-
-  function trainerIndex(trainer: TrainerPublicInfo): number {
-    return trainerList.indexOf(trainer);
   }
 </script>
 
@@ -56,19 +77,18 @@
       {#each rows as row, rowIdx}
         <div class="trail-row" class:reversed={rowIdx % 2 === 1}>
           {#each row as spot}
-            <TrailSpot {spot} size={64} highlighted={spot.index === 0}>
-              <div class="markers">
-                {#each trainerPositions.get(spot.index) ?? [] as trainer}
-                  <span
-                    class="marker"
-                    style="background: {trainerColor(trainerIndex(trainer))}"
-                    title="{trainer.name}"
-                  >{trainer.name[0]}</span>
-                {/each}
-              </div>
-            </TrailSpot>
+            <TrailSpot {spot} size={64} highlighted={spot.index === 0} />
           {/each}
         </div>
+      {/each}
+
+      <!-- Markers overlay: absolutely positioned with CSS transitions -->
+      {#each trainerMarkers as { trainer, idx, x, y } (trainer.name)}
+        <span
+          class="marker"
+          style="background: {trainerColor(idx)}; transform: translate({x}px, {y}px);"
+          title={trainer.name}
+        >{trainer.name[0]}</span>
       {/each}
   </div>
 
@@ -90,18 +110,14 @@
   section { margin-bottom: var(--space-7); padding: var(--space-6); }
   h2 { margin-bottom: var(--space-6); }
 
-  .trail { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-7); }
+  .trail { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-7); position: relative; }
   .trail-row { display: flex; gap: 2px; }
   .trail-row.reversed { flex-direction: row-reverse; }
 
-  .markers {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    justify-content: center;
-  }
-
   .marker {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: var(--marker-size);
     height: var(--marker-size);
     border-radius: var(--radius-full);
@@ -112,6 +128,9 @@
     font-size: var(--text-detail);
     font-weight: bold;
     border: 1px solid rgba(0,0,0,0.2);
+    transition: transform 600ms ease-out;
+    z-index: 1;
+    pointer-events: none;
   }
 
   .trainers { margin-top: var(--space-6); }
