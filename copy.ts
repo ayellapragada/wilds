@@ -23,6 +23,12 @@ export const copy = {
   keepScoreButton: "Keep Score",
   keepCurrencyButton: "Keep Currency",
 
+  // Bots
+  botLabel: "BOT",
+  addBotAggressive: "+ Aggressive Bot",
+  addBotConservative: "+ Conservative Bot",
+  addBotRandom: "+ Random Bot",
+
   // Headings
   lobby: "Lobby",
   hub: "Hub",

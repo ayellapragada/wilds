@@ -42,7 +42,10 @@
     <div class="trainer-list">
       <h3>{copy.trainers} ({trainerList.length})</h3>
       {#each trainerList as trainer}
-        <div class="trainer-row">{trainer.name}</div>
+        <div class="trainer-row">
+          {trainer.name}
+          {#if trainer.bot}<span class="bot-badge">{copy.botLabel}</span>{/if}
+        </div>
       {/each}
     </div>
   {:else}
@@ -72,4 +75,5 @@
   .copy-url:hover { border-color: var(--color-text-faint); background: #f5f5f5; }
   .trainer-list { margin-top: var(--space-6); }
   .trainer-row { padding: var(--space-2) 0; font-size: var(--text-lg); }
+  .bot-badge { font-size: var(--text-sm); color: var(--color-text-muted); margin-left: var(--space-2); }
 </style>

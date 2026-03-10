@@ -9,7 +9,10 @@ function toPublicInfo(trainer: Trainer): TrainerPublicInfo {
     status: trainer.status,
     bustThreshold: trainer.bustThreshold,
     routeProgress: trainer.routeProgress,
+    finalRouteDistance: trainer.finalRouteDistance,
+    finalRouteCost: trainer.finalRouteCost,
     deckSize: trainer.deck.drawPile.length + trainer.deck.drawn.length + trainer.deck.discard.length,
+    bot: trainer.bot,
   };
 }
 
@@ -55,5 +58,6 @@ export function createPhoneView(state: GameState, trainerId: string): PhoneViewS
     votes: state.votes,
     routeNumber: state.routeNumber,
     map: state.map,
+    settings: state.settings,
   };
 }

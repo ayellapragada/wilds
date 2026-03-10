@@ -73,6 +73,7 @@
     const token = crypto.randomUUID().slice(0, 8);
     const trainerName = 'Player';
     let hasJoined = false;
+    let hasAddedBots = false;
     let hasStarted = false;
 
     // TV connection
@@ -106,8 +107,18 @@
           hasJoined = true;
         }
 
-        // Auto-start after joining
-        if ((msg.type === 'state_sync' || msg.type === 'state_update') && !hasStarted) {
+        // Auto-add bots after joining
+        if ((msg.type === 'state_sync' || msg.type === 'state_update') && !hasAddedBots) {
+          if (msg.state.type === 'phone' && msg.state.phase === 'lobby') {
+            phoneConn.send({ type: 'add_bot', strategy: 'aggressive' });
+            phoneConn.send({ type: 'add_bot', strategy: 'conservative' });
+            phoneConn.send({ type: 'add_bot', strategy: 'random' });
+            hasAddedBots = true;
+          }
+        }
+
+        // Auto-start after bots added
+        if ((msg.type === 'state_sync' || msg.type === 'state_update') && hasAddedBots && !hasStarted) {
           if (msg.state.type === 'phone' && msg.state.phase === 'lobby') {
             phoneConn.send({ type: 'start_game', trainerId: msg.state.me.id });
             hasStarted = true;

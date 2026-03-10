@@ -56,6 +56,9 @@ function makeTrainer(id: string, name: string, overrides: Partial<Trainer> = {})
     items: [],
     status: "waiting",
     routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] },
+    finalRouteDistance: null,
+    finalRouteCost: null,
+    bot: false,
     ...overrides,
   };
 }
@@ -209,6 +212,9 @@ function routeMidGame(): Preset {
       pokemonDrawn: 2,
       activeEffects: [],
     },
+    finalRouteDistance: null,
+    finalRouteCost: null,
+    bot: false,
   };
 
   const misty = makeTrainer("trainer_misty", "Misty", {
@@ -227,6 +233,7 @@ function routeMidGame(): Preset {
     votes: null,
     routeNumber: 1,
     settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    botStrategies: {},
   };
 
   return {
@@ -268,6 +275,9 @@ function routeOneBusted(): Preset {
       pokemonDrawn: 2,
       activeEffects: [],
     },
+    finalRouteDistance: null,
+    finalRouteCost: null,
+    bot: false,
   };
 
   const misty = makeTrainer("trainer_misty", "Misty", {
@@ -286,6 +296,7 @@ function routeOneBusted(): Preset {
     votes: null,
     routeNumber: 1,
     settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    botStrategies: {},
   };
 
   return {
@@ -344,6 +355,7 @@ function hubFresh(): Preset {
     votes: null,
     routeNumber: 1,
     settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    botStrategies: {},
   };
 
   return {
@@ -394,6 +406,7 @@ function worldFresh(): Preset {
     votes: {},
     routeNumber: 1,
     settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    botStrategies: {},
   };
 
   return {
@@ -422,6 +435,7 @@ function worldSomeVoted(): Preset {
     votes: { trainer_misty: "node_a" }, // Misty voted, Ash hasn't
     routeNumber: 1,
     settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    botStrategies: {},
   };
 
   return {

@@ -63,6 +63,9 @@ export interface Trainer {
   readonly items: readonly ItemId[];
   readonly status: TrainerStatus;
   readonly routeProgress: RouteProgress;
+  readonly finalRouteDistance: number | null;
+  readonly finalRouteCost: number | null;
+  readonly bot: boolean;
 }
 
 // === Trail ===
@@ -165,6 +168,7 @@ export interface GameState {
   readonly votes: Record<string, string> | null;
   readonly routeNumber: number;
   readonly settings: GameSettings;
+  readonly botStrategies: Record<string, string>;
 }
 
 export interface GameSettings {
@@ -183,7 +187,8 @@ export type Action =
   | { type: "choose_bust_penalty"; trainerId: string; choice: "keep_score" | "keep_currency" }
   | { type: "cast_vote"; trainerId: string; nodeId: string }
   | { type: "select_pokemon"; trainerId: string; pokemonId: string }
-  | { type: "confirm_selections"; trainerId: string };
+  | { type: "confirm_selections"; trainerId: string }
+  | { type: "add_bot"; strategy: "aggressive" | "conservative" | "random" };
 
 // === Events ===
 
@@ -228,7 +233,10 @@ export interface TrainerPublicInfo {
   readonly status: TrainerStatus;
   readonly bustThreshold: number;
   readonly routeProgress: RouteProgress;
+  readonly finalRouteDistance: number | null;
+  readonly finalRouteCost: number | null;
   readonly deckSize: number;
+  readonly bot: boolean;
 }
 
 export interface TVViewState {
@@ -255,6 +263,7 @@ export interface PhoneViewState {
   readonly votes: Record<string, string> | null;
   readonly routeNumber: number;
   readonly map: WorldMap | null;
+  readonly settings: GameSettings;
 }
 
 // === Resolve Result ===

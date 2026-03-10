@@ -2,10 +2,12 @@ import { routePartykitRequest, Server } from "partyserver";
 import type { Connection, ConnectionContext } from "partyserver";
 import type { GameState, Action, ConnectionRole, ConnectionInfo, GameEvent } from "../engine/types";
 import { createInitialState, resolveAction, createTVView, createPhoneView } from "../engine/index";
+import { strategies, autoBustPenalty } from "../engine/sim/strategies";
 import { ADMIN_HTML } from "./admin-page";
 
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "password";
+const BOT_DELAY_MS = 800;
 
 function checkAuth(request: Request): Response | null {
   const auth = request.headers.get("Authorization");
@@ -74,9 +76,8 @@ export class Wilds extends Server<ConnectionInfo> {
 
     console.log(`[${this.name}] Action:`, action.type);
 
-    const [newState, events] = resolveAction(this.state!, action);
+    let [newState, events] = resolveAction(this.state!, action);
     this.state = newState;
-    this.ctx.storage.put("state", this.state);
 
     // If join_game succeeded, update the sender's connection state with new trainerId
     if (action.type === "join_game" && events.some((e: GameEvent) => e.type === "trainer_joined")) {
@@ -87,7 +88,33 @@ export class Wilds extends Server<ConnectionInfo> {
       }
     }
 
+    // Run instant bot actions (hub, world) and schedule delayed route actions
+    const botEvents = this.runInstantBotActions();
+    events = [...events, ...botEvents];
+
+    this.ctx.storage.put("state", this.state);
     this.broadcastViews(events);
+
+    // Schedule staggered route bot actions if needed
+    this.scheduleBotTick();
+  }
+
+  async onAlarm() {
+    const events = this.runOneRouteBotTick();
+    if (events.length > 0) {
+      this.ctx.storage.put("state", this.state);
+      this.broadcastViews(events);
+    }
+
+    // If bots still need to act (still in route with exploring bots), schedule next tick
+    // Also handle phase transitions: if route ended and we're now in hub/world, run those instantly
+    const instantEvents = this.runInstantBotActions();
+    if (instantEvents.length > 0) {
+      this.ctx.storage.put("state", this.state);
+      this.broadcastViews(instantEvents);
+    }
+
+    this.scheduleBotTick();
   }
 
   async onRequest(request: Request): Promise<Response> {
@@ -125,6 +152,87 @@ export class Wilds extends Server<ConnectionInfo> {
     }
 
     return new Response("Method not allowed", { status: 405 });
+  }
+
+  /** Run one action per bot in route phase. Returns events from this tick. */
+  private runOneRouteBotTick(): GameEvent[] {
+    const allEvents: GameEvent[] = [];
+    const botIds = Object.keys(this.state!.botStrategies);
+    if (botIds.length === 0 || this.state!.phase !== "route") return allEvents;
+
+    for (const botId of botIds) {
+      const trainer = this.state!.trainers[botId];
+      if (!trainer || trainer.status !== "exploring") continue;
+
+      const strategyName = this.state!.botStrategies[botId];
+      const strategy = strategies[strategyName];
+      const action = strategy.route(this.state!, botId);
+      const [newState, events] = resolveAction(this.state!, action);
+      this.state = newState;
+      allEvents.push(...events);
+
+      // Handle bust penalty immediately
+      const updated = this.state!.trainers[botId];
+      if (updated?.status === "busted") {
+        const [penaltyState, penaltyEvents] = resolveAction(this.state!, autoBustPenalty(botId));
+        this.state = penaltyState;
+        allEvents.push(...penaltyEvents);
+      }
+    }
+
+    return allEvents;
+  }
+
+  /** Run bot actions for hub and world phases (instant, no delay needed). */
+  private runInstantBotActions(): GameEvent[] {
+    const allEvents: GameEvent[] = [];
+    const botIds = Object.keys(this.state!.botStrategies);
+    if (botIds.length === 0) return allEvents;
+
+    if (this.state!.phase === "hub") {
+      for (const botId of botIds) {
+        if (this.state!.hub && this.state!.hub.confirmedTrainers.includes(botId)) continue;
+
+        const strategyName = this.state!.botStrategies[botId];
+        const strategy = strategies[strategyName];
+        const actions = strategy.hub(this.state!, botId);
+        for (const action of actions) {
+          const [newState, events] = resolveAction(this.state!, action);
+          this.state = newState;
+          allEvents.push(...events);
+        }
+      }
+    }
+
+    if (this.state!.phase === "world") {
+      for (const botId of botIds) {
+        if (this.state!.votes && this.state!.votes[botId] !== undefined) continue;
+
+        const strategyName = this.state!.botStrategies[botId];
+        const strategy = strategies[strategyName];
+        const action = strategy.world(this.state!, botId);
+        const [newState, events] = resolveAction(this.state!, action);
+        this.state = newState;
+        allEvents.push(...events);
+      }
+    }
+
+    return allEvents;
+  }
+
+  /** Schedule the next bot tick if bots still need to act in route phase. */
+  private scheduleBotTick() {
+    const botIds = Object.keys(this.state!.botStrategies);
+    if (botIds.length === 0 || this.state!.phase !== "route") return;
+
+    const hasExploringBot = botIds.some(id => {
+      const trainer = this.state!.trainers[id];
+      return trainer && trainer.status === "exploring";
+    });
+
+    if (hasExploringBot) {
+      this.ctx.storage.setAlarm(Date.now() + BOT_DELAY_MS);
+    }
   }
 
   private broadcastViews(events: GameEvent[]) {

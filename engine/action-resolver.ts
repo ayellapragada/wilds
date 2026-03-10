@@ -28,6 +28,8 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleSelectPokemon(state, action);
     case "confirm_selections":
       return handleConfirmSelections(state, action);
+    case "add_bot":
+      return handleAddBot(state, action);
     default:
       return [state, []];
   }
@@ -56,11 +58,51 @@ function handleJoin(
     items: [],
     status: "waiting",
     routeProgress: freshProgress(),
+    finalRouteDistance: null,
+    finalRouteCost: null,
+    bot: false,
   };
 
   return [
     { ...state, trainers: { ...state.trainers, [trainerId]: trainer } },
     [{ type: "trainer_joined", trainerId, trainerName: action.trainerName }],
+  ];
+}
+
+function handleAddBot(
+  state: GameState,
+  action: { type: "add_bot"; strategy: "aggressive" | "conservative" | "random" }
+): ResolveResult {
+  if (state.phase !== "lobby") return [state, []];
+  if (Object.keys(state.trainers).length >= state.settings.maxTrainers) return [state, []];
+
+  const botCount = Object.keys(state.trainers).filter(id => id.startsWith("bot_")).length;
+  const botNum = botCount + 1;
+  const trainerId = `bot_${botNum}`;
+
+  const trainer: Trainer = {
+    id: trainerId,
+    sessionToken: "",
+    name: `Bot ${botNum}`,
+    deck: createDeck(createStarterTeam()),
+    score: 0,
+    bustThreshold: 0,
+    currency: 0,
+    items: [],
+    status: "waiting",
+    routeProgress: freshProgress(),
+    finalRouteDistance: null,
+    finalRouteCost: null,
+    bot: true,
+  };
+
+  return [
+    {
+      ...state,
+      trainers: { ...state.trainers, [trainerId]: trainer },
+      botStrategies: { ...state.botStrategies, [trainerId]: action.strategy },
+    },
+    [{ type: "trainer_joined", trainerId, trainerName: trainer.name }],
   ];
 }
 
@@ -87,7 +129,7 @@ function handleStart(
   // Set all trainers to exploring
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
-    trainers[id] = { ...t, status: "exploring", bustThreshold: startNode.bustThreshold, routeProgress: freshProgress() };
+    trainers[id] = { ...t, status: "exploring", bustThreshold: startNode.bustThreshold, routeProgress: freshProgress(), finalRouteDistance: null };
   }
 
   const route = createRoute(1, startNode, trainerIds, Math.random, map.totalTiers);
@@ -311,6 +353,9 @@ function handleStop(
     { type: "trainer_stopped", trainerId: trainer.id, totalDistance: trainer.routeProgress.totalDistance, vpEarned },
   );
 
+  const finalDistance = trainer.routeProgress.totalDistance;
+  const finalCost = trainer.routeProgress.totalCost;
+
   const updatedTrainer: Trainer = {
     ...trainer,
     score: trainer.score + vpEarned,
@@ -318,6 +363,8 @@ function handleStop(
     status: "stopped",
     deck: endTurn(trainer.deck),
     routeProgress: freshProgress(),
+    finalRouteDistance: finalDistance,
+    finalRouteCost: finalCost,
   };
 
   let newState: GameState = {
@@ -339,6 +386,9 @@ function handleBustPenalty(
 
   const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail);
 
+  const finalDistance = trainer.routeProgress.totalDistance;
+  const finalCost = trainer.routeProgress.totalCost;
+
   const updatedTrainer: Trainer = {
     ...trainer,
     score: action.choice === "keep_score" ? trainer.score + vpEarned : trainer.score,
@@ -346,6 +396,8 @@ function handleBustPenalty(
     status: "stopped",
     deck: endTurn(trainer.deck),
     routeProgress: freshProgress(),
+    finalRouteDistance: finalDistance,
+    finalRouteCost: finalCost,
   };
 
   events.push(

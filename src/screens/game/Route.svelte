@@ -32,7 +32,8 @@
     const positions = new Map<number, TrainerPublicInfo[]>();
     for (const trainer of trainerList) {
       if (trainer.status === 'waiting') continue;
-      const pos = getTrailPosition(trail, trainer.routeProgress.totalDistance);
+      const distance = trainer.finalRouteDistance ?? trainer.routeProgress.totalDistance;
+      const pos = getTrailPosition(trail, distance);
       if (!positions.has(pos)) positions.set(pos, []);
       positions.get(pos)!.push(trainer);
     }
@@ -77,8 +78,8 @@
         <span class="trainer-dot" style="background: {trainerColor(i)}"></span>
         <strong>{trainer.name}</strong>
         — {trainer.status}
-        | {copy.distance.toLowerCase()}: {trainer.routeProgress.totalDistance}
-        | {copy.cost.toLowerCase()}: {trainer.routeProgress.totalCost}/{trainer.bustThreshold}
+        | {copy.distance.toLowerCase()}: {trainer.finalRouteDistance ?? trainer.routeProgress.totalDistance}
+        | {copy.cost.toLowerCase()}: {trainer.finalRouteCost ?? trainer.routeProgress.totalCost}/{trainer.bustThreshold}
         | {copy.score.toLowerCase()}: {trainer.score}
       </div>
     {/each}

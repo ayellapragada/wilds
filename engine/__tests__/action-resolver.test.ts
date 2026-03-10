@@ -875,4 +875,82 @@ describe("action-resolver", () => {
       expect(events).toEqual([]);
     });
   });
+
+  // --- add_bot ---
+
+  describe("add_bot", () => {
+    test("creates a bot trainer with bot: true", () => {
+      let state = lobby();
+      const [newState, events] = resolveAction(state, { type: "add_bot", strategy: "conservative" });
+
+      const bot = newState.trainers["bot_1"];
+      expect(bot).toBeDefined();
+      expect(bot.bot).toBe(true);
+      expect(bot.name).toBe("Bot 1");
+      expect(events).toEqual([{ type: "trainer_joined", trainerId: "bot_1", trainerName: "Bot 1" }]);
+    });
+
+    test("records strategy in botStrategies", () => {
+      let state = lobby();
+      const [newState] = resolveAction(state, { type: "add_bot", strategy: "aggressive" });
+
+      expect(newState.botStrategies["bot_1"]).toBe("aggressive");
+    });
+
+    test("rejected outside lobby phase", () => {
+      let state = lobby();
+      [state] = join(state, "Player", "p1");
+      [state] = resolveAction(state, { type: "add_bot", strategy: "random" });
+      [state] = start(state, "p1");
+
+      const [newState, events] = resolveAction(state, { type: "add_bot", strategy: "random" });
+      expect(newState).toBe(state);
+      expect(events).toEqual([]);
+    });
+
+    test("rejected at max trainers", () => {
+      let state = lobby();
+      // Fill up to max (8 trainers)
+      for (let i = 0; i < 8; i++) {
+        [state] = join(state, `T${i}`, `t${i}`);
+      }
+
+      const [newState, events] = resolveAction(state, { type: "add_bot", strategy: "random" });
+      expect(newState).toBe(state);
+      expect(events).toEqual([]);
+    });
+
+    test("bot trainers participate in game flow", () => {
+      let state = lobby();
+      [state] = join(state, "Human", "h1");
+      [state] = resolveAction(state, { type: "add_bot", strategy: "conservative" });
+      [state] = start(state, "h1");
+
+      expect(state.phase).toBe("route");
+      expect(state.trainers["bot_1"].status).toBe("exploring");
+      expect(state.trainers["h1"].status).toBe("exploring");
+    });
+
+    test("multiple bots get incrementing IDs", () => {
+      let state = lobby();
+      [state] = resolveAction(state, { type: "add_bot", strategy: "aggressive" });
+      [state] = resolveAction(state, { type: "add_bot", strategy: "conservative" });
+      [state] = resolveAction(state, { type: "add_bot", strategy: "random" });
+
+      expect(state.trainers["bot_1"]).toBeDefined();
+      expect(state.trainers["bot_2"]).toBeDefined();
+      expect(state.trainers["bot_3"]).toBeDefined();
+      expect(state.botStrategies).toEqual({
+        bot_1: "aggressive",
+        bot_2: "conservative",
+        bot_3: "random",
+      });
+    });
+
+    test("human trainers have bot: false", () => {
+      let state = lobby();
+      [state] = join(state, "Human", "h1");
+      expect(state.trainers["h1"].bot).toBe(false);
+    });
+  });
 });

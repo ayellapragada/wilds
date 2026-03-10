@@ -20,5 +20,6 @@ export function createInitialState(roomCode: string): GameState {
       mapTiers: 10,
       difficulty: "normal",
     },
+    botStrategies: {},
   };
 }
