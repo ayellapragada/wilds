@@ -5,10 +5,6 @@
   import PokemonCard from '../../components/PokemonCard.svelte';
   import TrailSpot from '../../components/TrailSpot.svelte';
 
-  const SPOT_SIZE = 52;
-  const SPOT_GAP = 4;
-  const VISIBLE_SPOTS = 6;
-
   let { gameState, send }: {
     gameState: PhoneViewState;
     send: (action: Action) => void;
@@ -22,17 +18,43 @@
 
   let whiteOutChance = $derived.by(() => {
     if (me.routeProgress.pokemonDrawn === 0) return null;
-    // drawPile may be empty if all cards drawn; discard would reshuffle on next draw
     const remaining = me.deck.drawPile.length > 0 ? me.deck.drawPile : me.deck.discard;
     if (remaining.length === 0) return 100;
     const bustCards = remaining.filter(p => me.routeProgress.totalCost + p.cost > me.bustThreshold);
     return Math.round((bustCards.length / remaining.length) * 100);
   });
 
-  // Pixel offset to keep "You" marker at the left of the visible area
-  let scrollOffset = $derived(myPosition * (SPOT_SIZE + SPOT_GAP));
-  // "You" marker pixel position within the full strip
-  let markerX = $derived(myPosition * (SPOT_SIZE + SPOT_GAP) + (SPOT_SIZE - 22) / 2);
+  // DOM measurement for responsive positioning
+  let stripEl: HTMLDivElement;
+  let spotEls = new Map<number, HTMLDivElement>();
+  let scrollOffset = $state(0);
+  let markerX = $state(0);
+
+  function measurePositions() {
+    if (!stripEl) return;
+    const stripRect = stripEl.getBoundingClientRect();
+    const spotEl = spotEls.get(myPosition);
+    if (!spotEl) return;
+    const spotRect = spotEl.getBoundingClientRect();
+
+    scrollOffset = spotRect.left - stripRect.left;
+    markerX = scrollOffset + (spotRect.width - 22) / 2;
+  }
+
+  $effect(() => {
+    // Re-measure when position or trail changes
+    myPosition;
+    trail;
+    requestAnimationFrame(measurePositions);
+  });
+
+  function registerSpot(el: HTMLDivElement, index: number) {
+    spotEls.set(index, el);
+    measurePositions();
+    return {
+      destroy() { spotEls.delete(index); }
+    };
+  }
 
   let lastDrawnId = $state<string | null>(null);
   let prevDrawnCount = $state(0);
@@ -61,10 +83,12 @@
 <section>
   <h2>{copy.route} {gameState.routeNumber}</h2>
 
-  <div class="trail-viewport" style="width: {VISIBLE_SPOTS * (SPOT_SIZE + SPOT_GAP)}px;">
-    <div class="trail-strip" style="transform: translateX(-{scrollOffset}px);">
+  <div class="trail-viewport">
+    <div class="trail-strip" bind:this={stripEl} style="transform: translateX(-{scrollOffset}px);">
       {#each trail.spots as spot}
-        <TrailSpot {spot} highlighted={spot.index === myPosition} />
+        <div use:registerSpot={spot.index}>
+          <TrailSpot {spot} highlighted={spot.index === myPosition} />
+        </div>
       {/each}
       <span class="you-marker" style="transform: translate({markerX}px, -6px);">You</span>
     </div>
@@ -115,7 +139,6 @@
   .trail-viewport {
     overflow: hidden;
     margin: 0 auto var(--space-6);
-    position: relative;
   }
 
   .trail-strip {

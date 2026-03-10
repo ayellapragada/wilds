@@ -5,8 +5,6 @@
   import TrailSpot from '../../components/TrailSpot.svelte';
 
   const SPOTS_PER_ROW = 8;
-  const SPOT_SIZE = 64;
-  const SPOT_GAP = 2;
   const TRAINER_COLORS = ['#4a90d9', '#e85d75', '#50b86c', '#f5a623', '#9b59b6', '#1abc9c'];
 
   let { gameState }: {
@@ -23,29 +21,44 @@
     for (let i = 0; i < trail.spots.length; i += SPOTS_PER_ROW) {
       const row = trail.spots.slice(i, i + SPOTS_PER_ROW);
       const rowIndex = Math.floor(i / SPOTS_PER_ROW);
-      // Even rows: left-to-right, odd rows: right-to-left (snaking)
       result.push(rowIndex % 2 === 1 ? [...row].reverse() : [...row]);
     }
     return result;
   });
 
-  // Compute pixel position for a trail spot index
-  function spotPixelPosition(spotIndex: number): { x: number; y: number } {
-    const row = Math.floor(spotIndex / SPOTS_PER_ROW);
-    let col = spotIndex % SPOTS_PER_ROW;
-    // Odd rows are reversed (snaking)
-    if (row % 2 === 1) col = SPOTS_PER_ROW - 1 - col;
-    return {
-      x: col * (SPOT_SIZE + SPOT_GAP),
-      y: row * (SPOT_SIZE + SPOT_GAP),
-    };
+  // DOM refs for measuring spot positions
+  let trailEl: HTMLDivElement;
+  let spotEls = new Map<number, HTMLDivElement>();
+  let spotPositions = $state(new Map<number, { x: number; y: number; w: number; h: number }>());
+
+  function measureSpots() {
+    if (!trailEl) return;
+    const trailRect = trailEl.getBoundingClientRect();
+    const next = new Map<number, { x: number; y: number; w: number; h: number }>();
+    for (const [idx, el] of spotEls) {
+      const r = el.getBoundingClientRect();
+      next.set(idx, {
+        x: r.left - trailRect.left,
+        y: r.top - trailRect.top,
+        w: r.width,
+        h: r.height,
+      });
+    }
+    spotPositions = next;
   }
 
-  // Build flat list of markers with pixel positions for overlay rendering
+  $effect(() => {
+    // Re-measure whenever trail changes
+    trail;
+    // Tick to let DOM render, then measure
+    requestAnimationFrame(measureSpots);
+  });
+
+  // Build marker list with positions from measured DOM
   let trainerMarkers = $derived.by(() => {
-    // Group trainers by spot index to offset overlapping markers
     const bySpot = new Map<number, number>();
     const markers: { trainer: TrainerPublicInfo; idx: number; x: number; y: number }[] = [];
+    const markerSize = 22;
 
     for (const trainer of trainerList) {
       if (trainer.status === 'waiting') continue;
@@ -55,11 +68,10 @@
       const countAtSpot = bySpot.get(pos) ?? 0;
       bySpot.set(pos, countAtSpot + 1);
 
-      const { x, y } = spotPixelPosition(pos);
-      // Center marker in spot, offset multiples horizontally
-      const markerSize = 22;
-      const centerX = x + (SPOT_SIZE - markerSize) / 2 + countAtSpot * (markerSize / 2);
-      const centerY = y + (SPOT_SIZE - markerSize) / 2;
+      const rect = spotPositions.get(pos);
+      if (!rect) continue;
+      const centerX = rect.x + (rect.w - markerSize) / 2 + countAtSpot * (markerSize / 2);
+      const centerY = rect.y + (rect.h - markerSize) / 2;
       markers.push({ trainer, idx, x: centerX, y: centerY });
     }
     return markers;
@@ -68,21 +80,30 @@
   function trainerColor(index: number): string {
     return TRAINER_COLORS[index % TRAINER_COLORS.length];
   }
+
+  function registerSpot(el: HTMLDivElement, index: number) {
+    spotEls.set(index, el);
+    measureSpots();
+    return {
+      destroy() { spotEls.delete(index); }
+    };
+  }
 </script>
 
 <section>
   <h2>{copy.route} {gameState.routeNumber} — {route.name}</h2>
 
-  <div class="trail">
+  <div class="trail" bind:this={trailEl}>
       {#each rows as row, rowIdx}
         <div class="trail-row" class:reversed={rowIdx % 2 === 1}>
           {#each row as spot}
-            <TrailSpot {spot} size={64} highlighted={spot.index === 0} />
+            <div use:registerSpot={spot.index}>
+              <TrailSpot {spot} highlighted={spot.index === 0} />
+            </div>
           {/each}
         </div>
       {/each}
 
-      <!-- Markers overlay: absolutely positioned with CSS transitions -->
       {#each trainerMarkers as { trainer, idx, x, y } (trainer.name)}
         <span
           class="marker"
@@ -113,7 +134,6 @@
   .trail { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--space-7); position: relative; }
   .trail-row { display: flex; gap: 2px; }
   .trail-row.reversed { flex-direction: row-reverse; }
-
   .marker {
     position: absolute;
     top: 0;
