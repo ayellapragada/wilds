@@ -194,12 +194,14 @@ export type Action =
   | { type: "select_pokemon"; trainerId: string; pokemonId: string }
   | { type: "confirm_selections"; trainerId: string }
   | { type: "add_bot"; strategy: "aggressive" | "conservative" | "random" }
+  | { type: "remove_bot"; trainerId: string }
   | { type: "select_avatar"; trainerId: string; avatar: AvatarId };
 
 // === Events ===
 
 export type GameEvent =
   | { type: "trainer_joined"; trainerId: string; trainerName: string }
+  | { type: "trainer_left"; trainerId: string }
   | { type: "game_started"; map: WorldMap }
   | { type: "route_started"; routeNumber: number; routeName: string; turnOrder: string[]; modifiers: RouteModifier[] }
   | { type: "turn_started"; trainerId: string }

@@ -81,7 +81,7 @@
 
   <!-- Game screen -->
   <div class="preview-area">
-    <GameScreen gameState={tvView} />
+    <GameScreen gameState={tvView} {send} />
   </div>
 
   <!-- Event log (collapsed by default) -->

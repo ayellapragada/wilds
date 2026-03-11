@@ -16,7 +16,7 @@
 
 <div class="solo-layout">
   <div class="tv-section">
-    <GameScreen gameState={tvState} />
+    <GameScreen gameState={tvState} {send} />
   </div>
 
   {#if phoneState.phase !== 'lobby'}

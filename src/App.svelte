@@ -198,7 +198,7 @@
   <main>
     <h1>Wilds</h1>
     <a href="#/" class="nav-link">← Back</a>
-    <GameScreen gameState={gameState} />
+    <GameScreen gameState={gameState} {send} />
   </main>
 {:else if route.screen === 'player' && gameState}
   <main>

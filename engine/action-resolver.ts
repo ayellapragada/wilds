@@ -46,6 +46,8 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleConfirmSelections(state, action);
     case "add_bot":
       return handleAddBot(state, action);
+    case "remove_bot":
+      return handleRemoveBot(state, action);
     case "select_avatar":
       return handleSelectAvatar(state, action);
     default:
@@ -123,6 +125,23 @@ function handleAddBot(
       botStrategies: { ...state.botStrategies, [trainerId]: action.strategy },
     },
     [{ type: "trainer_joined", trainerId, trainerName: trainer.name }],
+  ];
+}
+
+function handleRemoveBot(
+  state: GameState,
+  action: { type: "remove_bot"; trainerId: string }
+): ResolveResult {
+  if (state.phase !== "lobby") return [state, []];
+  const trainer = state.trainers[action.trainerId];
+  if (!trainer || !trainer.bot) return [state, []];
+
+  const { [action.trainerId]: _, ...remainingTrainers } = state.trainers;
+  const { [action.trainerId]: __, ...remainingStrategies } = state.botStrategies;
+
+  return [
+    { ...state, trainers: remainingTrainers, botStrategies: remainingStrategies },
+    [{ type: "trainer_left", trainerId: action.trainerId }],
   ];
 }
 

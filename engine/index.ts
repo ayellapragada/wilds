@@ -16,7 +16,7 @@ export function createInitialState(roomCode: string): GameState {
     votes: null,
     routeNumber: 0,
     settings: {
-      maxTrainers: 8,
+      maxTrainers: 24,
       mapTiers: 10,
       difficulty: "normal",
     },

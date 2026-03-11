@@ -232,7 +232,7 @@ function routeMidGame(): Preset {
     hub: null,
     votes: null,
     routeNumber: 1,
-    settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
   };
 
@@ -295,7 +295,7 @@ function routeOneBusted(): Preset {
     hub: null,
     votes: null,
     routeNumber: 1,
-    settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
   };
 
@@ -354,7 +354,7 @@ function hubFresh(): Preset {
     hub,
     votes: null,
     routeNumber: 1,
-    settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
   };
 
@@ -405,7 +405,7 @@ function worldFresh(): Preset {
     hub: null,
     votes: {},
     routeNumber: 1,
-    settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
   };
 
@@ -434,7 +434,7 @@ function worldSomeVoted(): Preset {
     hub: null,
     votes: { trainer_misty: "node_a" }, // Misty voted, Ash hasn't
     routeNumber: 1,
-    settings: { maxTrainers: 8, mapTiers: 10, difficulty: "normal" },
+    settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
   };
 

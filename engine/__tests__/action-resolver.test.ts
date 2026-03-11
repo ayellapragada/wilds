@@ -953,4 +953,47 @@ describe("action-resolver", () => {
       expect(state.trainers["h1"].bot).toBe(false);
     });
   });
+
+  // --- remove_bot ---
+
+  describe("remove_bot", () => {
+    test("removes an existing bot trainer", () => {
+      let state = lobby();
+      [state] = resolveAction(state, { type: "add_bot", strategy: "aggressive" });
+      expect(state.trainers["bot_1"]).toBeDefined();
+
+      const [newState, events] = resolveAction(state, { type: "remove_bot", trainerId: "bot_1" });
+      expect(newState.trainers["bot_1"]).toBeUndefined();
+      expect(newState.botStrategies["bot_1"]).toBeUndefined();
+      expect(events).toEqual([{ type: "trainer_left", trainerId: "bot_1" }]);
+    });
+
+    test("rejected outside lobby phase", () => {
+      let state = lobby();
+      [state] = join(state, "Player", "p1");
+      [state] = resolveAction(state, { type: "add_bot", strategy: "random" });
+      [state] = start(state, "p1");
+
+      const [newState, events] = resolveAction(state, { type: "remove_bot", trainerId: "bot_1" });
+      expect(newState).toBe(state);
+      expect(events).toEqual([]);
+    });
+
+    test("rejected for non-bot trainers", () => {
+      let state = lobby();
+      [state] = join(state, "Human", "h1");
+
+      const [newState, events] = resolveAction(state, { type: "remove_bot", trainerId: "h1" });
+      expect(newState).toBe(state);
+      expect(events).toEqual([]);
+    });
+
+    test("rejected for non-existent trainer", () => {
+      let state = lobby();
+
+      const [newState, events] = resolveAction(state, { type: "remove_bot", trainerId: "bot_99" });
+      expect(newState).toBe(state);
+      expect(events).toEqual([]);
+    });
+  });
 });

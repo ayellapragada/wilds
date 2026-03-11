@@ -28,6 +28,7 @@ export const copy = {
   addBotAggressive: "+ Aggressive Bot",
   addBotConservative: "+ Conservative Bot",
   addBotRandom: "+ Random Bot",
+  removeBot: "×",
 
   // Headings
   lobby: "Lobby",
