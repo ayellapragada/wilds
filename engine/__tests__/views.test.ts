@@ -8,6 +8,7 @@ function makeTrainer(id: string, overrides: Partial<Trainer> = {}): Trainer {
     id,
     sessionToken: id,
     name: `Trainer ${id}`,
+    avatar: 0,
     deck: { drawPile: [], drawn: [], discard: [] },
     score: 0,
     bustThreshold: 10,
@@ -15,6 +16,9 @@ function makeTrainer(id: string, overrides: Partial<Trainer> = {}): Trainer {
     items: [],
     status: "waiting",
     routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] },
+    finalRouteDistance: null,
+    finalRouteCost: null,
+    bot: false,
     ...overrides,
   };
 }
@@ -90,5 +94,52 @@ describe("createPhoneView", () => {
   it("throws when trainerId not found", () => {
     const state = stateWithTrainers("t1");
     expect(() => createPhoneView(state, "unknown")).toThrow("Trainer unknown not found in game state");
+  });
+});
+
+describe("riskLevel", () => {
+  it("returns 'safe' when cost is below 50% of threshold", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "route",
+      trainers: {
+        t1: makeTrainer("t1", { routeProgress: { totalCost: 2, totalDistance: 0, pokemonDrawn: 1, activeEffects: [] }, bustThreshold: 7, status: "exploring" }),
+      },
+    };
+    const view = createTVView(state);
+    expect(view.trainers.t1.riskLevel).toBe("safe");
+  });
+
+  it("returns 'risky' when cost is 50-75% of threshold", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "route",
+      trainers: {
+        t1: makeTrainer("t1", { routeProgress: { totalCost: 4, totalDistance: 0, pokemonDrawn: 1, activeEffects: [] }, bustThreshold: 7, status: "exploring" }),
+      },
+    };
+    const view = createTVView(state);
+    expect(view.trainers.t1.riskLevel).toBe("risky");
+  });
+
+  it("returns 'danger' when cost is above 75% of threshold", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "route",
+      trainers: {
+        t1: makeTrainer("t1", { routeProgress: { totalCost: 6, totalDistance: 0, pokemonDrawn: 1, activeEffects: [] }, bustThreshold: 7, status: "exploring" }),
+      },
+    };
+    const view = createTVView(state);
+    expect(view.trainers.t1.riskLevel).toBe("danger");
+  });
+
+  it("returns 'safe' when not in route phase", () => {
+    const state = stateWithTrainers("t1");
+    const view = createTVView(state);
+    expect(view.trainers.t1.riskLevel).toBe("safe");
   });
 });

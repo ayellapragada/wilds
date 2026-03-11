@@ -246,6 +246,7 @@ export interface TrainerPublicInfo {
   readonly finalRouteCost: number | null;
   readonly deckSize: number;
   readonly bot: boolean;
+  readonly riskLevel: "safe" | "risky" | "danger";
 }
 
 export interface TVViewState {

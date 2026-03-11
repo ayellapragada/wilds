@@ -1,6 +1,14 @@
-import type { GameState, Trainer, TVViewState, PhoneViewState, TrainerPublicInfo } from "./types";
+import type { GameState, GamePhase, Trainer, TVViewState, PhoneViewState, TrainerPublicInfo } from "./types";
 
-function toPublicInfo(trainer: Trainer): TrainerPublicInfo {
+function computeRiskLevel(trainer: Trainer, phase: GamePhase): "safe" | "risky" | "danger" {
+  if (phase !== "route" || trainer.bustThreshold === 0) return "safe";
+  const ratio = trainer.routeProgress.totalCost / trainer.bustThreshold;
+  if (ratio >= 0.75) return "danger";
+  if (ratio >= 0.5) return "risky";
+  return "safe";
+}
+
+function toPublicInfo(trainer: Trainer, phase: GamePhase): TrainerPublicInfo {
   return {
     id: trainer.id,
     name: trainer.name,
@@ -14,13 +22,14 @@ function toPublicInfo(trainer: Trainer): TrainerPublicInfo {
     finalRouteCost: trainer.finalRouteCost,
     deckSize: trainer.deck.drawPile.length + trainer.deck.drawn.length + trainer.deck.discard.length,
     bot: trainer.bot,
+    riskLevel: computeRiskLevel(trainer, phase),
   };
 }
 
 export function createTVView(state: GameState): TVViewState {
   const trainers: Record<string, TrainerPublicInfo> = {};
   for (const [id, trainer] of Object.entries(state.trainers)) {
-    trainers[id] = toPublicInfo(trainer);
+    trainers[id] = toPublicInfo(trainer, state.phase);
   }
 
   return {
@@ -44,7 +53,7 @@ export function createPhoneView(state: GameState, trainerId: string): PhoneViewS
   const otherTrainers: Record<string, TrainerPublicInfo> = {};
   for (const [id, trainer] of Object.entries(state.trainers)) {
     if (id !== trainerId) {
-      otherTrainers[id] = toPublicInfo(trainer);
+      otherTrainers[id] = toPublicInfo(trainer, state.phase);
     }
   }
 
