@@ -56,6 +56,15 @@ export interface RouteProgress {
   readonly activeEffects: readonly AbilityEffect[];
 }
 
+export interface TrainerStats {
+  readonly cardsDrawn: number;
+  readonly bustCount: number;
+  readonly maxRouteDistance: number;
+  readonly totalCurrencyEarned: number;
+  readonly maxCardDistance: number;
+  readonly finalDeckSize: number;
+}
+
 export interface Trainer {
   readonly id: string;
   readonly sessionToken: string;
@@ -71,6 +80,8 @@ export interface Trainer {
   readonly finalRouteDistance: number | null;
   readonly finalRouteCost: number | null;
   readonly bot: boolean;
+  readonly stats: TrainerStats;
+  readonly pendingThresholdBonus: number;
 }
 
 // === Trail ===
@@ -123,6 +134,11 @@ export interface RouteModifier {
   readonly targetType?: PokemonType;
 }
 
+export type RouteEvent =
+  | { type: "modifier"; modifier: RouteModifier; name: string; description: string }
+  | { type: "fog"; name: string; description: string }
+  | { type: "bounty"; name: string; description: string };
+
 // === World Map ===
 
 export type RouteNodeType = "beginner" | "route" | "elite_route" | "champion";
@@ -156,11 +172,17 @@ export interface HubState {
   readonly shopPrices: Record<string, number>;
   readonly selections: Record<string, readonly string[]>;
   readonly confirmedTrainers: readonly string[];
+  readonly isMarketplace: boolean;
 }
 
 // === Game State ===
 
-export type GamePhase = "lobby" | "route" | "hub" | "world" | "game_over";
+export type GamePhase = "lobby" | "event" | "route" | "hub" | "rest_stop" | "world" | "game_over";
+
+export interface Superlative {
+  readonly trainerId: string;
+  readonly award: string;
+}
 
 export interface GameState {
   readonly gameId: string;
@@ -174,6 +196,9 @@ export interface GameState {
   readonly routeNumber: number;
   readonly settings: GameSettings;
   readonly botStrategies: Record<string, string>;
+  readonly superlatives: readonly Superlative[];
+  readonly event: RouteEvent | null;
+  readonly restStopChoices: Record<string, string> | null;
 }
 
 export interface GameSettings {
@@ -195,7 +220,10 @@ export type Action =
   | { type: "confirm_selections"; trainerId: string }
   | { type: "add_bot"; strategy: "aggressive" | "conservative" | "random" }
   | { type: "remove_bot"; trainerId: string }
-  | { type: "select_avatar"; trainerId: string; avatar: AvatarId };
+  | { type: "select_avatar"; trainerId: string; avatar: AvatarId }
+  | { type: "play_again"; trainerId: string }
+  | { type: "continue_event"; trainerId: string }
+  | { type: "rest_stop_choice"; trainerId: string; choice: "remove" | "scout" | "reinforce"; pokemonId?: string };
 
 // === Events ===
 
@@ -220,7 +248,12 @@ export type GameEvent =
   | { type: "selections_confirmed"; trainerId: string; pokemon: Pokemon[] }
   | { type: "all_ready" }
   | { type: "item_collected"; trainerId: string; item: ItemTemplate; spotIndex: number }
-  | { type: "game_over"; finalScores: Record<string, number>; championId: string };
+  | { type: "game_over"; finalScores: Record<string, number>; championId: string }
+  | { type: "play_again" }
+  | { type: "event_started"; event: RouteEvent }
+  | { type: "rest_stop_entered" }
+  | { type: "rest_stop_choice_made"; trainerId: string; choice: string }
+  | { type: "scout_result"; trainerId: string; pokemonIds: string[] };
 
 // === Connection ===
 
@@ -247,6 +280,7 @@ export interface TrainerPublicInfo {
   readonly deckSize: number;
   readonly bot: boolean;
   readonly riskLevel: "safe" | "risky" | "danger";
+  readonly stats?: TrainerStats;
 }
 
 export interface TVViewState {
@@ -260,6 +294,8 @@ export interface TVViewState {
   readonly votes: Record<string, string> | null;
   readonly routeNumber: number;
   readonly settings: GameSettings;
+  readonly superlatives: readonly Superlative[];
+  readonly event: RouteEvent | null;
 }
 
 export interface PhoneViewState {
@@ -274,6 +310,8 @@ export interface PhoneViewState {
   readonly routeNumber: number;
   readonly map: WorldMap | null;
   readonly settings: GameSettings;
+  readonly superlatives: readonly Superlative[];
+  readonly event: RouteEvent | null;
 }
 
 // === Resolve Result ===

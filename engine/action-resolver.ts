@@ -1,4 +1,4 @@
-import type { GameState, Action, GameEvent, Trainer, RouteProgress, ResolveResult, Trail, AvatarId } from "./types";
+import type { GameState, Action, GameEvent, Trainer, TrainerStats, RouteProgress, ResolveResult, Trail, RouteEvent, AvatarId } from "./types";
 import { createStarterTeam } from "./pokemon/catalog";
 import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
@@ -6,11 +6,18 @@ import { getTrailPosition } from "./models/trail";
 import { resolveMoves } from "./abilities/resolver";
 import { handleVote } from "./phases/world";
 import { enterHub, handleSelectPokemon, handleConfirmSelections } from "./phases/hub";
+import { handleRestStopChoice } from "./phases/rest-stop";
+import { generateEvent } from "./phases/event";
 import { generateMap } from "./map-generator";
+import { calculateSuperlatives } from "./models/superlatives";
 
 export type { ResolveResult } from "./types";
 
 const AVATAR_COUNT = 38;
+
+function freshStats(): TrainerStats {
+  return { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 };
+}
 
 function takenAvatars(state: GameState): Set<AvatarId> {
   return new Set(Object.values(state.trainers).map(t => t.avatar));
@@ -50,6 +57,12 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleRemoveBot(state, action);
     case "select_avatar":
       return handleSelectAvatar(state, action);
+    case "play_again":
+      return handlePlayAgain(state);
+    case "continue_event":
+      return handleContinueEvent(state);
+    case "rest_stop_choice":
+      return handleRestStopChoice(state, action);
     default:
       return [state, []];
   }
@@ -82,6 +95,8 @@ function handleJoin(
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
+    stats: freshStats(),
+    pendingThresholdBonus: 0,
   };
 
   return [
@@ -116,6 +131,8 @@ function handleAddBot(
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: true,
+    stats: freshStats(),
+    pendingThresholdBonus: 0,
   };
 
   return [
@@ -184,10 +201,23 @@ function handleStart(
   // Set all trainers to exploring
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
-    trainers[id] = { ...t, status: "exploring", bustThreshold: startNode.bustThreshold, routeProgress: freshProgress(), finalRouteDistance: null };
+    trainers[id] = { ...t, status: "exploring", bustThreshold: startNode.bustThreshold + t.pendingThresholdBonus, pendingThresholdBonus: 0, routeProgress: freshProgress(), finalRouteDistance: null, stats: freshStats() };
   }
 
   const route = createRoute(1, startNode, trainerIds, Math.random, map.totalTiers);
+
+  if (startNode.bonus === "event") {
+    const event = generateEvent(startNode.tier, updatedMap.totalTiers, Math.random);
+    if (event) {
+      return [
+        { ...state, phase: "event", trainers, currentRoute: route, routeNumber: 1, map: updatedMap, event, superlatives: [] },
+        [
+          { type: "game_started", map: updatedMap },
+          { type: "event_started", event },
+        ],
+      ];
+    }
+  }
 
   return [
     { ...state, phase: "route", trainers, currentRoute: route, routeNumber: 1, map: updatedMap },
@@ -279,7 +309,7 @@ function handleHit(
     newTotalCost = Math.max(0, newTotalCost - reduceCostAllAmount);
   }
 
-  const progress: RouteProgress = {
+  let progress: RouteProgress = {
     totalDistance: trainer.routeProgress.totalDistance + pokemon.distance + bonusDistance,
     totalCost: newTotalCost,
     pokemonDrawn: trainer.routeProgress.pokemonDrawn + 1,
@@ -311,6 +341,8 @@ function handleHit(
       const negation = bustEffects.find(e => e.type === "negate_bust");
       if (negation) {
         busted = false;
+        // Clamp cost to threshold so the negation doesn't grant permanent immunity
+        progress = { ...progress, totalCost: newThreshold };
         events.push({
           type: "ability_triggered",
           pokemonId: drawn.id,
@@ -345,6 +377,11 @@ function handleHit(
     bustThreshold: newThreshold,
     items: collectedItems,
     status: busted ? "busted" : "exploring",
+    stats: {
+      ...trainer.stats,
+      cardsDrawn: trainer.stats.cardsDrawn + 1,
+      maxCardDistance: Math.max(trainer.stats.maxCardDistance, pokemon.distance + bonusDistance),
+    },
   };
 
   if (busted) {
@@ -364,8 +401,22 @@ function handleHit(
   return [newState, events];
 }
 
+function handleContinueEvent(state: GameState): ResolveResult {
+  if (state.phase !== "event") return [state, []];
+
+  let currentRoute = state.currentRoute;
+  if (state.event && state.event.type === "modifier" && currentRoute) {
+    currentRoute = {
+      ...currentRoute,
+      modifiers: [...currentRoute.modifiers, state.event.modifier],
+    };
+  }
+
+  return [{ ...state, phase: "route", currentRoute, event: null }, []];
+}
+
 /** Compute end-of-round rewards: trail position VP/currency + end_of_round ability effects. */
-function resolveRouteEnd(trainer: Trainer, trail: Trail): {
+function resolveRouteEnd(trainer: Trainer, trail: Trail, event: RouteEvent | null): {
   vpEarned: number;
   currencyEarned: number;
   events: GameEvent[];
@@ -390,7 +441,10 @@ function resolveRouteEnd(trainer: Trainer, trail: Trail): {
     }
   }
 
-  const currencyEarned = trail.spots[trailPos].currency + bonusCurrency;
+  let currencyEarned = trail.spots[trailPos].currency + bonusCurrency;
+  if (event?.type === "bounty") {
+    currencyEarned *= 2;
+  }
   return { vpEarned, currencyEarned, events };
 }
 
@@ -402,7 +456,7 @@ function handleStop(
   const trainer = state.trainers[action.trainerId];
   if (!trainer || trainer.status !== "exploring") return [state, []];
 
-  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail);
+  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail, state.event);
 
   events.push(
     { type: "trainer_stopped", trainerId: trainer.id, totalDistance: trainer.routeProgress.totalDistance, vpEarned },
@@ -420,6 +474,11 @@ function handleStop(
     routeProgress: freshProgress(),
     finalRouteDistance: finalDistance,
     finalRouteCost: finalCost,
+    stats: {
+      ...trainer.stats,
+      maxRouteDistance: Math.max(trainer.stats.maxRouteDistance, finalDistance),
+      totalCurrencyEarned: trainer.stats.totalCurrencyEarned + currencyEarned,
+    },
   };
 
   let newState: GameState = {
@@ -439,7 +498,7 @@ function handleBustPenalty(
   const trainer = state.trainers[action.trainerId];
   if (!trainer || trainer.status !== "busted") return [state, []];
 
-  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail);
+  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail, state.event);
 
   const finalDistance = trainer.routeProgress.totalDistance;
   const finalCost = trainer.routeProgress.totalCost;
@@ -453,6 +512,12 @@ function handleBustPenalty(
     routeProgress: freshProgress(),
     finalRouteDistance: finalDistance,
     finalRouteCost: finalCost,
+    stats: {
+      ...trainer.stats,
+      bustCount: trainer.stats.bustCount + 1,
+      maxRouteDistance: Math.max(trainer.stats.maxRouteDistance, finalDistance),
+      totalCurrencyEarned: trainer.stats.totalCurrencyEarned + (action.choice === "keep_currency" ? currencyEarned : 0),
+    },
   };
 
   events.push(
@@ -503,6 +568,18 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
   if (state.map) {
     const currentNode = state.map.nodes[state.map.currentNodeId];
     if (currentNode?.type === "champion") {
+      // Compute final deck sizes
+      for (const [id, t] of Object.entries(trainers)) {
+        const deckSize = t.deck.drawPile.length + t.deck.drawn.length + t.deck.discard.length;
+        trainers[id] = { ...t, stats: { ...t.stats, finalDeckSize: deckSize } };
+      }
+
+      const allStats: Record<string, TrainerStats> = {};
+      for (const [id, t] of Object.entries(trainers)) {
+        allStats[id] = t.stats;
+      }
+      const superlatives = calculateSuperlatives(allStats);
+
       const finalScores: Record<string, number> = {};
       let championId = "";
       let highScore = -1;
@@ -522,6 +599,7 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
         currentRoute: { ...state.currentRoute, status: "complete" },
         phase: "game_over",
         votes: null,
+        superlatives,
       };
     }
   }
@@ -535,4 +613,40 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
   const [finalState, hubEvents] = enterHub(hubState, bustedTrainerIds, Math.random);
   events.push(...hubEvents);
   return finalState;
+}
+
+function handlePlayAgain(state: GameState): ResolveResult {
+  if (state.phase !== "game_over") return [state, []];
+
+  const trainers: Record<string, Trainer> = {};
+  for (const [id, t] of Object.entries(state.trainers)) {
+    trainers[id] = {
+      ...t,
+      deck: createDeck(createStarterTeam()),
+      score: 0,
+      bustThreshold: 0,
+      currency: 0,
+      items: [],
+      status: "waiting",
+      routeProgress: freshProgress(),
+      finalRouteDistance: null,
+      finalRouteCost: null,
+      stats: freshStats(),
+      pendingThresholdBonus: 0,
+    };
+  }
+
+  return [{
+    ...state,
+    phase: "lobby",
+    trainers,
+    map: null,
+    currentRoute: null,
+    hub: null,
+    votes: null,
+    routeNumber: 0,
+    superlatives: [],
+    event: null,
+    restStopChoices: null,
+  }, [{ type: "play_again" as const }]];
 }

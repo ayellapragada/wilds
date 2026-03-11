@@ -156,6 +156,41 @@ export function runGame(
       }
     }
 
+    // --- Event phase ---
+    if (state.phase === "event") {
+      for (const trainerId of trainerIds) {
+        if (actionCount >= MAX_ACTIONS) break;
+        try {
+          const strategy = playerStrategies[trainerId];
+          const action = strategy.event(state, trainerId);
+          const [newState] = resolveAction(state, action);
+          actionCount++;
+          state = newState;
+          break; // Only need one continue_event action
+        } catch {
+          // skip on error
+        }
+      }
+    }
+
+    // --- Rest stop phase ---
+    if (state.phase === "rest_stop") {
+      for (const trainerId of trainerIds) {
+        if (actionCount >= MAX_ACTIONS) break;
+        const choices = state.restStopChoices ?? {};
+        if (choices[trainerId]) continue;
+        try {
+          const strategy = playerStrategies[trainerId];
+          const action = strategy.restStop(state, trainerId);
+          const [newState] = resolveAction(state, action);
+          actionCount++;
+          state = newState;
+        } catch {
+          // skip on error
+        }
+      }
+    }
+
     // --- World phase ---
     if (state.phase === "world") {
       for (const trainerId of trainerIds) {

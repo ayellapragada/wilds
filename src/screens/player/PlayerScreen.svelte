@@ -6,6 +6,7 @@
   import HubControls from './HubControls.svelte';
   import WorldVote from './WorldVote.svelte';
   import PhoneGameOver from './PhoneGameOver.svelte';
+  import RestStopControls from './RestStopControls.svelte';
 
   let { gameState, send, onJoin }: {
     gameState: PhoneViewState;
@@ -26,6 +27,17 @@
   <HubControls {gameState} {send} />
 {:else if gameState.phase === 'world'}
   <WorldVote {gameState} {send} />
+{:else if gameState.phase === 'event'}
+  <section style="padding: var(--space-6); text-align: center; min-height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    {#if gameState.event}
+      <h3>{gameState.event.name}</h3>
+      <p>{gameState.event.description}</p>
+    {:else}
+      <p>Event incoming...</p>
+    {/if}
+  </section>
+{:else if gameState.phase === 'rest_stop'}
+  <RestStopControls {gameState} {send} />
 {:else if gameState.phase === 'game_over'}
-  <PhoneGameOver {gameState} />
+  <PhoneGameOver {gameState} {send} />
 {/if}

@@ -106,7 +106,12 @@
           class="marker"
           style="transform: translate({x}px, {y}px);"
           title={trainer.name}
-        ><Sprite avatarId={trainer.avatar} scale={SPRITE_SCALE} /></span>
+        >
+          <Sprite avatarId={trainer.avatar} scale={SPRITE_SCALE} />
+          {#if trainer.status === 'exploring'}
+            <span class="risk-dot {trainer.riskLevel}"></span>
+          {/if}
+        </span>
       {/each}
   </div>
 
@@ -114,6 +119,9 @@
     {#each trainerList as trainer, i}
       <div class="trainer-row">
         <Sprite avatarId={trainer.avatar} scale={0.5} />
+        {#if trainer.status === 'exploring'}
+          <span class="risk-indicator {trainer.riskLevel}"></span>
+        {/if}
         <strong>{trainer.name}</strong>
         — {trainer.status}
         | {copy.distance.toLowerCase()}: {trainer.finalRouteDistance ?? trainer.routeProgress.totalDistance}
@@ -142,4 +150,31 @@
 
   .trainers { margin-top: var(--space-6); }
   .trainer-row { padding: var(--space-2) 0; font-size: var(--text-md); display: flex; align-items: center; gap: var(--space-4); }
+
+  .risk-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+  }
+  .risk-dot.safe { background: var(--color-success); }
+  .risk-dot.risky { background: #f59e0b; }
+  .risk-dot.danger { background: var(--color-danger); animation: pulse-risk 0.8s infinite alternate; }
+  @keyframes pulse-risk {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+  }
+
+  .risk-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .risk-indicator.safe { background: var(--color-success); }
+  .risk-indicator.risky { background: #f59e0b; }
+  .risk-indicator.danger { background: var(--color-danger); }
 </style>

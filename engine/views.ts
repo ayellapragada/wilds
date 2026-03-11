@@ -23,6 +23,7 @@ function toPublicInfo(trainer: Trainer, phase: GamePhase): TrainerPublicInfo {
     deckSize: trainer.deck.drawPile.length + trainer.deck.drawn.length + trainer.deck.discard.length,
     bot: trainer.bot,
     riskLevel: computeRiskLevel(trainer, phase),
+    stats: phase === "game_over" ? trainer.stats : undefined,
   };
 }
 
@@ -30,6 +31,20 @@ export function createTVView(state: GameState): TVViewState {
   const trainers: Record<string, TrainerPublicInfo> = {};
   for (const [id, trainer] of Object.entries(state.trainers)) {
     trainers[id] = toPublicInfo(trainer, state.phase);
+  }
+
+  // Blind voting: redact vote choices until all trainers have voted
+  let votes = state.votes;
+  if (votes && state.phase === "world") {
+    const trainerCount = Object.keys(state.trainers).length;
+    const voteCount = Object.keys(votes).length;
+    if (voteCount < trainerCount) {
+      const redacted: Record<string, string> = {};
+      for (const trainerId of Object.keys(votes)) {
+        redacted[trainerId] = "__redacted__";
+      }
+      votes = redacted;
+    }
   }
 
   return {
@@ -40,9 +55,11 @@ export function createTVView(state: GameState): TVViewState {
     map: state.map,
     currentRoute: state.currentRoute,
     hub: state.hub,
-    votes: state.votes,
+    votes,
     routeNumber: state.routeNumber,
     settings: state.settings,
+    superlatives: state.superlatives,
+    event: state.event,
   };
 }
 
@@ -57,11 +74,19 @@ export function createPhoneView(state: GameState, trainerId: string): PhoneViewS
     }
   }
 
+  let meForView = me;
+  if (state.event?.type === "fog" && state.phase === "route" && me.status === "exploring") {
+    const gap = me.bustThreshold - me.routeProgress.totalCost;
+    if (gap > 2) {
+      meForView = { ...me, bustThreshold: -1 };
+    }
+  }
+
   return {
     type: "phone",
     roomCode: state.roomCode,
     phase: state.phase,
-    me,
+    me: meForView,
     otherTrainers,
     currentRoute: state.currentRoute,
     hub: state.hub,
@@ -69,5 +94,7 @@ export function createPhoneView(state: GameState, trainerId: string): PhoneViewS
     routeNumber: state.routeNumber,
     map: state.map,
     settings: state.settings,
+    superlatives: state.superlatives,
+    event: state.event,
   };
 }

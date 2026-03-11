@@ -24,6 +24,16 @@
     return Math.round((bustCards.length / remaining.length) * 100);
   });
 
+  let dangerRatio = $derived(
+    me.bustThreshold > 0 ? me.routeProgress.totalCost / me.bustThreshold : 0
+  );
+  let dangerLevel = $derived<"safe" | "risky" | "danger">(
+    dangerRatio >= 0.75 ? "danger" : dangerRatio >= 0.5 ? "risky" : "safe"
+  );
+  let nearBust = $derived(
+    me.bustThreshold - me.routeProgress.totalCost <= 2 && me.routeProgress.pokemonDrawn > 0
+  );
+
   // DOM measurement for responsive positioning
   let stripEl: HTMLDivElement;
   let spotEls = new Map<number, HTMLDivElement>();
@@ -73,6 +83,27 @@
     prevDrawnCount = count;
   });
 
+  let showBustFlash = $state(false);
+  let showStopCelebration = $state(false);
+  let bustTimer: ReturnType<typeof setTimeout> | null = null;
+  let stopTimer: ReturnType<typeof setTimeout> | null = null;
+
+  $effect(() => {
+    if (me.status === 'busted') {
+      showBustFlash = true;
+      if (bustTimer) clearTimeout(bustTimer);
+      bustTimer = setTimeout(() => { showBustFlash = false; bustTimer = null; }, 1000);
+    }
+  });
+
+  $effect(() => {
+    if (me.status === 'stopped' && me.routeProgress.pokemonDrawn > 0) {
+      showStopCelebration = true;
+      if (stopTimer) clearTimeout(stopTimer);
+      stopTimer = setTimeout(() => { showStopCelebration = false; stopTimer = null; }, 1500);
+    }
+  });
+
   function hit() { send({ type: 'hit', trainerId: me.id }); }
   function stop() { send({ type: 'stop', trainerId: me.id }); }
   function choosePenalty(choice: 'keep_score' | 'keep_currency') {
@@ -81,6 +112,14 @@
 </script>
 
 <section>
+  {#if showBustFlash}
+    <div class="bust-overlay"></div>
+  {/if}
+  {#if showStopCelebration}
+    <div class="stop-celebration">
+      <span class="celebration-text">Banked!</span>
+    </div>
+  {/if}
   <h2>{copy.route} {gameState.routeNumber}</h2>
 
   <div class="trail-viewport">
@@ -98,14 +137,20 @@
     {copy.distance}: <strong>{me.routeProgress.totalDistance}</strong> |
     {copy.cost}: <strong>{me.routeProgress.totalCost}</strong> / {me.bustThreshold}
   </p>
+
+  {#if me.status === 'exploring'}
+    <div class="fatigue-bar" class:near-bust={nearBust}>
+      <div class="fatigue-fill {dangerLevel}" style="width: {Math.min(dangerRatio * 100, 100)}%"></div>
+    </div>
+  {/if}
   <p>{copy.score}: {me.score} + {currentVP} VP | {copy.currency}: {me.currency}</p>
 
   {#if me.status === 'exploring'}
     <div class="actions">
-      <button class="hit-btn" onclick={hit}>
+      <button class="hit-btn" class:on-edge={nearBust} onclick={hit}>
         {copy.hitButton}
         {#if whiteOutChance !== null}
-          <span class="white-out-chance" class:danger={whiteOutChance >= 50}>{whiteOutChance}%</span>
+          <span class="white-out-chance" class:danger={whiteOutChance >= 50} class:critical={whiteOutChance !== null && whiteOutChance >= 75}>{whiteOutChance}%</span>
         {/if}
       </button>
       <button class="stop-btn" onclick={stop} disabled={me.routeProgress.pokemonDrawn === 0}>{copy.stopButton}</button>
@@ -161,8 +206,8 @@
     width: var(--marker-size);
   }
 
-  .white-out-chance { font-size: var(--text-sm); color: rgba(255, 255, 255, 0.85); font-weight: normal; }
-  .white-out-chance.danger { color: #ffcdd2; font-weight: 600; }
+  .white-out-chance { font-size: var(--text-sm); color: rgba(255, 255, 255, 0.7); font-weight: normal; }
+  .white-out-chance.danger { color: #fde68a; font-weight: 600; }
 
   .actions { display: flex; gap: var(--space-6); justify-content: center; margin: var(--space-6) 0; }
   .hit-btn, .stop-btn { padding: var(--space-6) var(--space-8); font-size: var(--text-2xl); border: none; border-radius: var(--radius-2xl); cursor: pointer; font-weight: bold; }
@@ -194,5 +239,82 @@
     max-width: 20rem;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .fatigue-bar {
+    width: 100%;
+    max-width: 20rem;
+    height: 0.5rem;
+    margin: var(--space-2) auto;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+  }
+  .fatigue-fill {
+    height: 100%;
+    transition: width 400ms ease-out;
+    border-radius: var(--radius-lg);
+  }
+  .fatigue-fill.safe { background: var(--color-success); }
+  .fatigue-fill.risky { background: #f59e0b; }
+  .fatigue-fill.danger { background: var(--color-danger); }
+  .fatigue-bar.near-bust {
+    animation: pulse-danger 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes pulse-danger {
+    from { box-shadow: 0 0 4px rgba(239, 68, 68, 0.3); }
+    to { box-shadow: 0 0 12px rgba(239, 68, 68, 0.7); }
+  }
+
+  .hit-btn.on-edge {
+    background: var(--color-danger);
+    animation: shake 0.3s ease-in-out infinite;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-0.5px, -0.5px); }
+    50% { transform: translate(0.5px, 0.5px); }
+    75% { transform: translate(-0.5px, 0.5px); }
+  }
+
+  .white-out-chance.critical { color: #fbbf24; font-weight: 800; font-size: var(--text-lg); }
+
+
+  .bust-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(239, 68, 68, 0.4);
+    z-index: 100;
+    animation: bust-flash 1s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes bust-flash {
+    0% { opacity: 1; }
+    20% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+
+  .stop-celebration {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    pointer-events: none;
+    animation: celebration-fade 1.5s ease-out forwards;
+  }
+  .celebration-text {
+    font-size: var(--text-4xl);
+    font-weight: bold;
+    color: var(--color-success);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  @keyframes celebration-fade {
+    0% { opacity: 0; transform: scale(0.5); }
+    20% { opacity: 1; transform: scale(1.2); }
+    40% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1) translateY(-20px); }
   }
 </style>

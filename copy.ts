@@ -78,6 +78,36 @@ export const copy = {
   modHarshTerrain: "Harsh terrain: +1 fatigue to all draws",
   modThinAir: "Thin air: -1 bust threshold",
   modTailwind: "Tailwind: +1 distance to all draws",
+
+  // Game over ceremony
+  finalStandings: "Final Standings",
+  cardsDrawnLabel: "Cards Drawn",
+  bustCountLabel: "Times Busted",
+  maxDistanceLabel: "Best Route",
+  currencyEarnedLabel: "Total Currency",
+
+  // Phase transitions
+  transitionHub: "Entering the Hub...",
+  transitionWorld: "The path ahead...",
+  transitionRoute: "The wild awaits...",
+  transitionGameOver: "The journey ends...",
+
+  // Events
+  eventAnnouncement: "Event!",
+  continueButton: "Continue",
+
+  // Rest stops
+  restStop: "Rest Stop",
+  restStopPrompt: "Choose a benefit:",
+  removeCard: "Remove a Card",
+  removeCardDesc: "Permanently remove one Pokémon from your deck.",
+  scoutAhead: "Scout Ahead",
+  scoutAheadDesc: "Preview your next 3 draws.",
+  reinforce: "Reinforce",
+  reinforceDesc: "+1 bust threshold on next route.",
+
+  // Marketplace
+  marketplace: "Marketplace",
 } as const;
 
 /** Build a type terrain modifier description */

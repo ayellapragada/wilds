@@ -31,7 +31,8 @@ export function enterHub(
     }
   }
 
-  const shopPokemon = generateShopPokemon(currentNode.tier, map.totalTiers, rng);
+  const isMarketplace = currentNode.bonus === "marketplace";
+  const shopPokemon = generateShopPokemon(currentNode.tier, map.totalTiers, rng, isMarketplace);
   const shopPrices: Record<string, number> = {};
   for (const p of shopPokemon) {
     shopPrices[p.id] = pokemonPrice(p);
@@ -53,6 +54,7 @@ export function enterHub(
     shopPrices,
     selections,
     confirmedTrainers: [],
+    isMarketplace,
   };
 
   const events: GameEvent[] = [
@@ -157,18 +159,32 @@ export function handleConfirmSelections(
   ];
 
   const allConfirmed = confirmedTrainers.length === Object.keys(state.trainers).length;
+  const updatedTrainers = {
+    ...state.trainers,
+    [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - totalCost },
+  };
   if (allConfirmed) {
     events.push({ type: "all_ready" });
+
+    const currentNode = state.map?.nodes[state.map.currentNodeId];
+    if (currentNode?.bonus === "rest_stop") {
+      events.push({ type: "rest_stop_entered" });
+      return [{
+        ...state,
+        phase: "rest_stop",
+        hub: null,
+        restStopChoices: {},
+        trainers: updatedTrainers,
+      }, events];
+    }
+
     events.push({ type: "world_entered" });
     return [{
       ...state,
       phase: "world",
       hub: null,
       votes: {},
-      trainers: {
-        ...state.trainers,
-        [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - totalCost },
-      },
+      trainers: updatedTrainers,
     }, events];
   }
 
@@ -182,10 +198,10 @@ export function handleConfirmSelections(
   }, events];
 }
 
-function generateShopPokemon(tier: number, totalTiers: number, rng: RngFn): Pokemon[] {
+function generateShopPokemon(tier: number, totalTiers: number, rng: RngFn, isMarketplace: boolean = false): Pokemon[] {
   const allIds = getAllTemplateIds();
   const buckets = buildRarityBuckets(allIds);
-  const shopSize = 3 + (rng() < 0.5 ? 1 : 0);
+  const shopSize = isMarketplace ? (5 + (rng() < 0.5 ? 1 : 0)) : (3 + (rng() < 0.5 ? 1 : 0));
   const progress = tier / (totalTiers - 1);
 
   const weights: Record<string, number> = {

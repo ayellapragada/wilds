@@ -10,6 +10,28 @@
   let trainerList = $derived(Object.values(gameState.trainers) as TrainerPublicInfo[]);
   let trainerCount = $derived(Object.keys(gameState.trainers).length);
   let hub = $derived(gameState.hub!);
+
+  let countdown = $state<number | null>(null);
+  let allConfirmed = $derived(hub.confirmedTrainers.length === trainerCount);
+
+  let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+  $effect(() => {
+    if (allConfirmed) {
+      countdown = 3;
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        countdown = countdown! - 1;
+        if (countdown! <= 0) {
+          clearInterval(countdownInterval!);
+          countdownInterval = null;
+        }
+      }, 1000);
+    } else {
+      countdown = null;
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+    }
+  });
 </script>
 
 <section>
@@ -43,6 +65,12 @@
       </div>
     {/each}
   </div>
+
+  {#if countdown !== null && countdown > 0}
+    <div class="countdown-overlay">
+      <span class="countdown-number">{countdown}</span>
+    </div>
+  {/if}
 </section>
 
 <style>
@@ -57,4 +85,24 @@
   .trainer-row { padding: var(--space-1) 0; font-size: var(--text-body); }
   .badge { font-size: var(--text-xs); background: var(--color-success-confirmed-bg); padding: 0.1rem 0.3rem; border-radius: var(--space-2); color: var(--color-success-confirmed); margin-left: var(--space-2); }
   h2, h3 { font-size: var(--text-md); margin: var(--space-2) 0; }
+  .countdown-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+  }
+  .countdown-number {
+    font-size: 6rem;
+    font-weight: bold;
+    color: white;
+    animation: countdown-pop 1s ease-out;
+  }
+  @keyframes countdown-pop {
+    0% { transform: scale(2); opacity: 0; }
+    30% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.5; }
+  }
 </style>

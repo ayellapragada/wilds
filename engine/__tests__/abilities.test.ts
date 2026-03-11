@@ -319,7 +319,7 @@ describe("abilities integration (through handleHit)", () => {
     [state] = resolveAction(state, { type: "hit", trainerId: "t0" }); // cost=13, phoenix negates
 
     expect(state.trainers["t0"].status).toBe("exploring"); // not busted
-    expect(state.trainers["t0"].routeProgress.totalCost).toBe(13); // cost still high
+    expect(state.trainers["t0"].routeProgress.totalCost).toBe(8); // clamped to threshold
   });
 
   test("negate_bust emits ability_triggered event", () => {

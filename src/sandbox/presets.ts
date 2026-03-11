@@ -59,6 +59,7 @@ function makeTrainer(id: string, name: string, overrides: Partial<Trainer> = {})
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
+    stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
     ...overrides,
   };
 }
@@ -215,6 +216,7 @@ function routeMidGame(): Preset {
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
+    stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
   };
 
   const misty = makeTrainer("trainer_misty", "Misty", {
@@ -278,6 +280,7 @@ function routeOneBusted(): Preset {
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
+    stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
   };
 
   const misty = makeTrainer("trainer_misty", "Misty", {

@@ -19,6 +19,8 @@ function makeTrainer(id: string, overrides: Partial<Trainer> = {}): Trainer {
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
+    stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
+    pendingThresholdBonus: 0,
     ...overrides,
   };
 }
@@ -94,6 +96,87 @@ describe("createPhoneView", () => {
   it("throws when trainerId not found", () => {
     const state = stateWithTrainers("t1");
     expect(() => createPhoneView(state, "unknown")).toThrow("Trainer unknown not found in game state");
+  });
+});
+
+describe("blind voting", () => {
+  it("redacts vote choices when not all trainers have voted", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "world",
+      trainers: { t1: makeTrainer("t1"), t2: makeTrainer("t2") },
+      votes: { t1: "node_1" },
+    };
+    const view = createTVView(state);
+    expect(view.votes).toEqual({ t1: "__redacted__" });
+  });
+
+  it("reveals all votes when all trainers have voted", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "world",
+      trainers: { t1: makeTrainer("t1"), t2: makeTrainer("t2") },
+      votes: { t1: "node_1", t2: "node_2" },
+    };
+    const view = createTVView(state);
+    expect(view.votes).toEqual({ t1: "node_1", t2: "node_2" });
+  });
+});
+
+describe("stats in views", () => {
+  it("includes stats in TrainerPublicInfo during game_over phase", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "game_over",
+      trainers: {
+        t1: makeTrainer("t1", { stats: { cardsDrawn: 5, bustCount: 1, maxRouteDistance: 10, totalCurrencyEarned: 20, maxCardDistance: 7, finalDeckSize: 8 } }),
+      },
+      superlatives: [],
+    };
+    const view = createTVView(state);
+    expect(view.trainers.t1.stats).toBeDefined();
+    expect(view.trainers.t1.stats!.cardsDrawn).toBe(5);
+  });
+
+  it("excludes stats from TrainerPublicInfo during route phase", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "route",
+      trainers: {
+        t1: makeTrainer("t1"),
+      },
+      superlatives: [],
+    };
+    const view = createTVView(state);
+    expect(view.trainers.t1.stats).toBeUndefined();
+  });
+
+  it("includes superlatives in TV view", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "game_over",
+      trainers: { t1: makeTrainer("t1") },
+      superlatives: [{ trainerId: "t1", award: "Daredevil" }],
+    };
+    const view = createTVView(state);
+    expect(view.superlatives).toEqual([{ trainerId: "t1", award: "Daredevil" }]);
+  });
+
+  it("includes superlatives in phone view", () => {
+    const base = createInitialState("TEST");
+    const state: GameState = {
+      ...base,
+      phase: "game_over",
+      trainers: { t1: makeTrainer("t1") },
+      superlatives: [{ trainerId: "t1", award: "Daredevil" }],
+    };
+    const view = createPhoneView(state, "t1");
+    expect(view.superlatives).toEqual([{ trainerId: "t1", award: "Daredevil" }]);
   });
 });
 

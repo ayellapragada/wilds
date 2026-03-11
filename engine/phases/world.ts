@@ -1,6 +1,7 @@
 import type { GameState, GameEvent, Trainer, ResolveResult } from "../types";
 import { getAvailableNodes, advanceToNode } from "../models/world-map";
 import { freshProgress, createRoute } from "../models/route";
+import { generateEvent } from "./event";
 
 export function handleVote(
   state: GameState,
@@ -52,7 +53,24 @@ export function handleVote(
 
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
-    trainers[id] = { ...t, status: "exploring", bustThreshold: chosenNode.bustThreshold, routeProgress: freshProgress(), finalRouteDistance: null, finalRouteCost: null };
+    trainers[id] = { ...t, status: "exploring", bustThreshold: chosenNode.bustThreshold + t.pendingThresholdBonus, pendingThresholdBonus: 0, routeProgress: freshProgress(), finalRouteDistance: null, finalRouteCost: null };
+  }
+
+  if (chosenNode.bonus === "event") {
+    const event = generateEvent(chosenNode.tier, newMap.totalTiers, rng);
+    if (event) {
+      events.push({ type: "event_started", event });
+      return [{
+        ...state,
+        phase: "event",
+        trainers,
+        map: newMap,
+        currentRoute: route,
+        routeNumber,
+        votes: null,
+        event,
+      }, events];
+    }
   }
 
   events.push({

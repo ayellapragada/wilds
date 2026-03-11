@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, it, expect, beforeEach } from "vitest";
 import { resolveAction } from "../action-resolver";
 import { createInitialState } from "../index";
 import type { GameState, Trainer, RouteNode, RouteModifier, Pokemon } from "../types";
@@ -864,6 +864,32 @@ describe("action-resolver", () => {
     });
   });
 
+  // --- trainer stats ---
+
+  describe("trainer stats", () => {
+    it("initializes stats to zero when game starts", () => {
+      let state = createInitialState("test");
+      [state] = resolveAction(state, { type: "join_game", trainerName: "Alice", sessionToken: "t1" });
+      [state] = resolveAction(state, { type: "start_game", trainerId: "t1" });
+      expect(state.trainers.t1.stats).toEqual({
+        cardsDrawn: 0,
+        bustCount: 0,
+        maxRouteDistance: 0,
+        totalCurrencyEarned: 0,
+        maxCardDistance: 0,
+        finalDeckSize: 0,
+      });
+    });
+
+    it("increments cardsDrawn on hit", () => {
+      let state = createInitialState("test");
+      [state] = resolveAction(state, { type: "join_game", trainerName: "Alice", sessionToken: "t1" });
+      [state] = resolveAction(state, { type: "start_game", trainerId: "t1" });
+      [state] = resolveAction(state, { type: "hit", trainerId: "t1" });
+      expect(state.trainers.t1.stats.cardsDrawn).toBe(1);
+    });
+  });
+
   // --- Unknown action ---
 
   describe("unknown action", () => {
@@ -951,6 +977,45 @@ describe("action-resolver", () => {
       let state = lobby();
       [state] = join(state, "Human", "h1");
       expect(state.trainers["h1"].bot).toBe(false);
+    });
+  });
+
+  // --- play_again ---
+
+  describe("play_again", () => {
+    it("resets game state to lobby preserving trainer names and avatars", () => {
+      let state = createInitialState("test");
+      [state] = resolveAction(state, { type: "join_game", trainerName: "Alice", sessionToken: "t1" });
+      [state] = resolveAction(state, { type: "start_game", trainerId: "t1" });
+      // Force game_over phase
+      state = { ...state, phase: "game_over", superlatives: [] };
+      const [newState, events] = resolveAction(state, { type: "play_again", trainerId: "t1" });
+      expect(newState.phase).toBe("lobby");
+      expect(newState.trainers.t1.name).toBe("Alice");
+      expect(newState.trainers.t1.score).toBe(0);
+      expect(newState.trainers.t1.currency).toBe(0);
+      expect(newState.map).toBeNull();
+      expect(newState.currentRoute).toBeNull();
+      expect(newState.superlatives).toEqual([]);
+      expect(events).toEqual([{ type: "play_again" }]);
+    });
+
+    it("preserves trainer avatars", () => {
+      let state = createInitialState("test");
+      [state] = resolveAction(state, { type: "join_game", trainerName: "Alice", sessionToken: "t1" });
+      const avatar = state.trainers.t1.avatar;
+      [state] = resolveAction(state, { type: "start_game", trainerId: "t1" });
+      state = { ...state, phase: "game_over", superlatives: [] };
+      const [newState] = resolveAction(state, { type: "play_again", trainerId: "t1" });
+      expect(newState.trainers.t1.avatar).toBe(avatar);
+    });
+
+    it("rejected when not in game_over phase", () => {
+      let state = createInitialState("test");
+      [state] = resolveAction(state, { type: "join_game", trainerName: "Alice", sessionToken: "t1" });
+      const [newState, events] = resolveAction(state, { type: "play_again", trainerId: "t1" });
+      expect(newState).toBe(state);
+      expect(events).toEqual([]);
     });
   });
 

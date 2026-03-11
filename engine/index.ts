@@ -1,4 +1,4 @@
-export type { GameState, Action, GameEvent, TVViewState, PhoneViewState, TrainerPublicInfo, ConnectionInfo, ConnectionRole, AvatarId } from "./types";
+export type { GameState, Action, GameEvent, TVViewState, PhoneViewState, TrainerPublicInfo, ConnectionInfo, ConnectionRole, AvatarId, Superlative } from "./types";
 export { resolveAction } from "./action-resolver";
 export { createTVView, createPhoneView } from "./views";
 
@@ -21,5 +21,8 @@ export function createInitialState(roomCode: string): GameState {
       difficulty: "normal",
     },
     botStrategies: {},
+    superlatives: [],
+    event: null,
+    restStopChoices: null,
   };
 }

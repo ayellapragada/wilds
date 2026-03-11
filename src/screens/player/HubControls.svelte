@@ -14,10 +14,24 @@
   let expandedId: string | null = $state(null);
   let showConfirmWarning = $state(false);
 
+  const CARD_STAGGER_MS = 300;
+  let revealedCount = $state(0);
+
   let hub = $derived(gameState.hub!);
   let mySelections = $derived(hub.selections[me.id] ?? []);
   let isConfirmed = $derived(hub.confirmedTrainers.includes(me.id));
   let myFreeOffers = $derived(hub.freePickOffers[me.id] ?? []);
+
+  const initialTotal = (gameState.hub!.freePickOffers[gameState.me.id] ?? []).length + gameState.hub!.shopPokemon.length;
+  $effect(() => {
+    let count = 0;
+    const interval = setInterval(() => {
+      count++;
+      revealedCount = count;
+      if (count >= initialTotal) clearInterval(interval);
+    }, CARD_STAGGER_MS);
+    return () => clearInterval(interval);
+  });
 
   let selectionCost = $derived(mySelections.reduce((sum, id) => sum + hub.shopPrices[id], 0));
 
@@ -59,28 +73,37 @@
   <p class="selection-status">{mySelections.length}/2 selected</p>
 
     <div class="shop-items">
-      {#each myFreeOffers as pkmn}
-        <HubPokemonCard
-          pokemon={pkmn}
-          priceLabel={copy.free}
-          selected={mySelections.includes(pkmn.id)}
-          expanded={expandedId === pkmn.id}
-          disabled={isConfirmed || (!mySelections.includes(pkmn.id) && mySelections.length >= 2)}
-          onToggleExpand={() => toggleExpand(pkmn.id)}
-          onToggleSelect={() => toggleSelect(pkmn)}
-        />
+      {#each myFreeOffers as pkmn, i}
+        {#if i < revealedCount}
+          <div class="card-reveal">
+            <HubPokemonCard
+              pokemon={pkmn}
+              priceLabel={copy.free}
+              selected={mySelections.includes(pkmn.id)}
+              expanded={expandedId === pkmn.id}
+              disabled={isConfirmed || (!mySelections.includes(pkmn.id) && mySelections.length >= 2)}
+              onToggleExpand={() => toggleExpand(pkmn.id)}
+              onToggleSelect={() => toggleSelect(pkmn)}
+            />
+          </div>
+        {/if}
       {/each}
-      {#each hub.shopPokemon as pkmn}
+      {#each hub.shopPokemon as pkmn, i}
         {@const price = hub.shopPrices[pkmn.id]}
-        <HubPokemonCard
-          pokemon={pkmn}
-          priceLabel={'$' + price}
-          selected={mySelections.includes(pkmn.id)}
-          expanded={expandedId === pkmn.id}
-          disabled={isConfirmed || (!mySelections.includes(pkmn.id) && (mySelections.length >= 2 || me.currency < price))}
-          onToggleExpand={() => toggleExpand(pkmn.id)}
-          onToggleSelect={() => toggleSelect(pkmn)}
-        />
+        {@const revealIdx = myFreeOffers.length + i}
+        {#if revealIdx < revealedCount}
+          <div class="card-reveal">
+            <HubPokemonCard
+              pokemon={pkmn}
+              priceLabel={'$' + price}
+              selected={mySelections.includes(pkmn.id)}
+              expanded={expandedId === pkmn.id}
+              disabled={isConfirmed || (!mySelections.includes(pkmn.id) && (mySelections.length >= 2 || me.currency < price))}
+              onToggleExpand={() => toggleExpand(pkmn.id)}
+              onToggleSelect={() => toggleSelect(pkmn)}
+            />
+          </div>
+        {/if}
       {/each}
     </div>
 
@@ -124,4 +147,12 @@
   .warning-btn.back:hover { background: var(--color-primary-hover); }
   .warning-btn.skip { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); }
   .warning-btn.skip:hover { background: var(--color-bg-hover); }
+
+  .card-reveal {
+    animation: card-flip-in 300ms ease-out;
+  }
+  @keyframes card-flip-in {
+    from { transform: rotateY(90deg); opacity: 0; }
+    to { transform: rotateY(0); opacity: 1; }
+  }
 </style>

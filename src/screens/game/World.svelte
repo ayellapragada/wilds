@@ -28,6 +28,19 @@
 
   <p class="vote-status">{voteCount}/{trainerCount} {copy.voted}</p>
 
+  {#if voteCount === trainerCount}
+    <div class="vote-reveal">
+      {#each availableNodes as node}
+        {@const nodeVotes = Object.values(votes).filter(v => v === node.id).length}
+        {#if nodeVotes > 0}
+          <div class="vote-result">
+            <strong>{node.name}</strong>: {nodeVotes} vote{nodeVotes !== 1 ? 's' : ''}
+          </div>
+        {/if}
+      {/each}
+    </div>
+  {/if}
+
   <div class="trainers">
     <h3>{copy.standings}</h3>
     {#each trainerList as trainer}
@@ -48,4 +61,19 @@
   .vote-status { font-size: var(--text-md); color: var(--color-text-secondary); }
   .trainer-row { padding: var(--space-2) 0; font-size: var(--text-md); }
   .badge { font-size: var(--text-sm); background: var(--color-success-confirmed-bg); padding: 0.1rem 0.4rem; border-radius: var(--radius-xs); color: var(--color-success-confirmed); margin-left: var(--space-2); }
+  .vote-reveal {
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+    background: var(--color-bg-muted);
+    border-radius: var(--radius-lg);
+    animation: reveal-fade 500ms ease-out;
+  }
+  .vote-result {
+    padding: var(--space-2) 0;
+    font-size: var(--text-md);
+  }
+  @keyframes reveal-fade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>

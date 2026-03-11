@@ -3,12 +3,16 @@ import type { GameState, Action } from "../types";
 export type RouteStrategy = (state: GameState, trainerId: string) => Action;
 export type HubStrategy = (state: GameState, trainerId: string) => Action[];
 export type WorldStrategy = (state: GameState, trainerId: string) => Action;
+export type RestStopStrategy = (state: GameState, trainerId: string) => Action;
+export type EventStrategy = (state: GameState, trainerId: string) => Action;
 
 export interface PlayerStrategy {
   name: string;
   route: RouteStrategy;
   hub: HubStrategy;
   world: WorldStrategy;
+  restStop: RestStopStrategy;
+  event: EventStrategy;
 }
 
 // --- Route strategies ---
@@ -81,6 +85,18 @@ export function autoBustPenalty(trainerId: string): Action {
   return { type: "choose_bust_penalty", trainerId, choice: "keep_score" };
 }
 
+// --- Rest stop strategy ---
+
+const autoRestStop: RestStopStrategy = (_state, trainerId) => {
+  return { type: "rest_stop_choice", trainerId, choice: "reinforce" };
+};
+
+// --- Event strategy ---
+
+const autoEvent: EventStrategy = (_state, trainerId) => {
+  return { type: "continue_event", trainerId };
+};
+
 // --- Built-in strategies ---
 
 export const strategies: Record<string, PlayerStrategy> = {
@@ -89,17 +105,23 @@ export const strategies: Record<string, PlayerStrategy> = {
     route: aggressive,
     hub: autoHub,
     world: autoWorld,
+    restStop: autoRestStop,
+    event: autoEvent,
   },
   conservative: {
     name: "conservative",
     route: conservative,
     hub: autoHub,
     world: autoWorld,
+    restStop: autoRestStop,
+    event: autoEvent,
   },
   random: {
     name: "random",
     route: random,
     hub: autoHub,
     world: autoWorld,
+    restStop: autoRestStop,
+    event: autoEvent,
   },
 };
