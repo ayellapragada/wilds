@@ -1,4 +1,4 @@
-export type { GameState, Action, GameEvent, TVViewState, PhoneViewState, TrainerPublicInfo, ConnectionInfo, ConnectionRole } from "./types";
+export type { GameState, Action, GameEvent, TVViewState, PhoneViewState, TrainerPublicInfo, ConnectionInfo, ConnectionRole, AvatarId } from "./types";
 export { resolveAction } from "./action-resolver";
 export { createTVView, createPhoneView } from "./views";
 

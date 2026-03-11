@@ -3,9 +3,10 @@
   import { getTrailPosition } from '../../../engine/models/trail';
   import { copy } from '../../../copy';
   import TrailSpot from '../../components/TrailSpot.svelte';
+  import Sprite from '../../components/Sprite.svelte';
 
   const SPOTS_PER_ROW = 8;
-  const TRAINER_COLORS = ['#4a90d9', '#e85d75', '#50b86c', '#f5a623', '#9b59b6', '#1abc9c'];
+  const SPRITE_SCALE = 0.5;
 
   let { gameState }: {
     gameState: TVViewState;
@@ -58,7 +59,7 @@
   let trainerMarkers = $derived.by(() => {
     const bySpot = new Map<number, number>();
     const markers: { trainer: TrainerPublicInfo; idx: number; x: number; y: number }[] = [];
-    const markerSize = 22;
+    const markerSize = 54 * SPRITE_SCALE;
 
     for (const trainer of trainerList) {
       if (trainer.status === 'waiting') continue;
@@ -76,10 +77,6 @@
     }
     return markers;
   });
-
-  function trainerColor(index: number): string {
-    return TRAINER_COLORS[index % TRAINER_COLORS.length];
-  }
 
   function registerSpot(el: HTMLDivElement, index: number) {
     spotEls.set(index, el);
@@ -107,16 +104,16 @@
       {#each trainerMarkers as { trainer, idx, x, y } (trainer.name)}
         <span
           class="marker"
-          style="background: {trainerColor(idx)}; transform: translate({x}px, {y}px);"
+          style="transform: translate({x}px, {y}px);"
           title={trainer.name}
-        >{trainer.name[0]}</span>
+        ><Sprite avatarId={trainer.avatar} scale={SPRITE_SCALE} /></span>
       {/each}
   </div>
 
   <div class="trainers">
     {#each trainerList as trainer, i}
       <div class="trainer-row">
-        <span class="trainer-dot" style="background: {trainerColor(i)}"></span>
+        <Sprite avatarId={trainer.avatar} scale={0.5} />
         <strong>{trainer.name}</strong>
         — {trainer.status}
         | {copy.distance.toLowerCase()}: {trainer.finalRouteDistance ?? trainer.routeProgress.totalDistance}
@@ -138,16 +135,6 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--marker-size);
-    height: var(--marker-size);
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: var(--text-detail);
-    font-weight: bold;
-    border: 1px solid rgba(0,0,0,0.2);
     transition: transform 600ms ease-out;
     z-index: 1;
     pointer-events: none;
@@ -155,5 +142,4 @@
 
   .trainers { margin-top: var(--space-6); }
   .trainer-row { padding: var(--space-2) 0; font-size: var(--text-md); display: flex; align-items: center; gap: var(--space-4); }
-  .trainer-dot { width: var(--dot-size); height: var(--dot-size); border-radius: var(--radius-full); display: inline-block; flex-shrink: 0; }
 </style>

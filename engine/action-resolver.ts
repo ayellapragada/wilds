@@ -1,4 +1,4 @@
-import type { GameState, Action, GameEvent, Trainer, RouteProgress, ResolveResult, Trail } from "./types";
+import type { GameState, Action, GameEvent, Trainer, RouteProgress, ResolveResult, Trail, AvatarId } from "./types";
 import { createStarterTeam } from "./pokemon/catalog";
 import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
@@ -9,6 +9,22 @@ import { enterHub, handleSelectPokemon, handleConfirmSelections } from "./phases
 import { generateMap } from "./map-generator";
 
 export type { ResolveResult } from "./types";
+
+const AVATAR_COUNT = 38;
+
+function takenAvatars(state: GameState): Set<AvatarId> {
+  return new Set(Object.values(state.trainers).map(t => t.avatar));
+}
+
+function randomUntakenAvatar(state: GameState): AvatarId {
+  const taken = takenAvatars(state);
+  const available: number[] = [];
+  for (let i = 0; i < AVATAR_COUNT; i++) {
+    if (!taken.has(i)) available.push(i);
+  }
+  if (available.length === 0) return Math.floor(Math.random() * AVATAR_COUNT);
+  return available[Math.floor(Math.random() * available.length)];
+}
 
 export function resolveAction(state: GameState, action: Action): ResolveResult {
   switch (action.type) {
@@ -30,6 +46,8 @@ export function resolveAction(state: GameState, action: Action): ResolveResult {
       return handleConfirmSelections(state, action);
     case "add_bot":
       return handleAddBot(state, action);
+    case "select_avatar":
+      return handleSelectAvatar(state, action);
     default:
       return [state, []];
   }
@@ -51,6 +69,7 @@ function handleJoin(
     id: trainerId,
     sessionToken: action.sessionToken,
     name: action.trainerName,
+    avatar: randomUntakenAvatar(state),
     deck: createDeck(createStarterTeam()),
     score: 0,
     bustThreshold: 0,
@@ -84,6 +103,7 @@ function handleAddBot(
     id: trainerId,
     sessionToken: "",
     name: `Bot ${botNum}`,
+    avatar: randomUntakenAvatar(state),
     deck: createDeck(createStarterTeam()),
     score: 0,
     bustThreshold: 0,
@@ -104,6 +124,22 @@ function handleAddBot(
     },
     [{ type: "trainer_joined", trainerId, trainerName: trainer.name }],
   ];
+}
+
+function handleSelectAvatar(
+  state: GameState,
+  action: { type: "select_avatar"; trainerId: string; avatar: AvatarId }
+): ResolveResult {
+  if (state.phase !== "lobby") return [state, []];
+  const trainer = state.trainers[action.trainerId];
+  if (!trainer) return [state, []];
+
+  const taken = takenAvatars(state);
+  taken.delete(trainer.avatar);
+  if (taken.has(action.avatar)) return [state, []];
+
+  const updated: Trainer = { ...trainer, avatar: action.avatar };
+  return [{ ...state, trainers: { ...state.trainers, [action.trainerId]: updated } }, []];
 }
 
 function handleStart(

@@ -41,6 +41,10 @@ export interface Deck {
   readonly discard: readonly Pokemon[];
 }
 
+// === Avatar ===
+
+export type AvatarId = number;
+
 // === Trainer ===
 
 export type TrainerStatus = "waiting" | "exploring" | "busted" | "stopped";
@@ -56,6 +60,7 @@ export interface Trainer {
   readonly id: string;
   readonly sessionToken: string;
   readonly name: string;
+  readonly avatar: AvatarId;
   readonly deck: Deck;
   readonly score: number;
   readonly bustThreshold: number;
@@ -188,7 +193,8 @@ export type Action =
   | { type: "cast_vote"; trainerId: string; nodeId: string }
   | { type: "select_pokemon"; trainerId: string; pokemonId: string }
   | { type: "confirm_selections"; trainerId: string }
-  | { type: "add_bot"; strategy: "aggressive" | "conservative" | "random" };
+  | { type: "add_bot"; strategy: "aggressive" | "conservative" | "random" }
+  | { type: "select_avatar"; trainerId: string; avatar: AvatarId };
 
 // === Events ===
 
@@ -228,6 +234,7 @@ export interface ConnectionInfo {
 export interface TrainerPublicInfo {
   readonly id: string;
   readonly name: string;
+  readonly avatar: AvatarId;
   readonly score: number;
   readonly currency: number;
   readonly status: TrainerStatus;

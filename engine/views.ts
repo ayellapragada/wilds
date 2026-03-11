@@ -4,6 +4,7 @@ function toPublicInfo(trainer: Trainer): TrainerPublicInfo {
   return {
     id: trainer.id,
     name: trainer.name,
+    avatar: trainer.avatar,
     score: trainer.score,
     currency: trainer.currency,
     status: trainer.status,
