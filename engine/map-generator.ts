@@ -1,6 +1,6 @@
 import type { WorldMap, RouteNode, RouteNodeType, BonusType, PokemonType, RouteModifier, CurrencyDistribution, RngFn } from "./types";
-import { getAllTemplateIds } from "./pokemon/catalog";
-import { buildRarityBuckets, pickByRarity } from "./pokemon/rarity";
+import { getAllTemplateIds, isDud } from "./pokemon/catalog";
+import { buildRarityBuckets, pickByRarity, pickByTier } from "./pokemon/rarity";
 import { copy, modTypeTerrain } from "../copy";
 
 const ROUTE_NAMES = [
@@ -91,18 +91,12 @@ export function generateMap(totalTiers: number, rng: RngFn): WorldMap {
 
 function generatePokemonPool(tier: number, totalTiers: number, rng: RngFn): string[] {
   const allIds = getAllTemplateIds();
-  const buckets = buildRarityBuckets(allIds);
   const poolSize = 4 + Math.floor(rng() * 3); // 4-6 pokemon
 
-  const progress = tier / (totalTiers - 1);
-  const weights: Record<string, number> = {
-    common: Math.max(0.1, 1 - progress),
-    uncommon: 0.3 + progress * 0.2,
-    rare: progress * 0.4,
-    legendary: progress > 0.7 ? (progress - 0.7) * 1.0 : 0,
-  };
+  // Filter out duds from the pool candidates
+  const nonDudIds = allIds.filter(id => !isDud(id));
 
-  return Array.from({ length: poolSize }, () => pickByRarity(weights, buckets, allIds, rng));
+  return Array.from({ length: poolSize }, () => pickByTier(tier, totalTiers, nonDudIds, rng));
 }
 
 const TYPE_BONUS_TYPES: PokemonType[] = [

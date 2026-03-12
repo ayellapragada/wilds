@@ -2,7 +2,8 @@ import { describe, test, expect } from "vitest";
 import type { GameState, Trainer, RouteNode, WorldMap } from "../types";
 import { createInitialState } from "../index";
 import { resolveAction } from "../action-resolver";
-import { enterHub, handleSelectPokemon, handleConfirmSelections } from "../phases/hub";
+import { enterHub, handleSelectPokemon, handleConfirmSelections, pokemonPrice } from "../phases/hub";
+import { createPokemon } from "../pokemon/catalog";
 
 // === Helpers ===
 
@@ -19,7 +20,7 @@ function makeTestState(): GameState {
   const node: RouteNode = {
     id: "node1", type: "route", bonus: null, name: "Test Route", tier: 1,
     connections: ["node2"], bustThreshold: 7, modifiers: [], visited: true,
-    pokemonPool: ["charmeleon", "graveler", "wartortle", "haunter", "swellow", "snorlax"],
+    pokemonPool: ["charmeleon", "graveler", "wartortle", "machoke", "pikachu", "snorlax"],
     currencyDistribution: { total: 3, curve: "flat" as const },
   };
 
@@ -51,11 +52,11 @@ describe("enterHub", () => {
     expect(newState.hub!.freePickOffers["t1"]).toHaveLength(2);
   });
 
-  test("busted trainers get empty free pick offers", () => {
+  test("busted trainers get 1 free pick offer", () => {
     const state = makeTestState();
     const [newState] = enterHub(state, ["t0"], () => 0.5);
 
-    expect(newState.hub!.freePickOffers["t0"]).toHaveLength(0);
+    expect(newState.hub!.freePickOffers["t0"]).toHaveLength(1);
     expect(newState.hub!.freePickOffers["t1"]).toHaveLength(2);
   });
 
@@ -277,7 +278,7 @@ describe("handleConfirmSelections", () => {
 // === Integration: full flow ===
 
 describe("full flow: stop → hub → select → confirm → world", () => {
-  test("complete cycle: stop → hub → select pokemon → confirm → world", () => {
+  test("complete cycle: stop -> hub -> select pokemon -> confirm -> world", () => {
     let state = createInitialState("TEST");
     [state] = resolveAction(state, { type: "join_game", trainerName: "T0", sessionToken: "t0" });
     [state] = resolveAction(state, { type: "join_game", trainerName: "T1", sessionToken: "t1" });
@@ -304,5 +305,44 @@ describe("full flow: stop → hub → select → confirm → world", () => {
     expect(state.phase).toBe("world");
     expect(state.hub).toBeNull();
     expect(state.votes).toEqual({});
+  });
+});
+
+// === Hub Pricing ===
+
+describe("hub pricing", () => {
+  test("common basic = 2", () => {
+    const p = createPokemon("charmander");
+    expect(pokemonPrice(p)).toBe(2);
+  });
+
+  test("common stage1 = 4", () => {
+    const p = createPokemon("charmeleon");
+    expect(pokemonPrice(p)).toBe(4);
+  });
+
+  test("common stage2 = 7", () => {
+    const p = createPokemon("charizard");
+    expect(pokemonPrice(p)).toBe(7);
+  });
+
+  test("uncommon basic = 3", () => {
+    const p = createPokemon("sneasel");
+    expect(pokemonPrice(p)).toBe(3);
+  });
+
+  test("uncommon stage1 = 5", () => {
+    const p = createPokemon("weavile");
+    expect(pokemonPrice(p)).toBe(5);
+  });
+
+  test("rare basic = 5", () => {
+    const p = createPokemon("snorlax");
+    expect(pokemonPrice(p)).toBe(5);
+  });
+
+  test("legendary basic = 8", () => {
+    const p = createPokemon("mewtwo");
+    expect(pokemonPrice(p)).toBe(8);
   });
 });

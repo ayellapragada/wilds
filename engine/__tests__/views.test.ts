@@ -15,7 +15,7 @@ function makeTrainer(id: string, overrides: Partial<Trainer> = {}): Trainer {
     currency: 0,
     items: [],
     status: "waiting",
-    routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] },
+    routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 },
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
@@ -187,7 +187,7 @@ describe("riskLevel", () => {
       ...base,
       phase: "route",
       trainers: {
-        t1: makeTrainer("t1", { routeProgress: { totalCost: 2, totalDistance: 0, pokemonDrawn: 1, activeEffects: [] }, bustThreshold: 7, status: "exploring" }),
+        t1: makeTrainer("t1", { routeProgress: { totalCost: 2, totalDistance: 0, pokemonDrawn: 1, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 }, bustThreshold: 7, status: "exploring" }),
       },
     };
     const view = createTVView(state);
@@ -200,7 +200,7 @@ describe("riskLevel", () => {
       ...base,
       phase: "route",
       trainers: {
-        t1: makeTrainer("t1", { routeProgress: { totalCost: 4, totalDistance: 0, pokemonDrawn: 1, activeEffects: [] }, bustThreshold: 7, status: "exploring" }),
+        t1: makeTrainer("t1", { routeProgress: { totalCost: 4, totalDistance: 0, pokemonDrawn: 1, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 }, bustThreshold: 7, status: "exploring" }),
       },
     };
     const view = createTVView(state);
@@ -213,7 +213,7 @@ describe("riskLevel", () => {
       ...base,
       phase: "route",
       trainers: {
-        t1: makeTrainer("t1", { routeProgress: { totalCost: 6, totalDistance: 0, pokemonDrawn: 1, activeEffects: [] }, bustThreshold: 7, status: "exploring" }),
+        t1: makeTrainer("t1", { routeProgress: { totalCost: 6, totalDistance: 0, pokemonDrawn: 1, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 }, bustThreshold: 7, status: "exploring" }),
       },
     };
     const view = createTVView(state);

@@ -15,7 +15,13 @@ export function enterHub(
   const freePickOffers: Record<string, readonly Pokemon[]> = {};
   for (const id of Object.keys(state.trainers)) {
     if (bustedSet.has(id)) {
-      freePickOffers[id] = [];
+      const pool = currentNode.pokemonPool;
+      if (pool.length >= 1) {
+        const idx = Math.floor(rng() * pool.length);
+        freePickOffers[id] = [createPokemon(pool[idx])];
+      } else {
+        freePickOffers[id] = [];
+      }
     } else {
       const pool = currentNode.pokemonPool;
       if (pool.length >= 2) {
@@ -148,6 +154,12 @@ export function handleConfirmSelections(
 
   if (trainer.currency < totalCost) return [state, []];
 
+  const currentTier = state.map!.nodes[state.map!.currentNodeId].tier;
+  const newDraftedAtTier = { ...trainer.draftedAtTier };
+  for (const pokemon of selectedPokemon) {
+    newDraftedAtTier[pokemon.id] = currentTier;
+  }
+
   let newDeck = trainer.deck;
   for (const pokemon of selectedPokemon) {
     newDeck = addPokemon(newDeck, pokemon);
@@ -161,13 +173,13 @@ export function handleConfirmSelections(
   const allConfirmed = confirmedTrainers.length === Object.keys(state.trainers).length;
   const updatedTrainers = {
     ...state.trainers,
-    [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - totalCost },
+    [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - totalCost, draftedAtTier: newDraftedAtTier },
   };
   if (allConfirmed) {
     events.push({ type: "all_ready" });
 
-    const currentNode = state.map?.nodes[state.map.currentNodeId];
-    if (currentNode?.bonus === "rest_stop") {
+    const currentNode = state.map!.nodes[state.map!.currentNodeId];
+    if (currentNode.bonus === "rest_stop") {
       events.push({ type: "rest_stop_entered" });
       return [{
         ...state,
@@ -192,7 +204,7 @@ export function handleConfirmSelections(
     ...state,
     trainers: {
       ...state.trainers,
-      [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - totalCost },
+      [action.trainerId]: { ...trainer, deck: newDeck, currency: trainer.currency - totalCost, draftedAtTier: newDraftedAtTier },
     },
     hub: { ...state.hub, confirmedTrainers },
   }, events];
@@ -216,12 +228,16 @@ function generateShopPokemon(tier: number, totalTiers: number, rng: RngFn, isMar
   );
 }
 
-function pokemonPrice(pokemon: Pokemon): number {
-  const basePrices: Record<string, number> = {
-    common: 2,
-    uncommon: 4,
-    rare: 7,
-    legendary: 12,
+export function pokemonPrice(pokemon: Pokemon): number {
+  const priceMatrix: Record<string, Record<string, number>> = {
+    common:    { basic: 2, stage1: 4, stage2: 7 },
+    uncommon:  { basic: 3, stage1: 5, stage2: 8 },
+    rare:      { basic: 5, stage1: 7 },
+    legendary: { basic: 8 },
   };
-  return basePrices[pokemon.rarity] ?? 3;
+  const rarityPrices = priceMatrix[pokemon.rarity];
+  if (!rarityPrices) throw new Error(`Unknown rarity: ${pokemon.rarity}`);
+  const price = rarityPrices[pokemon.stage];
+  if (price === undefined) throw new Error(`Invalid rarity/stage combination: ${pokemon.rarity}/${pokemon.stage}`);
+  return price;
 }

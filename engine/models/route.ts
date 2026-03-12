@@ -2,7 +2,7 @@ import type { Route, RouteNode, RouteProgress, RngFn } from "../types";
 import { generateTrail } from "./trail";
 
 export function freshProgress(): RouteProgress {
-  return { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] };
+  return { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 };
 }
 
 export function createRoute(

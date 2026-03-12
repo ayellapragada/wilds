@@ -17,7 +17,7 @@ function worldPhaseState(trainerCount: number): GameState {
   // Build a tiny test map: start → [nodeA, nodeB] → champion
   const nodes: Record<string, RouteNode> = {
     start: { id: "start", type: "route", bonus: null, name: "Start", tier: 0, connections: ["nodeA", "nodeB"], bustThreshold: 8, modifiers: [], visited: true, pokemonPool: [], currencyDistribution: { total: 3, curve: "flat" as const } },
-    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], bustThreshold: 7, modifiers: [], visited: false, pokemonPool: ["rattata", "pidgey", "charmander"], currencyDistribution: { total: 3, curve: "flat" as const } },
+    nodeA: { id: "nodeA", type: "route", bonus: null, name: "Route A", tier: 1, connections: ["champ"], bustThreshold: 7, modifiers: [], visited: false, pokemonPool: ["pikachu", "machop", "charmander"], currencyDistribution: { total: 3, curve: "flat" as const } },
     nodeB: { id: "nodeB", type: "route", bonus: "marketplace", name: "Route B", tier: 1, connections: ["champ"], bustThreshold: 7, modifiers: [], visited: false, pokemonPool: [], currencyDistribution: { total: 3, curve: "flat" as const } },
     champ: { id: "champ", type: "champion", bonus: null, name: "Champion", tier: 2, connections: [], bustThreshold: 5, modifiers: [], visited: false, pokemonPool: [], currencyDistribution: { total: 3, curve: "flat" as const } },
   };

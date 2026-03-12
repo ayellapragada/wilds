@@ -24,5 +24,6 @@ export function createInitialState(roomCode: string): GameState {
     superlatives: [],
     event: null,
     restStopChoices: null,
+    activeBroadcasts: [],
   };
 }

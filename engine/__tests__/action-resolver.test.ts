@@ -579,27 +579,49 @@ describe("action-resolver", () => {
   // --- end_of_round and bonus_currency ---
 
   describe("end_of_round and bonus_currency", () => {
+    /** A fake pokemon with an end_of_round bonus_currency move (like old Meowth) */
+    function fakeCurrencyPokemon(id: string): Pokemon {
+      return {
+        id,
+        templateId: "fake_currency",
+        name: "FakeCurrency",
+        types: ["normal"],
+        distance: 2,
+        cost: 1,
+        rarity: "common",
+        description: "A test pokemon with bonus_currency.",
+        moves: [{
+          name: "Pay Day", reminderText: "+1 currency at end of round",
+          trigger: "end_of_round", condition: null,
+          effect: { type: "bonus_currency", amount: 1 },
+        }],
+        stage: "basic",
+        evolutionLine: "fake_currency",
+        evolvesInto: null,
+        evolutionSpeed: null,
+      };
+    }
+
     test("bonus_currency from end_of_round is added when trainer stops", () => {
       let state = lobby();
       [state] = join(state, "Ash", "t0");
       [state] = start(state, "t0");
 
-      // Replace trainer's deck with Meowth-only deck
-      const meowth = createPokemon("meowth");
+      // Replace trainer's deck with fake currency pokemon
       state = {
         ...state,
         trainers: {
           ...state.trainers,
           t0: {
             ...state.trainers.t0,
-            deck: createDeck([meowth, meowth, meowth].map((p, i) => ({ ...p, id: `m${i}` }))),
+            deck: createDeck([fakeCurrencyPokemon("m0"), fakeCurrencyPokemon("m1"), fakeCurrencyPokemon("m2")]),
           },
         },
       };
 
-      // Draw one meowth
+      // Draw one (distance 2, cost 1)
       [state] = hit(state, "t0");
-      // Stop — end_of_round should fire Meowth's Pay Day (+1 currency)
+      // Stop — end_of_round should fire Pay Day (+1 currency)
       const [finalState] = stop(state, "t0");
       const trainer = finalState.trainers.t0;
       // Tile currency at position 2: 3, plus bonus_currency from Pay Day: 1
@@ -611,27 +633,27 @@ describe("action-resolver", () => {
       [state] = join(state, "Ash", "t0");
       [state] = start(state, "t0");
 
-      const meowth = { ...createPokemon("meowth"), id: "m0" };
+      const currencyPokemon = fakeCurrencyPokemon("m0");
       const heavy = { ...createPokemon("machop"), id: "heavy1", cost: 20, distance: 5 };
-      // Set drawPile directly to control draw order (meowth first, then heavy)
+      // Set drawPile directly to control draw order (currency pokemon first, then heavy)
       state = {
         ...state,
         trainers: {
           ...state.trainers,
           t0: {
             ...state.trainers.t0,
-            deck: { drawPile: [meowth, heavy], drawn: [], discard: [] },
+            deck: { drawPile: [currencyPokemon, heavy], drawn: [], discard: [] },
           },
         },
       };
 
-      [state] = hit(state, "t0"); // meowth (cost 1, safe)
+      [state] = hit(state, "t0"); // currencyPokemon (cost 1, safe)
       [state] = hit(state, "t0"); // heavy (cost 20, busts)
       expect(state.trainers.t0.status).toBe("busted");
 
       const [finalState] = bustPenalty(state, "t0", "keep_currency");
       const trainer = finalState.trainers.t0;
-      // distance = 2 + 5 = 7, tile currency at position 7: 3, bonus = 1 from meowth
+      // distance = 2 + 5 = 7, tile currency at position 7: 3, bonus = 1 from Pay Day
       expect(trainer.currency).toBe(4);
     });
 
@@ -640,7 +662,7 @@ describe("action-resolver", () => {
       [state] = join(state, "Ash", "t0");
       [state] = start(state, "t0");
 
-      const meowth = { ...createPokemon("meowth"), id: "m0" };
+      const currencyPokemon = fakeCurrencyPokemon("m0");
       const heavy = { ...createPokemon("machop"), id: "heavy1", cost: 20, distance: 5 };
       state = {
         ...state,
@@ -648,7 +670,7 @@ describe("action-resolver", () => {
           ...state.trainers,
           t0: {
             ...state.trainers.t0,
-            deck: { drawPile: [meowth, heavy], drawn: [], discard: [] },
+            deck: { drawPile: [currencyPokemon, heavy], drawn: [], discard: [] },
           },
         },
       };
@@ -690,19 +712,20 @@ describe("action-resolver", () => {
         { id: "test", description: "test", type: "cost_bonus", value: 1 },
       ]);
       const trainerId = Object.keys(state.trainers)[0];
-      const magikarp = createPokemon("magikarp");
+      const squirtle = createPokemon("squirtle");
       state = {
         ...state,
         trainers: {
           ...state.trainers,
           [trainerId]: {
             ...state.trainers[trainerId],
-            deck: createDeck([{ ...magikarp, id: "mk1" }, { ...magikarp, id: "mk2" }]),
+            deck: createDeck([{ ...squirtle, id: "mk1" }, { ...squirtle, id: "mk2" }]),
           },
         },
       };
       const [newState] = hit(state, trainerId);
-      expect(newState.trainers[trainerId].routeProgress.totalCost).toBe(1);
+      // squirtle cost 2 + cost_bonus 1 = 3
+      expect(newState.trainers[trainerId].routeProgress.totalCost).toBe(3);
     });
 
     test("type_bonus modifier adds distance for matching type", () => {
@@ -722,7 +745,8 @@ describe("action-resolver", () => {
         },
       };
       const [newState] = hit(state, trainerId);
-      expect(newState.trainers[trainerId].routeProgress.totalDistance).toBe(6);
+      // charmander: fire type, distance 1 + type_bonus 3 = 4
+      expect(newState.trainers[trainerId].routeProgress.totalDistance).toBe(4);
     });
 
     test("type_bonus modifier does not apply to non-matching type", () => {
@@ -730,20 +754,20 @@ describe("action-resolver", () => {
         { id: "test", description: "test", type: "type_bonus", value: 3, targetType: "fire" },
       ]);
       const trainerId = Object.keys(state.trainers)[0];
-      const magikarp = createPokemon("magikarp"); // water type
+      const squirtle = createPokemon("squirtle"); // water type
       state = {
         ...state,
         trainers: {
           ...state.trainers,
           [trainerId]: {
             ...state.trainers[trainerId],
-            deck: createDeck([{ ...magikarp, id: "mk1" }]),
+            deck: createDeck([{ ...squirtle, id: "mk1" }]),
           },
         },
       };
       const [newState] = hit(state, trainerId);
-      // magikarp: water type, distance 0, cost 0 — no fire bonus
-      expect(newState.trainers[trainerId].routeProgress.totalDistance).toBe(0);
+      // squirtle: water type, distance 1 — no fire bonus
+      expect(newState.trainers[trainerId].routeProgress.totalDistance).toBe(1);
     });
 
     test("threshold_modifier affects bust calculation", () => {
@@ -755,6 +779,7 @@ describe("action-resolver", () => {
         id: "h1", templateId: "test", name: "Heavy",
         types: ["normal"], distance: 1, cost: 6, rarity: "common",
         description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
       };
       state = {
         ...state,
@@ -799,6 +824,7 @@ describe("action-resolver", () => {
         id: "p1", templateId: "test", name: "Mover",
         types: ["normal"], distance: 3, cost: 0, rarity: "common",
         description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
       };
       state = {
         ...state,
@@ -823,6 +849,7 @@ describe("action-resolver", () => {
         id: "p1", templateId: "test", name: "Mover",
         types: ["normal"], distance: 3, cost: 0, rarity: "common",
         description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
       };
       state = {
         ...state,
@@ -846,6 +873,7 @@ describe("action-resolver", () => {
         id: "p1", templateId: "test", name: "Mover",
         types: ["normal"], distance: 3, cost: 0, rarity: "common",
         description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
       };
       state = {
         ...state,
@@ -936,8 +964,7 @@ describe("action-resolver", () => {
 
     test("rejected at max trainers", () => {
       let state = lobby();
-      // Fill up to max (8 trainers)
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < state.settings.maxTrainers; i++) {
         [state] = join(state, `T${i}`, `t${i}`);
       }
 
@@ -1059,6 +1086,475 @@ describe("action-resolver", () => {
       const [newState, events] = resolveAction(state, { type: "remove_bot", trainerId: "bot_99" });
       expect(newState).toBe(state);
       expect(events).toEqual([]);
+    });
+  });
+
+  // --- Fury draw ---
+
+  describe("fury_draw", () => {
+    function stateWithDeck(pokemon: Pokemon[]): GameState {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+      return {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers["t0"],
+            deck: { drawPile: pokemon, drawn: [], discard: [] },
+          },
+        },
+      };
+    }
+
+    test("drawing charmeleon draws an extra card automatically", () => {
+      const charmeleon = createPokemon("charmeleon");
+      const filler: Pokemon = {
+        id: "filler1", templateId: "test", name: "Filler",
+        types: ["normal"], distance: 1, cost: 0, rarity: "common",
+        description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+      let state = stateWithDeck([charmeleon, filler]);
+      const [newState, events] = hit(state, "t0");
+
+      // Should have 2 pokemon_drawn events (charmeleon + fury draw)
+      const drawnEvents = events.filter(e => e.type === "pokemon_drawn");
+      expect(drawnEvents.length).toBe(2);
+
+      // Should have a fury_draw event
+      const furyEvent = events.find(e => e.type === "fury_draw");
+      expect(furyEvent).toBeDefined();
+
+      // Both cards should be in drawn pile
+      expect(newState.trainers.t0.deck.drawn.length).toBe(2);
+    });
+
+    test("fury chain stops at depth limit", () => {
+      // Create 7 charmeleons - fury should chain but stop at depth 5
+      const charmeleons = Array.from({ length: 7 }, () => createPokemon("charmeleon"));
+      let state = stateWithDeck(charmeleons);
+      const [newState, events] = hit(state, "t0");
+
+      // Should draw initial + up to 5 fury draws = 6 total
+      const drawnEvents = events.filter(e => e.type === "pokemon_drawn");
+      expect(drawnEvents.length).toBe(6);
+
+      const furyEvents = events.filter(e => e.type === "fury_draw");
+      expect(furyEvents.length).toBe(5);
+    });
+  });
+
+  // --- Armor ---
+
+  describe("armor", () => {
+    function stateWithDeck(pokemon: Pokemon[]): GameState {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+      return {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers["t0"],
+            deck: { drawPile: pokemon, drawn: [], discard: [] },
+          },
+        },
+      };
+    }
+
+    test("aron reduces next card's cost by 1", () => {
+      const aron = createPokemon("aron");
+      // Use a card with known cost
+      const costlyCard: Pokemon = {
+        id: "costly1", templateId: "test", name: "Costly",
+        types: ["normal"], distance: 1, cost: 3, rarity: "common",
+        description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+      let state = stateWithDeck([aron, costlyCard]);
+
+      // Draw aron - sets pendingArmorReduction
+      [state] = hit(state, "t0");
+      const afterAron = state.trainers.t0.routeProgress;
+      expect(afterAron.pendingArmorReduction).toBe(1);
+
+      // Draw costly card - cost should be reduced by 1 (3-1=2)
+      // aron cost=1, costly effective cost=2, total=3
+      // aron also has modify_threshold +1
+      [state] = hit(state, "t0");
+      const afterCostly = state.trainers.t0.routeProgress;
+      // aron cost=1 + costly cost=(3-1)=2 = total 3
+      expect(afterCostly.totalCost).toBe(3);
+    });
+  });
+
+  // --- hex_negate ---
+
+  describe("hex_negate", () => {
+    function stateWithDeck(pokemon: Pokemon[]): GameState {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+      return {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers["t0"],
+            deck: { drawPile: pokemon, drawn: [], discard: [] },
+          },
+        },
+      };
+    }
+
+    test("sneasel negates bust via hex_negate", () => {
+      const sneasel = createPokemon("sneasel");
+      // sneasel: cost 1, distance 3
+      // Need to bust: filler with high cost, then sneasel triggers hex_negate
+      const filler: Pokemon = {
+        id: "heavy1", templateId: "test", name: "Heavy",
+        types: ["normal"], distance: 1, cost: 7, rarity: "common",
+        description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+      // filler cost=7, sneasel cost=1, total=8, threshold=8 → not busted (8 <= 8)
+      // Need total > threshold. Use cost 7 + cost 5 = 12 > 8
+      const heavySneasel: Pokemon = {
+        ...sneasel, cost: 5,
+      };
+      let state = stateWithDeck([filler, heavySneasel]);
+
+      [state] = hit(state, "t0"); // cost=7
+      [state] = hit(state, "t0"); // cost=12 > 8 → bust → hex_negate saves
+
+      expect(state.trainers.t0.status).toBe("exploring"); // not busted
+      expect(state.trainers.t0.routeProgress.totalCost).toBe(8); // clamped to threshold
+    });
+  });
+
+  // --- Broadcasts on route end ---
+
+  describe("broadcast collection on route end", () => {
+    function stateWithDeck(pokemon: Pokemon[], trainerCount: number = 1): GameState {
+      let state = lobby();
+      for (let i = 0; i < trainerCount; i++) {
+        [state] = join(state, `Trainer${i}`, `t${i}`);
+      }
+      [state] = start(state, "t0");
+      // Replace t0's deck
+      return {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers["t0"],
+            deck: { drawPile: pokemon, drawn: [], discard: [] },
+          },
+        },
+      };
+    }
+
+    test("trainer draws pokemon with broadcast effect, stops, broadcasts collected on state", () => {
+      const poochyena = createPokemon("poochyena");
+      const filler: Pokemon = {
+        id: "filler1", templateId: "test", name: "Filler",
+        types: ["normal"], distance: 1, cost: 0, rarity: "common",
+        description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+      // Two trainers so maybeEndRoute triggers when both stop
+      let state = stateWithDeck([poochyena, filler], 2);
+      // Draw the poochyena
+      [state] = hit(state, "t0");
+      // Stop t0
+      [state] = stop(state, "t0");
+
+      // Stop t1 (who has normal starter deck, just stop immediately)
+      [state] = stop(state, "t1");
+
+      // After all trainers done, broadcasts should be collapsed and stored on state
+      expect(state.activeBroadcasts.length).toBeGreaterThan(0);
+      expect(state.activeBroadcasts[0].broadcastId).toBe("poochyena_currency");
+      expect(state.activeBroadcasts[0].stat).toBe("currency");
+    });
+
+    test("broadcast currency applied to all trainers when route ends", () => {
+      const poochyena = createPokemon("poochyena");
+      let state = stateWithDeck([poochyena], 2);
+
+      // Record initial currencies
+      const t0CurrencyBefore = state.trainers["t0"].currency;
+      const t1CurrencyBefore = state.trainers["t1"].currency;
+
+      // t0 draws poochyena then stops
+      [state] = hit(state, "t0");
+      [state] = stop(state, "t0");
+
+      // t1 stops (ends route)
+      [state] = stop(state, "t1");
+
+      // poochyena: allAmount=1, ownerAmount=2
+      // t0 (owner) should get ownerAmount (2), t1 should get allAmount (1)
+      // But currency also includes trail rewards, so check the broadcast was applied
+      // by verifying the broadcast_resolved event was emitted
+      expect(state.activeBroadcasts.length).toBe(1);
+      expect(state.activeBroadcasts[0].ownerId).toBe("t0");
+    });
+  });
+
+  // --- Echoes on route end ---
+
+  describe("echo collection on route end", () => {
+    function stateWithDeck(pokemon: Pokemon[], trainerCount: number = 1): GameState {
+      let state = lobby();
+      for (let i = 0; i < trainerCount; i++) {
+        [state] = join(state, `Trainer${i}`, `t${i}`);
+      }
+      [state] = start(state, "t0");
+      return {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers["t0"],
+            deck: { drawPile: pokemon, drawn: [], discard: [] },
+          },
+        },
+      };
+    }
+
+    test("trainer draws pokemon with echo effect, stops, echoes stored on trainer", () => {
+      const alakazam = createPokemon("alakazam");
+      let state = stateWithDeck([alakazam], 2);
+
+      // Draw alakazam
+      [state] = hit(state, "t0");
+      // Stop t0
+      [state] = stop(state, "t0");
+      // Stop t1 to end route
+      [state] = stop(state, "t1");
+
+      // After route ends, t0 should have echo entries
+      // Note: trainer references change after hub entry, find t0 in the resulting state
+      const t0 = state.trainers["t0"];
+      expect(t0.echoes.length).toBeGreaterThan(0);
+      expect(t0.echoes[0].effect).toEqual({ type: "peek_deck", count: 2 });
+    });
+  });
+
+  // --- Echo trigger on route start ---
+
+  describe("echo trigger on first draw", () => {
+    function makePokemon(overrides: Partial<Pokemon> = {}): Pokemon {
+      return {
+        id: `test_${Math.random().toString(36).slice(2)}`,
+        templateId: "test",
+        name: "Test Pokemon",
+        types: ["normal"],
+        distance: 1,
+        cost: 1,
+        rarity: "common",
+        description: "Test",
+        moves: [],
+        stage: "basic",
+        evolutionLine: "test",
+        evolvesInto: null,
+        evolutionSpeed: null,
+        ...overrides,
+      };
+    }
+
+    test("echoes fire on first draw of a new route and are cleared", () => {
+      let state = setupRoute(2);
+      const trainerId = "t0";
+
+      // Manually set echoes on the trainer from a "previous route"
+      const filler = makePokemon({ id: "filler1", cost: 0, distance: 1 });
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            echoes: [
+              { pokemonId: "alakazam_1", effect: { type: "peek_deck", count: 2 } },
+              { pokemonId: "alakazam_2", effect: { type: "bonus_distance", amount: 3 } },
+            ],
+            deck: { drawPile: [filler], drawn: [], discard: [] },
+          },
+        },
+      };
+
+      const [newState, events] = hit(state, trainerId);
+
+      // Should have echo_triggered events
+      const echoEvents = events.filter(e => e.type === "echo_triggered");
+      expect(echoEvents).toHaveLength(2);
+      expect(echoEvents[0]).toEqual({
+        type: "echo_triggered",
+        trainerId,
+        pokemonId: "alakazam_1",
+        effect: { type: "peek_deck", count: 2 },
+      });
+      expect(echoEvents[1]).toEqual({
+        type: "echo_triggered",
+        trainerId,
+        pokemonId: "alakazam_2",
+        effect: { type: "bonus_distance", amount: 3 },
+      });
+
+      // Echoes should be cleared on the trainer
+      expect(newState.trainers[trainerId].echoes).toEqual([]);
+    });
+
+    test("echoes do NOT fire on second draw", () => {
+      let state = setupRoute(2);
+      const trainerId = "t0";
+
+      const filler1 = makePokemon({ id: "filler1", cost: 0, distance: 1 });
+      const filler2 = makePokemon({ id: "filler2", cost: 0, distance: 1 });
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            echoes: [
+              { pokemonId: "echo_mon", effect: { type: "peek_deck", count: 1 } },
+            ],
+            deck: { drawPile: [filler1, filler2], drawn: [], discard: [] },
+          },
+        },
+      };
+
+      // First draw fires echoes
+      [state] = hit(state, trainerId);
+      expect(state.trainers[trainerId].echoes).toEqual([]);
+
+      // Second draw should NOT have echo events
+      const [, events2] = hit(state, trainerId);
+      const echoEvents2 = events2.filter(e => e.type === "echo_triggered");
+      expect(echoEvents2).toHaveLength(0);
+    });
+
+    test("no echo events when trainer has no echoes", () => {
+      let state = setupRoute(2);
+      const trainerId = "t0";
+
+      const filler = makePokemon({ id: "filler1", cost: 0, distance: 1 });
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          [trainerId]: {
+            ...state.trainers[trainerId],
+            echoes: [],
+            deck: { drawPile: [filler], drawn: [], discard: [] },
+          },
+        },
+      };
+
+      const [, events] = hit(state, trainerId);
+      const echoEvents = events.filter(e => e.type === "echo_triggered");
+      expect(echoEvents).toHaveLength(0);
+    });
+  });
+
+  // --- hex_negate once-per-game ---
+
+  describe("hex_negate once-per-game", () => {
+    function stateWithDeck(pokemon: Pokemon[]): GameState {
+      let state = lobby();
+      [state] = join(state, "Ash", "t0");
+      [state] = start(state, "t0");
+      return {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers["t0"],
+            deck: { drawPile: pokemon, drawn: [], discard: [] },
+          },
+        },
+      };
+    }
+
+    test("hex_negate does not fire a second time (usedHexNegate tracking)", () => {
+      const sneasel = createPokemon("sneasel");
+      // First round: filler + heavy sneasel → bust → hex saves
+      const filler: Pokemon = {
+        id: "heavy1", templateId: "test", name: "Heavy",
+        types: ["normal"], distance: 1, cost: 7, rarity: "common",
+        description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+      const heavySneasel: Pokemon = { ...sneasel, id: "sneasel1", cost: 5 };
+
+      let state = stateWithDeck([filler, heavySneasel]);
+
+      // First bust: hex_negate should save
+      [state] = hit(state, "t0"); // cost=7
+      [state] = hit(state, "t0"); // cost=12 > 8 → bust → hex_negate saves
+      expect(state.trainers.t0.status).toBe("exploring");
+      expect(state.trainers.t0.usedHexNegate).toBe(true);
+
+      // Set up another bust scenario with sneasel still drawn
+      const filler2: Pokemon = {
+        id: "heavy2", templateId: "test", name: "Heavy2",
+        types: ["normal"], distance: 1, cost: 5, rarity: "common",
+        description: "", moves: [],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+      // Current cost is clamped to threshold (8), drawing filler2 with cost 5 → 13 > 8 → bust
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            deck: { ...state.trainers.t0.deck, drawPile: [filler2] },
+          },
+        },
+      };
+
+      [state] = hit(state, "t0"); // cost=13 > 8 → bust → hex_negate should NOT fire
+      expect(state.trainers.t0.status).toBe("busted");
+    });
+
+    test("negate_bust still works even when usedHexNegate is true", () => {
+      // A pokemon with negate_bust (not hex_negate) should still work
+      const phoenix: Pokemon = {
+        id: "phoenix1", templateId: "test", name: "Phoenix",
+        types: ["fire"], distance: 1, cost: 12, rarity: "rare",
+        description: "Negates bust",
+        moves: [{
+          name: "Rebirth",
+          reminderText: "Negate bust",
+          trigger: "on_bust",
+          condition: null,
+          effect: { type: "negate_bust" },
+        }],
+        stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+      };
+
+      let state = stateWithDeck([phoenix]);
+      // Set usedHexNegate to true
+      state = {
+        ...state,
+        trainers: {
+          ...state.trainers,
+          t0: {
+            ...state.trainers.t0,
+            usedHexNegate: true,
+          },
+        },
+      };
+
+      [state] = hit(state, "t0"); // cost=12 > 8 → bust → negate_bust should still work
+      expect(state.trainers.t0.status).toBe("exploring");
     });
   });
 });

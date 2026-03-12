@@ -66,13 +66,13 @@ describe("evolveDeck", () => {
   });
 
   it("does NOT evolve duds", () => {
-    const dud = createPokemon("minor_dud");
+    const dud = createPokemon("pidgey");
     const deck: Deck = { drawPile: [dud], drawn: [], discard: [] };
     const draftedAtTier: Record<string, number> = { [dud.id]: 1 };
 
     const [newDeck, _, events] = evolveDeck(deck, draftedAtTier, 10);
 
-    expect(newDeck.drawPile[0].templateId).toBe("minor_dud");
+    expect(newDeck.drawPile[0].templateId).toBe("pidgey");
     expect(events).toHaveLength(0);
   });
 

@@ -11,6 +11,7 @@ export type PokemonType =
   | "fighting" | "poison" | "ground" | "flying" | "psychic" | "bug"
   | "rock" | "ghost" | "dragon" | "dark" | "steel" | "fairy";
 export type Rarity = "common" | "uncommon" | "rare" | "legendary";
+export type EvolutionStage = "basic" | "stage1" | "stage2";
 
 export type ItemId = "nugget";
 
@@ -31,6 +32,25 @@ export interface Pokemon {
   readonly moves: readonly Move[];
   readonly rarity: Rarity;
   readonly description: string;
+  readonly stage: EvolutionStage;
+  readonly evolutionLine: string;
+  readonly evolvesInto: string | null;
+  readonly evolutionSpeed: number | null;
+}
+
+export interface EchoEntry {
+  readonly pokemonId: string;
+  readonly effect: import("./abilities/types").AbilityEffect;
+}
+
+export interface ActiveBroadcast {
+  readonly ownerId: string;
+  readonly pokemonName: string;
+  readonly broadcastId: string;
+  readonly allAmount: number;
+  readonly ownerAmount: number;
+  readonly stat: "currency" | "threshold" | "distance" | "cost";
+  readonly category: "beneficial" | "taxing";
 }
 
 // === Deck (your team) ===
@@ -54,6 +74,8 @@ export interface RouteProgress {
   readonly totalCost: number;
   readonly pokemonDrawn: number;
   readonly activeEffects: readonly AbilityEffect[];
+  readonly pendingArmorReduction: number;
+  readonly dudArmorReduction: number;
 }
 
 export interface TrainerStats {
@@ -82,6 +104,9 @@ export interface Trainer {
   readonly bot: boolean;
   readonly stats: TrainerStats;
   readonly pendingThresholdBonus: number;
+  readonly echoes: readonly EchoEntry[];
+  readonly draftedAtTier: Record<string, number>;
+  readonly usedHexNegate: boolean;
 }
 
 // === Trail ===
@@ -199,6 +224,7 @@ export interface GameState {
   readonly superlatives: readonly Superlative[];
   readonly event: RouteEvent | null;
   readonly restStopChoices: Record<string, string> | null;
+  readonly activeBroadcasts: readonly ActiveBroadcast[];
 }
 
 export interface GameSettings {
@@ -253,7 +279,13 @@ export type GameEvent =
   | { type: "event_started"; event: RouteEvent }
   | { type: "rest_stop_entered" }
   | { type: "rest_stop_choice_made"; trainerId: string; choice: string }
-  | { type: "scout_result"; trainerId: string; pokemonIds: string[] };
+  | { type: "scout_result"; trainerId: string; pokemonIds: string[] }
+  | { type: "fury_draw"; trainerId: string; pokemon: Pokemon }
+  | { type: "pokemon_evolved"; pokemonId: string; fromTemplateId: string; toTemplateId: string; fromName: string; toName: string }
+  | { type: "echo_triggered"; trainerId: string; pokemonId: string; effect: AbilityEffect }
+  | { type: "broadcast_resolved"; broadcasts: readonly ActiveBroadcast[] }
+  | { type: "armor_applied"; trainerId: string; reduction: number; target: string }
+  | { type: "peek_result"; trainerId: string; cards: Pokemon[] };
 
 // === Connection ===
 

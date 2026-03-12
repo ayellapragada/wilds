@@ -1,4 +1,6 @@
-import type { GameState, Action, GameEvent, Trainer, TrainerStats, RouteProgress, ResolveResult, Trail, RouteEvent, AvatarId } from "./types";
+import type { GameState, Action, GameEvent, Trainer, TrainerStats, RouteProgress, ResolveResult, Trail, RouteEvent, AvatarId, Pokemon, RouteModifier, ActiveBroadcast, EchoEntry } from "./types";
+import type { AbilityEffect } from "./abilities/types";
+import { collapseBroadcasts, applyBroadcasts } from "./models/broadcast";
 import { createStarterTeam } from "./pokemon/catalog";
 import { createDeck, drawPokemon, endTurn } from "./models/deck";
 import { freshProgress, createRoute } from "./models/route";
@@ -6,6 +8,7 @@ import { getTrailPosition } from "./models/trail";
 import { resolveMoves } from "./abilities/resolver";
 import { handleVote } from "./phases/world";
 import { enterHub, handleSelectPokemon, handleConfirmSelections } from "./phases/hub";
+import { evolveDeck } from "./pokemon/evolution";
 import { handleRestStopChoice } from "./phases/rest-stop";
 import { generateEvent } from "./phases/event";
 import { generateMap } from "./map-generator";
@@ -97,6 +100,9 @@ function handleJoin(
     bot: false,
     stats: freshStats(),
     pendingThresholdBonus: 0,
+    echoes: [],
+    draftedAtTier: {},
+    usedHexNegate: false,
   };
 
   return [
@@ -133,6 +139,9 @@ function handleAddBot(
     bot: true,
     stats: freshStats(),
     pendingThresholdBonus: 0,
+    echoes: [],
+    draftedAtTier: {},
+    usedHexNegate: false,
   };
 
   return [
@@ -230,31 +239,46 @@ function handleStart(
 
 // === Route Phase ===
 
-function handleHit(
-  state: GameState,
-  action: { type: "hit"; trainerId: string }
-): ResolveResult {
-  if (state.phase !== "route") return [state, []];
-  const trainer = state.trainers[action.trainerId];
-  if (!trainer || trainer.status !== "exploring") return [state, []];
-
-  const result = drawPokemon(trainer.deck);
-  if (!result) return [state, []];
-  const [newDeck, pokemon] = result;
-
-  // Resolve moves with pre-draw progress
+/** Process a single drawn pokemon: resolve effects, apply cost/distance/threshold mods, apply armor. */
+function processDrawnPokemon(
+  pokemon: Pokemon,
+  drawnSoFar: readonly Pokemon[],
+  currentProgress: RouteProgress,
+  bustThreshold: number,
+  routeModifiers: readonly RouteModifier[],
+): {
+  effects: AbilityEffect[];
+  effectiveCost: number;
+  bonusDistance: number;
+  thresholdMod: number;
+  reduceCostAllAmount: number;
+  reduceCostAllWashAll: boolean;
+  pendingArmorReduction: number;
+  dudArmorReduction: number;
+} {
   const effects = resolveMoves(
-    pokemon, "on_draw", trainer.deck.drawn,
-    { ...trainer.routeProgress, pokemonDrawn: trainer.routeProgress.pokemonDrawn + 1 },
-    trainer.bustThreshold,
+    pokemon, "on_draw", drawnSoFar,
+    { ...currentProgress, pokemonDrawn: currentProgress.pokemonDrawn + 1 },
+    bustThreshold,
   );
 
-  // Apply move effects to modify cost/distance/threshold
   let effectiveCost = pokemon.cost;
   let bonusDistance = 0;
   let thresholdMod = 0;
   let reduceCostAllAmount = 0;
   let reduceCostAllWashAll = false;
+  let pendingArmorReduction = 0;
+  let dudArmorReduction = 0;
+
+  // Apply pending armor reduction from previous card
+  if (currentProgress.pendingArmorReduction > 0) {
+    effectiveCost = Math.max(0, effectiveCost - currentProgress.pendingArmorReduction);
+  }
+
+  // Apply dud armor reduction if this card is a dud (no moves)
+  if (pokemon.moves.length === 0 && currentProgress.dudArmorReduction > 0) {
+    effectiveCost = Math.max(0, effectiveCost - currentProgress.dudArmorReduction);
+  }
 
   for (const effect of effects) {
     switch (effect.type) {
@@ -277,30 +301,79 @@ function handleHit(
       case "modify_threshold":
         thresholdMod += effect.amount;
         break;
+      case "armor": {
+        if (effect.target === "next") {
+          pendingArmorReduction += effect.amount;
+        } else if (effect.target === "duds") {
+          dudArmorReduction += effect.amount;
+        } else if (effect.target === "all") {
+          reduceCostAllAmount += effect.amount;
+        }
+        break;
+      }
     }
   }
 
   // Apply route modifiers
-  if (state.currentRoute) {
-    for (const modifier of state.currentRoute.modifiers) {
-      switch (modifier.type) {
-        case "distance_bonus":
+  for (const modifier of routeModifiers) {
+    switch (modifier.type) {
+      case "distance_bonus":
+        bonusDistance += modifier.value;
+        break;
+      case "cost_bonus":
+        effectiveCost = Math.max(0, effectiveCost + modifier.value);
+        break;
+      case "threshold_modifier":
+        thresholdMod += modifier.value;
+        break;
+      case "type_bonus":
+        if (modifier.targetType && pokemon.types.includes(modifier.targetType)) {
           bonusDistance += modifier.value;
-          break;
-        case "cost_bonus":
-          effectiveCost = Math.max(0, effectiveCost + modifier.value);
-          break;
-        case "threshold_modifier":
-          thresholdMod += modifier.value;
-          break;
-        case "type_bonus":
-          if (modifier.targetType && pokemon.types.includes(modifier.targetType)) {
-            bonusDistance += modifier.value;
-          }
-          break;
-      }
+        }
+        break;
     }
   }
+
+  return { effects, effectiveCost, bonusDistance, thresholdMod, reduceCostAllAmount, reduceCostAllWashAll, pendingArmorReduction, dudArmorReduction };
+}
+
+function handleHit(
+  state: GameState,
+  action: { type: "hit"; trainerId: string }
+): ResolveResult {
+  if (state.phase !== "route") return [state, []];
+  const trainer = state.trainers[action.trainerId];
+  if (!trainer || trainer.status !== "exploring") return [state, []];
+
+  // Echo trigger: fire echoes on first draw of a new route
+  let echoEvents: GameEvent[] = [];
+  let updatedEchoes = trainer.echoes;
+  if (trainer.routeProgress.pokemonDrawn === 0 && trainer.echoes.length > 0) {
+    for (const echo of trainer.echoes) {
+      echoEvents.push({
+        type: "echo_triggered",
+        trainerId: trainer.id,
+        pokemonId: echo.pokemonId,
+        effect: echo.effect,
+      });
+    }
+    updatedEchoes = [];
+  }
+
+  const result = drawPokemon(trainer.deck);
+  if (!result) return [state, []];
+  let [currentDeck, pokemon] = result;
+
+  const routeModifiers = state.currentRoute!.modifiers;
+
+  const processed = processDrawnPokemon(
+    pokemon, trainer.deck.drawn, trainer.routeProgress, trainer.bustThreshold, routeModifiers,
+  );
+
+  let { effectiveCost, bonusDistance, thresholdMod, reduceCostAllAmount, reduceCostAllWashAll } = processed;
+  let allEffects = [...processed.effects];
+  let newPendingArmor = processed.pendingArmorReduction;
+  let newDudArmor = trainer.routeProgress.dudArmorReduction + processed.dudArmorReduction;
 
   let newTotalCost = trainer.routeProgress.totalCost + effectiveCost;
   if (reduceCostAllWashAll) {
@@ -313,19 +386,22 @@ function handleHit(
     totalDistance: trainer.routeProgress.totalDistance + pokemon.distance + bonusDistance,
     totalCost: newTotalCost,
     pokemonDrawn: trainer.routeProgress.pokemonDrawn + 1,
-    activeEffects: effects.length > 0
-      ? [...trainer.routeProgress.activeEffects, ...effects]
+    activeEffects: allEffects.length > 0
+      ? [...trainer.routeProgress.activeEffects, ...allEffects]
       : trainer.routeProgress.activeEffects,
+    pendingArmorReduction: newPendingArmor,
+    dudArmorReduction: newDudArmor,
   };
 
-  const newThreshold = trainer.bustThreshold + thresholdMod;
+  let newThreshold = trainer.bustThreshold + thresholdMod;
   let busted = progress.totalCost > newThreshold;
 
   const events: GameEvent[] = [
+    ...echoEvents,
     { type: "pokemon_drawn", trainerId: trainer.id, pokemon, progress },
   ];
 
-  for (const effect of effects) {
+  for (const effect of allEffects) {
     events.push({
       type: "ability_triggered",
       pokemonId: pokemon.id,
@@ -334,13 +410,83 @@ function handleHit(
     });
   }
 
+  let totalCardsDrawn = 1;
+
+  // Fury draw loop
+  const FURY_DEPTH_LIMIT = 5;
+  let furyDepth = 0;
+  while (!busted && allEffects.some(e => e.type === "fury_draw") && furyDepth < FURY_DEPTH_LIMIT) {
+    furyDepth++;
+    const furyResult = drawPokemon(currentDeck);
+    if (!furyResult) break;
+    const [furyDeck, furyPokemon] = furyResult;
+    currentDeck = furyDeck;
+
+    events.push({ type: "fury_draw", trainerId: trainer.id, pokemon: furyPokemon });
+
+    const furyProcessed = processDrawnPokemon(
+      furyPokemon, currentDeck.drawn, progress, newThreshold, routeModifiers,
+    );
+
+    let furyCost = furyProcessed.effectiveCost;
+    let furyBonusDist = furyProcessed.bonusDistance;
+    let furyThreshMod = furyProcessed.thresholdMod;
+    let furyReduceAll = furyProcessed.reduceCostAllAmount;
+    let furyWashAll = furyProcessed.reduceCostAllWashAll;
+
+    let furyTotalCost = progress.totalCost + furyCost;
+    if (furyWashAll) {
+      furyTotalCost = 0;
+    } else if (furyReduceAll > 0) {
+      furyTotalCost = Math.max(0, furyTotalCost - furyReduceAll);
+    }
+
+    newThreshold += furyThreshMod;
+    newPendingArmor = furyProcessed.pendingArmorReduction;
+    newDudArmor = progress.dudArmorReduction + furyProcessed.dudArmorReduction;
+
+    progress = {
+      totalDistance: progress.totalDistance + furyPokemon.distance + furyBonusDist,
+      totalCost: furyTotalCost,
+      pokemonDrawn: progress.pokemonDrawn + 1,
+      activeEffects: furyProcessed.effects.length > 0
+        ? [...progress.activeEffects, ...furyProcessed.effects]
+        : progress.activeEffects,
+      pendingArmorReduction: newPendingArmor,
+      dudArmorReduction: newDudArmor,
+    };
+
+    events.push({ type: "pokemon_drawn", trainerId: trainer.id, pokemon: furyPokemon, progress });
+
+    for (const effect of furyProcessed.effects) {
+      events.push({
+        type: "ability_triggered",
+        pokemonId: furyPokemon.id,
+        effect,
+        description: furyPokemon.description,
+      });
+    }
+
+    busted = progress.totalCost > newThreshold;
+    allEffects = furyProcessed.effects;
+    totalCardsDrawn++;
+  }
+
   // Check for on_bust moves across all drawn pokemon
+  let hexNegateUsed = false;
   if (busted) {
-    for (const drawn of newDeck.drawn) {
-      const bustEffects = resolveMoves(drawn, "on_bust", newDeck.drawn, progress, newThreshold);
-      const negation = bustEffects.find(e => e.type === "negate_bust");
+    for (const drawn of currentDeck.drawn) {
+      const bustEffects = resolveMoves(drawn, "on_bust", currentDeck.drawn, progress, newThreshold);
+      // negate_bust always works; hex_negate only works if not already used this game
+      const negation = bustEffects.find(e =>
+        e.type === "negate_bust" ||
+        (e.type === "hex_negate" && !trainer.usedHexNegate && !hexNegateUsed)
+      );
       if (negation) {
         busted = false;
+        if (negation.type === "hex_negate") {
+          hexNegateUsed = true;
+        }
         // Clamp cost to threshold so the negation doesn't grant permanent immunity
         progress = { ...progress, totalCost: newThreshold };
         events.push({
@@ -356,9 +502,9 @@ function handleHit(
 
   // Check for item pickup
   let collectedItems = [...trainer.items];
-  if (state.currentRoute?.trail) {
-    const trailPos = getTrailPosition(state.currentRoute.trail, progress.totalDistance);
-    const spot = state.currentRoute.trail.spots[trailPos];
+  if (state.currentRoute!.trail) {
+    const trailPos = getTrailPosition(state.currentRoute!.trail, progress.totalDistance);
+    const spot = state.currentRoute!.trail.spots[trailPos];
     if (spot.item) {
       collectedItems.push(spot.item.id);
       events.push({
@@ -370,17 +516,30 @@ function handleHit(
     }
   }
 
+  // Collect peek effects and emit peek_result
+  const peekCount = progress.activeEffects
+    .filter(e => e.type === "peek_deck")
+    .reduce((max, e) => Math.max(max, (e as { type: "peek_deck"; count: number }).count), 0);
+  if (peekCount > 0 && !busted) {
+    const peeked = currentDeck.drawPile.slice(0, peekCount);
+    if (peeked.length > 0) {
+      events.push({ type: "peek_result", trainerId: trainer.id, cards: [...peeked] });
+    }
+  }
+
   const updatedTrainer: Trainer = {
     ...trainer,
-    deck: newDeck,
+    deck: currentDeck,
     routeProgress: progress,
     bustThreshold: newThreshold,
     items: collectedItems,
     status: busted ? "busted" : "exploring",
+    echoes: updatedEchoes,
+    usedHexNegate: hexNegateUsed ? true : trainer.usedHexNegate,
     stats: {
       ...trainer.stats,
-      cardsDrawn: trainer.stats.cardsDrawn + 1,
-      maxCardDistance: Math.max(trainer.stats.maxCardDistance, pokemon.distance + bonusDistance),
+      cardsDrawn: trainer.stats.cardsDrawn + totalCardsDrawn,
+      maxCardDistance: Math.max(trainer.stats.maxCardDistance, pokemon.distance + processed.bonusDistance),
     },
   };
 
@@ -415,22 +574,38 @@ function handleContinueEvent(state: GameState): ResolveResult {
   return [{ ...state, phase: "route", currentRoute, event: null }, []];
 }
 
-/** Compute end-of-round rewards: trail position VP/currency + end_of_round ability effects. */
+/** Compute end-of-round rewards: trail position VP/currency + end_of_round ability effects + broadcasts + echoes. */
 function resolveRouteEnd(trainer: Trainer, trail: Trail, event: RouteEvent | null): {
   vpEarned: number;
   currencyEarned: number;
   events: GameEvent[];
+  broadcasts: ActiveBroadcast[];
+  echoes: EchoEntry[];
 } {
   const trailPos = getTrailPosition(trail, trainer.routeProgress.totalDistance);
   const vpEarned = trail.spots[trailPos].vp;
 
   let bonusCurrency = 0;
   const events: GameEvent[] = [];
+  const broadcasts: ActiveBroadcast[] = [];
+  const echoes: EchoEntry[] = [];
+
   for (const drawn of trainer.deck.drawn) {
     const effects = resolveMoves(drawn, "end_of_round", trainer.deck.drawn, trainer.routeProgress, trainer.bustThreshold);
     for (const effect of effects) {
       if (effect.type === "bonus_currency") {
         bonusCurrency += effect.amount;
+      }
+      if (effect.type === "broadcast") {
+        broadcasts.push({
+          ownerId: trainer.id,
+          pokemonName: drawn.name,
+          broadcastId: effect.broadcastId,
+          allAmount: effect.allAmount,
+          ownerAmount: effect.ownerAmount,
+          stat: effect.stat,
+          category: effect.category,
+        });
       }
       events.push({
         type: "ability_triggered",
@@ -439,13 +614,21 @@ function resolveRouteEnd(trainer: Trainer, trail: Trail, event: RouteEvent | nul
         description: drawn.description,
       });
     }
+
+    // Collect echoes from on_draw triggered moves
+    const drawEffects = resolveMoves(drawn, "on_draw", trainer.deck.drawn, trainer.routeProgress, trainer.bustThreshold);
+    for (const effect of drawEffects) {
+      if (effect.type === "echo") {
+        echoes.push({ pokemonId: drawn.id, effect: effect.echoEffect });
+      }
+    }
   }
 
   let currencyEarned = trail.spots[trailPos].currency + bonusCurrency;
   if (event?.type === "bounty") {
     currencyEarned *= 2;
   }
-  return { vpEarned, currencyEarned, events };
+  return { vpEarned, currencyEarned, events, broadcasts, echoes };
 }
 
 function handleStop(
@@ -456,7 +639,7 @@ function handleStop(
   const trainer = state.trainers[action.trainerId];
   if (!trainer || trainer.status !== "exploring") return [state, []];
 
-  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail, state.event);
+  const { vpEarned, currencyEarned, events, broadcasts, echoes } = resolveRouteEnd(trainer, state.currentRoute!.trail, state.event);
 
   events.push(
     { type: "trainer_stopped", trainerId: trainer.id, totalDistance: trainer.routeProgress.totalDistance, vpEarned },
@@ -474,6 +657,7 @@ function handleStop(
     routeProgress: freshProgress(),
     finalRouteDistance: finalDistance,
     finalRouteCost: finalCost,
+    echoes: [...trainer.echoes, ...echoes],
     stats: {
       ...trainer.stats,
       maxRouteDistance: Math.max(trainer.stats.maxRouteDistance, finalDistance),
@@ -484,6 +668,7 @@ function handleStop(
   let newState: GameState = {
     ...state,
     trainers: { ...state.trainers, [trainer.id]: updatedTrainer },
+    activeBroadcasts: [...state.activeBroadcasts, ...broadcasts],
   };
 
   newState = maybeEndRoute(newState, events);
@@ -498,7 +683,7 @@ function handleBustPenalty(
   const trainer = state.trainers[action.trainerId];
   if (!trainer || trainer.status !== "busted") return [state, []];
 
-  const { vpEarned, currencyEarned, events } = resolveRouteEnd(trainer, state.currentRoute!.trail, state.event);
+  const { vpEarned, currencyEarned, events, broadcasts, echoes } = resolveRouteEnd(trainer, state.currentRoute!.trail, state.event);
 
   const finalDistance = trainer.routeProgress.totalDistance;
   const finalCost = trainer.routeProgress.totalCost;
@@ -512,6 +697,7 @@ function handleBustPenalty(
     routeProgress: freshProgress(),
     finalRouteDistance: finalDistance,
     finalRouteCost: finalCost,
+    echoes: [...trainer.echoes, ...echoes],
     stats: {
       ...trainer.stats,
       bustCount: trainer.stats.bustCount + 1,
@@ -527,6 +713,7 @@ function handleBustPenalty(
   let newState: GameState = {
     ...state,
     trainers: { ...state.trainers, [trainer.id]: updatedTrainer },
+    activeBroadcasts: [...state.activeBroadcasts, ...broadcasts],
   };
 
   newState = maybeEndRoute(newState, events);
@@ -556,10 +743,27 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
     results[t.id] = { distance: t.score, vp: t.score, currencyEarned: t.currency, busted: bustedTrainerIds.includes(t.id) };
   }
 
-  // Reset trainers to waiting
+  // Collapse and apply broadcasts
+  const allBroadcasts = state.activeBroadcasts;
+  const collapsed = collapseBroadcasts(allBroadcasts);
+  const playerIds = Object.keys(state.trainers);
+  const broadcastModifiers = applyBroadcasts(collapsed, playerIds);
+
+  // Reset trainers to waiting, apply broadcast modifiers
   const trainers: Record<string, Trainer> = {};
   for (const [id, t] of Object.entries(state.trainers)) {
-    trainers[id] = { ...t, status: "waiting", routeProgress: freshProgress() };
+    const mods = broadcastModifiers[id];
+    trainers[id] = {
+      ...t,
+      status: "waiting",
+      routeProgress: freshProgress(),
+      currency: t.currency + mods.currency,
+      pendingThresholdBonus: t.pendingThresholdBonus + mods.threshold,
+    };
+  }
+
+  if (collapsed.length > 0) {
+    events.push({ type: "broadcast_resolved", broadcasts: collapsed });
   }
 
   events.push({ type: "route_completed", results });
@@ -567,7 +771,7 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
   // Check if this was the champion route → game over
   if (state.map) {
     const currentNode = state.map.nodes[state.map.currentNodeId];
-    if (currentNode?.type === "champion") {
+    if (currentNode.type === "champion") {
       // Compute final deck sizes
       for (const [id, t] of Object.entries(trainers)) {
         const deckSize = t.deck.drawPile.length + t.deck.drawn.length + t.deck.discard.length;
@@ -600,7 +804,18 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
         phase: "game_over",
         votes: null,
         superlatives,
+        activeBroadcasts: collapsed,
       };
+    }
+  }
+
+  // Evolve each trainer's deck before entering hub
+  const currentTier = state.map!.nodes[state.map!.currentNodeId].tier;
+  for (const [id, t] of Object.entries(trainers)) {
+    const [evolvedDeck, newDraftedAtTier, evoEvents] = evolveDeck(t.deck, t.draftedAtTier, currentTier);
+    trainers[id] = { ...t, deck: evolvedDeck, draftedAtTier: newDraftedAtTier };
+    for (const evo of evoEvents) {
+      events.push({ type: "pokemon_evolved", ...evo });
     }
   }
 
@@ -609,6 +824,7 @@ function maybeEndRoute(state: GameState, events: GameEvent[]): GameState {
     ...state,
     trainers,
     currentRoute: { ...state.currentRoute, status: "complete" },
+    activeBroadcasts: collapsed,
   };
   const [finalState, hubEvents] = enterHub(hubState, bustedTrainerIds, Math.random);
   events.push(...hubEvents);
@@ -633,6 +849,9 @@ function handlePlayAgain(state: GameState): ResolveResult {
       finalRouteCost: null,
       stats: freshStats(),
       pendingThresholdBonus: 0,
+      echoes: [],
+      draftedAtTier: {},
+      usedHexNegate: false,
     };
   }
 
@@ -648,5 +867,6 @@ function handlePlayAgain(state: GameState): ResolveResult {
     superlatives: [],
     event: null,
     restStopChoices: null,
+    activeBroadcasts: [],
   }, [{ type: "play_again" as const }]];
 }

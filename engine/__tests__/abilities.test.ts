@@ -1,23 +1,26 @@
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, beforeEach, it } from "vitest";
 import { checkCondition, resolveMoves } from "../abilities/resolver";
 import type { AbilityCondition } from "../abilities/types";
 import type { Pokemon, RouteProgress } from "../types";
 import { resolveAction } from "../action-resolver";
 import { createInitialState } from "../index";
 import type { GameState } from "../types";
+import { createPokemon, resetPokemonIdCounter } from "../pokemon/catalog";
 
 function pokemon(overrides: Partial<Pokemon> = {}): Pokemon {
   return {
     id: "c1", templateId: "test", name: "Test",
     types: ["fire"], distance: 1, cost: 1, rarity: "common",
-    description: "", moves: [], ...overrides,
+    description: "", moves: [],
+    stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+    ...overrides,
   };
 }
 
 function progress(overrides: Partial<RouteProgress> = {}): RouteProgress {
   return {
     totalDistance: 0, totalCost: 0, pokemonDrawn: 0,
-    activeEffects: [], ...overrides,
+    activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0, ...overrides,
   };
 }
 
@@ -194,7 +197,9 @@ function makePokemon(id: string, overrides: Partial<Pokemon> = {}): Pokemon {
   return {
     id, templateId: "test", name: "Test", types: ["fire"],
     distance: 2, cost: 1, rarity: "common", description: "",
-    moves: [], ...overrides,
+    moves: [],
+    stage: "basic", evolutionLine: "test", evolvesInto: null, evolutionSpeed: null,
+    ...overrides,
   };
 }
 
@@ -409,5 +414,75 @@ describe("end_of_round trigger", () => {
     });
     expect(resolveMoves(aipom, "end_of_round", [aipom], progress({ pokemonDrawn: 3 }), 7)).toEqual([]);
     expect(resolveMoves(aipom, "end_of_round", [aipom], progress({ pokemonDrawn: 4 }), 7)).toEqual([{ type: "bonus_currency", amount: 3 }]);
+  });
+});
+
+const baseProgress: RouteProgress = { totalDistance: 0, totalCost: 0, pokemonDrawn: 1, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 };
+
+describe("new keyword effects", () => {
+  beforeEach(() => resetPokemonIdCounter());
+
+  it("Momentum: charmander triggers +1 dist when 3+ cards drawn", () => {
+    const charmander = createPokemon("charmander");
+    const effects = resolveMoves(charmander, "on_draw", [], { ...baseProgress, pokemonDrawn: 3 }, 8);
+    expect(effects).toContainEqual({ type: "bonus_distance", amount: 1 });
+  });
+
+  it("Momentum: charmander does NOT trigger when < 3 cards drawn", () => {
+    const charmander = createPokemon("charmander");
+    const effects = resolveMoves(charmander, "on_draw", [], { ...baseProgress, pokemonDrawn: 2 }, 8);
+    expect(effects.find(e => e.type === "bonus_distance")).toBeUndefined();
+  });
+
+  it("Fury: charmeleon returns fury_draw effect", () => {
+    const charmeleon = createPokemon("charmeleon");
+    const effects = resolveMoves(charmeleon, "on_draw", [], baseProgress, 8);
+    expect(effects).toContainEqual({ type: "fury_draw" });
+  });
+
+  it("Foresight: squirtle returns peek_deck", () => {
+    const squirtle = createPokemon("squirtle");
+    const effects = resolveMoves(squirtle, "on_draw", [], baseProgress, 8);
+    expect(effects).toContainEqual({ type: "peek_deck", count: 1 });
+  });
+
+  it("Shield: geodude returns modify_threshold", () => {
+    const geodude = createPokemon("geodude");
+    const effects = resolveMoves(geodude, "on_draw", [], baseProgress, 8);
+    expect(effects).toContainEqual({ type: "modify_threshold", amount: 1, duration: "route" });
+  });
+
+  it("Overgrowth: ivysaur scales with grass drawn", () => {
+    const ivysaur = createPokemon("ivysaur");
+    const ally = createPokemon("bulbasaur");
+    const effects = resolveMoves(ivysaur, "on_draw", [ally, ivysaur], baseProgress, 8);
+    // bonus_distance_per expands: 1 * 2 grass cards = 2
+    expect(effects).toContainEqual({ type: "bonus_distance", amount: 2 });
+  });
+
+  it("Hex: sneasel returns hex_negate on bust", () => {
+    const sneasel = createPokemon("sneasel");
+    const effects = resolveMoves(sneasel, "on_bust", [], baseProgress, 8);
+    expect(effects).toContainEqual({ type: "hex_negate" });
+  });
+
+  it("Broadcast: poochyena returns broadcast on end_of_round", () => {
+    const poochyena = createPokemon("poochyena");
+    const effects = resolveMoves(poochyena, "end_of_round", [poochyena], baseProgress, 8);
+    expect(effects[0].type).toBe("broadcast");
+  });
+
+  it("Echo: alakazam returns echo wrapping peek effect", () => {
+    const alakazam = createPokemon("alakazam");
+    const effects = resolveMoves(alakazam, "on_draw", [], baseProgress, 8);
+    const echo = effects.find(e => e.type === "echo");
+    expect(echo).toBeDefined();
+  });
+
+  it("Armor: aron returns armor effect", () => {
+    const aron = createPokemon("aron");
+    const effects = resolveMoves(aron, "on_draw", [], baseProgress, 8);
+    const armor = effects.find(e => e.type === "armor");
+    expect(armor).toBeDefined();
   });
 });

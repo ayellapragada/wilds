@@ -30,12 +30,13 @@ function replay(state: GameState, actions: { type: string; [k: string]: unknown 
 /** Create a minimal trainer for manual state building. */
 function makeTrainer(id: string, name: string, overrides: Partial<Trainer> = {}): Trainer {
   const pokemon = [
-    createPokemon("rattata"),
-    createPokemon("rattata"),
-    createPokemon("rattata"),
     createPokemon("pidgey"),
     createPokemon("pidgey"),
-    createPokemon("caterpie"),
+    createPokemon("pidgey"),
+    createPokemon("pidgey"),
+    createPokemon("rattata"),
+    createPokemon("rattata"),
+    createPokemon("magikarp"),
     createPokemon("charmander"),
     createPokemon("squirtle"),
     createPokemon("bulbasaur"),
@@ -49,17 +50,22 @@ function makeTrainer(id: string, name: string, overrides: Partial<Trainer> = {})
     id,
     sessionToken: id,
     name,
+    avatar: 0,
     deck,
     score: 0,
     bustThreshold: 6,
     currency: 0,
     items: [],
     status: "waiting",
-    routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [] },
+    routeProgress: { totalDistance: 0, totalCost: 0, pokemonDrawn: 0, activeEffects: [], pendingArmorReduction: 0, dudArmorReduction: 0 },
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
     stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
+    pendingThresholdBonus: 0,
+    echoes: [],
+    draftedAtTier: {},
+    usedHexNegate: false,
     ...overrides,
   };
 }
@@ -76,7 +82,7 @@ function makeMap(): WorldMap {
     bustThreshold: 6,
     modifiers: [],
     visited: true,
-    pokemonPool: ["rattata", "pidgey", "charmander", "squirtle"],
+    pokemonPool: ["pidgey", "rattata", "charmander", "squirtle"],
     currencyDistribution: { total: 3, curve: "flat" },
   };
   const nodeA: RouteNode = {
@@ -89,7 +95,7 @@ function makeMap(): WorldMap {
     bustThreshold: 7,
     modifiers: [],
     visited: false,
-    pokemonPool: ["rattata", "pidgey", "caterpie", "bulbasaur"],
+    pokemonPool: ["pidgey", "rattata", "caterpie", "bulbasaur"],
     currencyDistribution: { total: 3, curve: "flat" },
   };
   const nodeB: RouteNode = {
@@ -179,13 +185,14 @@ function routeMidGame(): Preset {
 
   // Build trainers manually: Ash has drawn 2 pokemon, Misty is still exploring
   resetPokemonIdCounter();
-  const drawnPokemon1 = createPokemon("rattata");
+  const drawnPokemon1 = createPokemon("pidgey");
   const drawnPokemon2 = createPokemon("pidgey");
   const remainingPokemon = [
-    createPokemon("rattata"),
-    createPokemon("rattata"),
     createPokemon("pidgey"),
-    createPokemon("caterpie"),
+    createPokemon("pidgey"),
+    createPokemon("rattata"),
+    createPokemon("rattata"),
+    createPokemon("magikarp"),
     createPokemon("charmander"),
     createPokemon("squirtle"),
     createPokemon("bulbasaur"),
@@ -201,6 +208,7 @@ function routeMidGame(): Preset {
     id: "trainer_ash",
     sessionToken: "trainer_ash",
     name: "Ash",
+    avatar: 0,
     deck: ashDeck,
     score: 0,
     bustThreshold: 6,
@@ -212,11 +220,17 @@ function routeMidGame(): Preset {
       totalCost: drawnPokemon1.cost + drawnPokemon2.cost,
       pokemonDrawn: 2,
       activeEffects: [],
+      pendingArmorReduction: 0,
+      dudArmorReduction: 0,
     },
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
     stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
+    pendingThresholdBonus: 0,
+    echoes: [],
+    draftedAtTier: {},
+    usedHexNegate: false,
   };
 
   const misty = makeTrainer("trainer_misty", "Misty", {
@@ -236,6 +250,7 @@ function routeMidGame(): Preset {
     routeNumber: 1,
     settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
+    activeBroadcasts: [],
   };
 
   return {
@@ -256,7 +271,7 @@ function routeOneBusted(): Preset {
   const drawnPokemon2 = createPokemon("squirtle");
 
   const ashDeck: Deck = {
-    drawPile: [createPokemon("rattata"), createPokemon("pidgey")],
+    drawPile: [createPokemon("pidgey"), createPokemon("pidgey")],
     drawn: [drawnPokemon1, drawnPokemon2],
     discard: [],
   };
@@ -265,6 +280,7 @@ function routeOneBusted(): Preset {
     id: "trainer_ash",
     sessionToken: "trainer_ash",
     name: "Ash",
+    avatar: 0,
     deck: ashDeck,
     score: 5,
     bustThreshold: 1, // forced low threshold to guarantee bust
@@ -276,11 +292,17 @@ function routeOneBusted(): Preset {
       totalCost: drawnPokemon1.cost + drawnPokemon2.cost,
       pokemonDrawn: 2,
       activeEffects: [],
+      pendingArmorReduction: 0,
+      dudArmorReduction: 0,
     },
     finalRouteDistance: null,
     finalRouteCost: null,
     bot: false,
     stats: { cardsDrawn: 0, bustCount: 0, maxRouteDistance: 0, totalCurrencyEarned: 0, maxCardDistance: 0, finalDeckSize: 0 },
+    pendingThresholdBonus: 0,
+    echoes: [],
+    draftedAtTier: {},
+    usedHexNegate: false,
   };
 
   const misty = makeTrainer("trainer_misty", "Misty", {
@@ -300,6 +322,7 @@ function routeOneBusted(): Preset {
     routeNumber: 1,
     settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
+    activeBroadcasts: [],
   };
 
   return {
@@ -336,7 +359,7 @@ function hubFresh(): Preset {
   const hub: HubState = {
     freePickOffers: {
       trainer_ash: [freeOffer1, freeOffer2],
-      trainer_misty: [createPokemon("rattata"), createPokemon("pidgey")],
+      trainer_misty: [createPokemon("pidgey"), createPokemon("rattata")],
     },
     shopPokemon,
     shopPrices,
@@ -359,6 +382,7 @@ function hubFresh(): Preset {
     routeNumber: 1,
     settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
+    activeBroadcasts: [],
   };
 
   return {
@@ -410,6 +434,7 @@ function worldFresh(): Preset {
     routeNumber: 1,
     settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
+    activeBroadcasts: [],
   };
 
   return {
@@ -439,6 +464,7 @@ function worldSomeVoted(): Preset {
     routeNumber: 1,
     settings: { maxTrainers: 24, mapTiers: 10, difficulty: "normal" },
     botStrategies: {},
+    activeBroadcasts: [],
   };
 
   return {

@@ -11,10 +11,10 @@ describe("Deck", () => {
     const pokemon = createStarterTeam();
     const deck = createDeck(pokemon);
 
-    expect(deck.drawPile.length).toBe(9);
+    expect(deck.drawPile.length).toBe(10);
     expect(deck.drawn.length).toBe(0);
     expect(deck.discard.length).toBe(0);
-    expect(deckSize(deck)).toBe(9);
+    expect(deckSize(deck)).toBe(10);
   });
 
   it("draws a pokemon from the draw pile", () => {
@@ -25,24 +25,24 @@ describe("Deck", () => {
     expect(result).not.toBeNull();
 
     const [newDeck, drawnPokemon] = result!;
-    expect(newDeck.drawPile.length).toBe(8);
+    expect(newDeck.drawPile.length).toBe(9);
     expect(newDeck.drawn.length).toBe(1);
     expect(newDeck.drawn[0]).toBe(drawnPokemon);
-    expect(deckSize(newDeck)).toBe(9);
+    expect(deckSize(newDeck)).toBe(10);
   });
 
   it("draws all pokemon from the deck", () => {
     const pokemon = createStarterTeam();
     let deck = createDeck(pokemon);
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 10; i++) {
       const result = drawPokemon(deck);
       expect(result).not.toBeNull();
       deck = result![0];
     }
 
     expect(deck.drawPile.length).toBe(0);
-    expect(deck.drawn.length).toBe(9);
+    expect(deck.drawn.length).toBe(10);
     expect(deck.discard.length).toBe(0);
   });
 
@@ -50,21 +50,21 @@ describe("Deck", () => {
     const pokemon = createStarterTeam();
     let deck = createDeck(pokemon);
 
-    // Draw all 9 pokemon
-    for (let i = 0; i < 9; i++) {
+    // Draw all 10 pokemon
+    for (let i = 0; i < 10; i++) {
       deck = drawPokemon(deck)![0];
     }
 
     // End turn moves drawn to discard
     deck = endTurn(deck);
-    expect(deck.discard.length).toBe(9);
+    expect(deck.discard.length).toBe(10);
     expect(deck.drawn.length).toBe(0);
     expect(deck.drawPile.length).toBe(0);
 
     // Draw again — should reshuffle from discard
     const result = drawPokemon(deck);
     expect(result).not.toBeNull();
-    expect(result![0].drawPile.length).toBe(8);
+    expect(result![0].drawPile.length).toBe(9);
     expect(result![0].discard.length).toBe(0);
   });
 
@@ -84,7 +84,7 @@ describe("Deck", () => {
     deck = endTurn(deck);
     expect(deck.drawn.length).toBe(0);
     expect(deck.discard.length).toBe(2);
-    expect(deck.drawPile.length).toBe(7);
+    expect(deck.drawPile.length).toBe(8);
   });
 
   it("adds a pokemon to the discard pile", () => {
@@ -94,7 +94,7 @@ describe("Deck", () => {
 
     const updated = addPokemon(deck, newPokemon);
     expect(updated.discard.length).toBe(1);
-    expect(deckSize(updated)).toBe(10);
+    expect(deckSize(updated)).toBe(11);
   });
 
   it("removes a pokemon from any pile", () => {
@@ -108,7 +108,7 @@ describe("Deck", () => {
     // Remove the drawn pokemon
     deck = removePokemon(deck, drawnPokemon.id);
     expect(deck.drawn.length).toBe(0);
-    expect(deckSize(deck)).toBe(8);
+    expect(deckSize(deck)).toBe(9);
   });
 });
 
@@ -118,7 +118,7 @@ describe("Bust detection", () => {
     let deck = createDeck(pokemon);
     let totalCost = 0;
 
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 10; i++) {
       const result = drawPokemon(deck);
       if (!result) break;
       const [newDeck, drawnPokemon] = result;
@@ -126,8 +126,8 @@ describe("Bust detection", () => {
       totalCost += drawnPokemon.cost;
     }
 
-    // All 9 pokemon: 3×1 + 2×1 + 1 + 3 + 2 + 2 = 13
-    expect(totalCost).toBe(13);
+    // All 10 pokemon: 4×2(pidgey) + 2×3(rattata) + 1(magikarp) + 2 + 2 + 2 = 21
+    expect(totalCost).toBe(21);
   });
 
   it("can bust when total cost exceeds threshold", () => {
@@ -149,31 +149,31 @@ describe("Bust detection", () => {
       }
     }
 
-    // With threshold 10 and total possible cost 11, bust is possible
+    // With threshold 10 and total possible cost 21, bust is possible
     expect(busted).toBe(true);
     expect(totalCost).toBeGreaterThan(bustThreshold);
   });
 });
 
 describe("Starter team composition", () => {
-  it("has 9 pokemon total", () => {
+  it("has 10 pokemon total", () => {
     const pokemon = createStarterTeam();
-    expect(pokemon.length).toBe(9);
+    expect(pokemon.length).toBe(10);
   });
 
   it("has unique IDs for each pokemon", () => {
     const pokemon = createStarterTeam();
     const ids = pokemon.map(c => c.id);
-    expect(new Set(ids).size).toBe(9);
+    expect(new Set(ids).size).toBe(10);
   });
 
   it("has correct total distance and cost", () => {
     const pokemon = createStarterTeam();
     const totalDistance = pokemon.reduce((sum, c) => sum + c.distance, 0);
     const totalCost = pokemon.reduce((sum, c) => sum + c.cost, 0);
-    // 3×1 + 2×2 + 1 + 3 + 2 + 2 = 15 distance
-    expect(totalDistance).toBe(15);
-    // 3×1 + 2×1 + 1 + 3 + 2 + 2 = 13 cost
-    expect(totalCost).toBe(13);
+    // 4×2 + 2×3 + 1 + 1 + 1 + 1 = 18 distance
+    expect(totalDistance).toBe(18);
+    // 4×2 + 2×3 + 1 + 2 + 2 + 2 = 21 cost
+    expect(totalCost).toBe(21);
   });
 });

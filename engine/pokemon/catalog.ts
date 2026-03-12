@@ -1,4 +1,4 @@
-import type { Pokemon } from "../types";
+import type { Pokemon, EvolutionStage } from "../types";
 import type { Move } from "../abilities/types";
 import pokemonData from "./pokemon.json";
 
@@ -10,6 +10,10 @@ interface PokemonTemplate {
   rarity: Pokemon["rarity"];
   description: string;
   moves: Move[];
+  stage: EvolutionStage;
+  evolutionLine: string;
+  evolvesInto: string | null;
+  evolutionSpeed: number | null;
 }
 
 const templates = pokemonData as Record<string, PokemonTemplate>;
@@ -33,6 +37,10 @@ export function createPokemon(templateId: string): Pokemon {
     rarity: template.rarity,
     description: template.description,
     moves: template.moves,
+    stage: template.stage,
+    evolutionLine: template.evolutionLine,
+    evolvesInto: template.evolvesInto,
+    evolutionSpeed: template.evolutionSpeed,
   };
 }
 
@@ -44,13 +52,17 @@ export function getTemplate(templateId: string): PokemonTemplate {
 
 export function createStarterTeam(): Pokemon[] {
   return [
-    ...Array.from({ length: 3 }, () => createPokemon("rattata")),
-    ...Array.from({ length: 2 }, () => createPokemon("pidgey")),
-    createPokemon("caterpie"),
+    ...Array.from({ length: 4 }, () => createPokemon("pidgey")),
+    ...Array.from({ length: 2 }, () => createPokemon("rattata")),
+    createPokemon("magikarp"),
     createPokemon("charmander"),
     createPokemon("squirtle"),
     createPokemon("bulbasaur"),
   ];
+}
+
+export function isDud(templateId: string): boolean {
+  return getTemplate(templateId).moves.length === 0;
 }
 
 export function getAllTemplateIds(): string[] {

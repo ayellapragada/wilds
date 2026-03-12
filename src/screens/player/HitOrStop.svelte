@@ -31,7 +31,7 @@
     dangerRatio >= 0.75 ? "danger" : dangerRatio >= 0.5 ? "risky" : "safe"
   );
   let nearBust = $derived(
-    me.bustThreshold - me.routeProgress.totalCost <= 2 && me.routeProgress.pokemonDrawn > 0
+    whiteOutChance !== null && whiteOutChance >= 50
   );
 
   // DOM measurement for responsive positioning
@@ -81,6 +81,23 @@
       lastDrawnId = me.deck.drawn[count - 1].id;
     }
     prevDrawnCount = count;
+  });
+
+  // Peek: show top cards when a peek_deck effect triggers
+  let peekedCards = $state<import('../../../engine/types').Pokemon[]>([]);
+  let peekTimer: ReturnType<typeof setTimeout> | null = null;
+
+  $effect(() => {
+    const drawn = me.deck.drawn;
+    if (drawn.length === 0) return;
+    const lastDrawn = drawn[drawn.length - 1];
+    const peekMove = lastDrawn.moves.find(m => m.effect.type === "peek_deck");
+    if (peekMove && peekMove.effect.type === "peek_deck") {
+      const count = peekMove.effect.count;
+      peekedCards = me.deck.drawPile.slice(0, count);
+      if (peekTimer) clearTimeout(peekTimer);
+      peekTimer = setTimeout(() => { peekedCards = []; peekTimer = null; }, 4000);
+    }
   });
 
   let showBustFlash = $state(false);
@@ -164,6 +181,16 @@
     </div>
   {:else if me.status === 'stopped'}
     <p>{copy.statusStopped}! {copy.waitingForOthers}</p>
+  {/if}
+
+  {#if peekedCards.length > 0}
+    <div class="peek-overlay">
+      <h3>Foresight</h3>
+      <p class="peek-label">Next up:</p>
+      {#each peekedCards as pkmn (pkmn.id)}
+        <PokemonCard pokemon={pkmn} />
+      {/each}
+    </div>
   {/if}
 
   {#if me.deck.drawn.length > 0}
@@ -267,15 +294,24 @@
     to { box-shadow: 0 0 12px rgba(239, 68, 68, 0.7); }
   }
 
+  .peek-overlay {
+    background: var(--color-bg-muted);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin: var(--space-4) auto;
+    max-width: 20rem;
+    animation: peek-fade 4s ease-out forwards;
+  }
+  .peek-overlay h3 { margin: 0 0 var(--space-2); color: var(--color-primary); }
+  .peek-label { margin: 0 0 var(--space-2); font-size: var(--text-sm); opacity: 0.7; }
+  @keyframes peek-fade {
+    0%, 70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
   .hit-btn.on-edge {
     background: var(--color-danger);
-    animation: shake 0.3s ease-in-out infinite;
-  }
-  @keyframes shake {
-    0%, 100% { transform: translate(0, 0); }
-    25% { transform: translate(-0.5px, -0.5px); }
-    50% { transform: translate(0.5px, 0.5px); }
-    75% { transform: translate(-0.5px, 0.5px); }
   }
 
   .white-out-chance.critical { color: #fbbf24; font-weight: 800; font-size: var(--text-lg); }
